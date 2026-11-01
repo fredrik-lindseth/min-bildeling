@@ -153,9 +153,15 @@ const syncBtn = $("sync-btn");
 const lastSyncedEl = $("last-synced");
 const dataSummaryEl = $("data-summary");
 
+// Feltene skjules når de er tomme, så gap-avstanden i headeren ikke står igjen alene.
+function setHeaderText(el, text) {
+  el.textContent = text;
+  el.hidden = !text;
+}
+
 function updateDataSummary(reservations) {
   if (!reservations || reservations.length === 0) {
-    dataSummaryEl.textContent = "";
+    setHeaderText(dataSummaryEl, "");
     return;
   }
   const valid = filterValid(reservations);
@@ -166,8 +172,7 @@ function updateDataSummary(reservations) {
   const yearLabel =
     years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0]}`;
 
-  dataSummaryEl.textContent =
-    `${formatTrips(reservations.length)} • ${yearLabel} • ${formatNOK.format(total)}`;
+  setHeaderText(dataSummaryEl, `${formatTrips(reservations.length)} i ${yearLabel}, ${formatNOK.format(total)}`);
 }
 
 // ---------- Chart instances (for cleanup) ----------
@@ -1535,7 +1540,7 @@ function sourcesHtml(sources) {
 
 async function renderAll(reservations, lastSync) {
   allReservations = reservations;
-  lastSyncedEl.textContent = formatSyncTime(lastSync);
+  setHeaderText(lastSyncedEl, formatSyncTime(lastSync));
   updateDataSummary(allReservations);
 
   buildYearSelector(allReservations);

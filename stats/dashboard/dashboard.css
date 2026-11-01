@@ -187,15 +187,6 @@ body {
   font-weight: 500;
 }
 
-.header__data-summary:empty {
-  display: none;
-}
-
-.header__data-summary + .header__sync-time::before {
-  content: "•";
-  margin-right: 8px;
-  color: var(--color-text-tertiary);
-}
 
 /* ---- Navigation ---- */
 .nav {
