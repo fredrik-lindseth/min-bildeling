@@ -134,10 +134,16 @@ forvent_funn "ukjent vendor-fil" "$TMP/sak" "vendor/ny.js: vendor-fil uten sjekk
 sak; printf '.knapp {\n  color: #fff;\n}\n' >> "$TMP/sak/lib/stil.css"
 forvent_funn "farge utenfor :root" "$TMP/sak" "lib/stil.css:11: farge utenfor :root"
 
+sak; sed -i.bak '/data_collection_permissions/d; s/"140.0",/"140.0"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "manifest uten data_collection_permissions" "$TMP/sak" "data_collection_permissions mangler"
+
+sak; sed -i.bak 's/"140.0"/"128.0"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "for lav strict_min_version" "$TMP/sak" "strict_min_version er 128"
+
 # Ende til ende: package.sh på en kopi av repoet med plantet persondata
 # skal stoppe og slette zip-en.
 mkdir -p "$TMP/repo"
-cp "$REPO/LICENSE" "$REPO/README.md" "$TMP/repo/"
+cp "$REPO/LICENSE" "$TMP/repo/"
 cp -R "$STATS" "$TMP/repo/stats"
 rm -rf "$TMP/repo/stats/dist"
 printf '\nconst kontakt = "kontakt@example.com";\n' >> "$TMP/repo/stats/lib/stats.js"

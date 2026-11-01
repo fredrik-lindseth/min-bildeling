@@ -19,10 +19,9 @@
 
 set -euo pipefail
 
-# Manifestkravene for AMO (data_collection_permissions og
-# strict_min_version >= 140) er ikke på plass i manifestet ennå. Til
-# AMO-manifestet er inne gir de advarsel. Sett til 1 da, så blir de feil.
-MANIFEST_KRAV_ER_FEIL=0
+# Manifestkravene for AMO: data_collection_permissions og
+# strict_min_version >= 140. AMO avviser pakken uten dem, så de er feil.
+MANIFEST_KRAV_ER_FEIL=1
 MIN_GECKO_VERSJON=140
 
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
@@ -30,11 +29,13 @@ VENDOR_SUMS="$SCRIPTDIR/vendor.sha256"
 PRIVAT="${BILDELERINGEN_PERSONDATA:-$HOME/.config/bildeleringen/persondata.txt}"
 
 # Offentlige forekomster som ellers ville slått ut på et privat mønster
-# eller UUID-sjekken: lenken til det offentlige repoet, lisenslinjen og
+# eller UUID-sjekken: lenken til det offentlige repoet, gecko-id-en i
+# manifestet (ser ut som en e-postadresse), lisenslinjen og
 # de kjente organisasjons-id-ene fra
 # dele.no (Bildeleringen og Trondheim Bilkollektiv) og den oppdiktede
 # medlemskaps-id-en i demodataene.
 TILLATT_SED='s#github\.com/fredrik-lindseth/bildeleringen-stats##g
+s#"delebil-statistikk@fredriklindseth\.no"#""#g
 s#Copyright \(c\) [0-9]{4} Fredrik##g
 s#3212bcbe-8e34-4c28-9439-a44e6d5cf9c0##g
 s#8dba8f19-c438-f278-ed7c-912ec6537cb9##g

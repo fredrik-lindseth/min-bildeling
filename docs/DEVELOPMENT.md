@@ -73,12 +73,12 @@ icons/
 
 ## Tillatelser
 
-| Tillatelse          | Brukes til                                      |
-| ------------------- | ----------------------------------------------- |
-| `storage`           | Lagre data lokalt                               |
-| `unlimitedStorage`  | Full reservasjonshistorikk                      |
-| `scripting`         | Hente innloggingen når content-scriptet mangler |
-| `*://app.dele.no/*` | Auth og API-kall                                |
+| Tillatelse              | Brukes til                                      |
+| ----------------------- | ----------------------------------------------- |
+| `storage`               | Lagre data lokalt                               |
+| `unlimitedStorage`      | Full reservasjonshistorikk                      |
+| `scripting`             | Hente innloggingen når content-scriptet mangler |
+| `https://app.dele.no/*` | Auth og API-kall                                |
 
 ## Estimater og kilder
 

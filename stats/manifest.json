@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Bildeleringen Stats",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Statistikk over bildelingen din på dele.no",
   "permissions": ["storage", "unlimitedStorage", "scripting"],
-  "host_permissions": ["*://app.dele.no/*"],
+  "host_permissions": ["https://app.dele.no/*"],
   "background": {
     "scripts": ["background.js"],
     "service_worker": "background.js",
@@ -12,7 +12,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://app.dele.no/*"],
+      "matches": ["https://app.dele.no/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
@@ -43,8 +43,11 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "bildeleringen-stats@extension",
-      "strict_min_version": "120.0"
+      "id": "delebil-statistikk@fredriklindseth.no",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

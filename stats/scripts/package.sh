@@ -35,7 +35,8 @@ fi
 echo ""
 
 # Files to include in the release
-cp ../LICENSE ../README.md .
+# README er ikke med: den viser skjermbilder fra repoet, som ikke er i pakken.
+cp ../LICENSE .
 zip -r "$OUTDIR/$ZIPNAME" \
   manifest.json \
   background.js \
@@ -47,12 +48,11 @@ zip -r "$OUTDIR/$ZIPNAME" \
   vendor/ \
   icons/ \
   LICENSE \
-  README.md \
   -x "*.DS_Store" \
   -x "icons/listing/*" \
   -x "icons/*.svg" \
   -x "*debug*"
-rm -f LICENSE README.md
+rm -f LICENSE
 
 echo ""
 if ! ./scripts/sjekk-pakke.sh "$OUTDIR/$ZIPNAME"; then

@@ -31,7 +31,7 @@ Ett tokensett i en ny fil, `stats/lib/tokens.css`, lenket inn før sidens egen C
 
 Konsekvensene, slik del 2 løste dem:
 
-- `light-dark()` krever minst Firefox 120, så `strict_min_version` i `manifest.json` må være minst 120. I Chromium kom støtten i Chrome 123, og skal utvidelsen lastes der, settes `minimum_chrome_version` til minst 123.
+- `light-dark()` krever minst Firefox 120. `strict_min_version` er likevel 140, siden AMO krever det for `data_collection_permissions`. I Chromium kom støtten i Chrome 123, og skal utvidelsen lastes der, settes `minimum_chrome_version` til minst 123.
 - `getComputedStyle().getPropertyValue("--color-x")` gir tilbake selve `light-dark(...)`-teksten, som Chart.js ikke forstår. `chart-helpers.js` må løse fargen gjennom et skjult måleelement: sett `style.color = "var(--color-x)"` og les `getComputedStyle(el).color`, som da er en ferdig `rgb()`.
 - Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Verifisert i Firefox i begge moduser: fargene kommer riktig ut. html2canvas plasserer derimot ordene der DOM-en målte dem, men tegner dem med en canvas-font uten tabellsifre, og med `devicePixelRatio` som ikke er et helt tall forsvinner mellomrommene mellom ord. Kopien som tegnes til bilde får derfor klassen `export` med vanlige sifre og en `letter-spacing` på 0,01 px, som får html2canvas til å tegne tegn for tegn på DOM-posisjonene. Skulle `light-dark()` likevel svikte et sted, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk pluss en `:root.scheme-dark`-blokk med de samme verdiene for årsoppsummeringen.
 - Kontrastscriptet (se Sjekker som håndhever reglene) må kunne lese `light-dark(a, b)` og sjekke a mot a og b mot b.

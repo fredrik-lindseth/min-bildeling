@@ -57,7 +57,7 @@ async function getAuth() {
     return currentAuth;
   }
 
-  const tabs = await browserAPI.tabs.query({ url: "*://app.dele.no/*" });
+  const tabs = await browserAPI.tabs.query({ url: "https://app.dele.no/*" });
   console.log(`[BG] getAuth: found ${tabs.length} app.dele.no tab(s)`);
   if (tabs.length === 0) return null;
 
@@ -112,11 +112,13 @@ async function getAuth() {
         ),
       ]);
       const result = results?.[0]?.result;
-      console.log("[BG] getAuth: injection result:", result);
       if (result && result.token) {
+        // Resultatet inneholder tokenet, så det logges ikke.
+        console.log("[BG] getAuth: got auth via scripting");
         currentAuth = result;
         return result;
       }
+      console.log("[BG] getAuth: injection result:", result);
     } catch (e) {
       console.warn("[BG] getAuth: injection failed for tab", tab.id, e);
     }
