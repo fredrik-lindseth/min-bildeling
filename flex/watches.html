@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mine overvåkninger — Bildeleringen Fleksibel</title>
+  <title>Mine overvåkninger</title>
   <link rel="stylesheet" href="finder.css" />
   <style>
     .watches { max-width: 760px; margin: 0 auto; padding: 24px; }
@@ -32,11 +32,11 @@
   <main class="watches">
     <ul id="watch-list" aria-live="polite"></ul>
     <section class="settings">
-      <h2>Varsel-innstillinger</h2>
+      <h2>Varselinnstillinger</h2>
       <label>Backend-URL <input id="set-url" type="url" placeholder="https://varsel.example.com" aria-describedby="set-url-hint" /></label>
-      <p id="set-url-hint" class="hint">Valgfri relay til din egen backend. Når du lagrer, spør nettleseren om tilgang til akkurat denne adressen.</p>
-      <label>Abonnent-token <input id="set-token" type="password" autocomplete="off" /></label>
-      <label>Poll-intervall (min) <input id="set-poll" type="number" min="1" value="15" /></label>
+      <p id="set-url-hint" class="hint">Valgfri. Nettleseren spør om tilgang når du lagrer.</p>
+      <label>Token <input id="set-token" type="password" autocomplete="off" /></label>
+      <label>Minutter mellom sjekker <input id="set-poll" type="number" min="1" value="15" /></label>
       <button id="set-save" type="button">Lagre</button>
       <button id="poll-now" type="button">Sjekk nå</button>
       <p id="set-msg" role="status"></p>

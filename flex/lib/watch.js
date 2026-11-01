@@ -1,7 +1,7 @@
 import { toLocalISO, parseLocalISO } from "./format.js";
 import { freeBlocks, blockMinutes, matchesFilters, withinDistance } from "./flex.js";
 
-// window = { start: Date, end: Date } — det effektive vinduet polleren søkte med.
+// window = { start: Date, end: Date }, det effektive vinduet polleren søkte med.
 // Gis eksplisitt; funksjonen leser aldri watch.earliestStart selv.
 export function detectHits(searchResult, watch, window) {
   const cars = (searchResult.cars || [])
