@@ -17,6 +17,9 @@ import sys
 
 TEKST = 4.5
 UI = 3.0
+# Chart-fargene mot hverandre: hvert par minst ett lyshetstrinn fra hverandre,
+# se «Chart-paletten skiller på lyshet» i docs/design.md.
+PALETT = 1.3
 
 T = "lib/tokens.css"
 
@@ -52,6 +55,10 @@ PARS = [
     (T, "--color-chart-4", "--color-surface", UI, "chart-4"),
     (T, "--color-chart-5", "--color-surface", UI, "chart-5"),
     (T, "--color-chart-3", "--color-bg", UI, "chart-3 mot bg"),
+] + [
+    (T, f"--color-chart-{a}", f"--color-chart-{b}", PALETT, f"chart-{a} mot chart-{b}")
+    for a in range(1, 6)
+    for b in range(a + 1, 6)
 ]
 
 
