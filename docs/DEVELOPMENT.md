@@ -13,6 +13,8 @@ Endringer i HTML, JS og CSS på utvidelsessidene trenger bare at du laster siden
 
 Tester: `cd stats && node --test`.
 
+Demomodus: legg `?demo=1` på `dashboard/dashboard.html`, `popup/popup.html` eller `summary/summary.html`. Sidene viser da rundt 180 oppdiktede turer fra `lib/demo-data.js` (fast seed, stasjoner i Bergen og Trondheim), skjuler Synkroniser, viser merket «Demodata» og skriver ingenting til storage. Demomodus bruker ingen utvidelses-API, så sidene kan åpnes over vanlig http med `cd stats && python3 -m http.server 8765`, for eksempel `http://127.0.0.1:8765/dashboard/dashboard.html?demo=1`. Det er grunnlaget for skjermbilder, og det en reviewer kan se uten dele.no-konto.
+
 ## Teknologi
 
 Vanilla JS, HTML og CSS uten byggesteg eller npm, med [Chart.js](https://www.chartjs.org/) for grafer og [html2canvas](https://html2canvas.hertzen.com/) for PNG-eksport. WebExtension API (Manifest V3) for Firefox og Chrome.
