@@ -23,7 +23,7 @@ import {
 
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 
-import { estimateOwnershipCost, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
+import { estimateOwnershipCost, homeOrganizationId, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
 import {
   CATEGORIES,
@@ -1595,7 +1595,10 @@ async function renderTransport(reservations) {
 function renderTransportSummary(reservations, savedData, year) {
   const yearData = (savedData && savedData[year]) || {};
   const sharingStats = getSharingStatsForYear(reservations, year);
-  const summary = transportSummary(yearData, sharingStats);
+  const summary = transportSummary(yearData, sharingStats, {
+    year: Number(year),
+    organizationId: homeOrganizationId(reservations),
+  });
 
   // Check if there is any data beyond bildeling
   const hasOtherModes = Object.keys(summary.modes).some((k) => k !== "bildeling");

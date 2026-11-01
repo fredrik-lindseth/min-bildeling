@@ -90,7 +90,7 @@ icons/
 | Volvo EX40            | Volvo Norge-pris 10.09.2026 (Elbil24, Finn)             |
 | CO₂ bildeling         | Miljødirektoratet (per biltype)                         |
 | CO₂ buss              | SSB, buss 2019 (~59 g/passasjer-km)                     |
-| CO₂ taxi              | 0 g/km i eksos, nullutslippskrav Vestland og Trøndelag  |
+| CO₂ taxi              | 0 g/km etter nullutslippskravet, før det 229 g/km       |
 | CO₂ fly               | Avinor (~150 g/passasjer-km)                            |
 | Substitusjonseffekter | TØI 1895/2022                                           |
 
