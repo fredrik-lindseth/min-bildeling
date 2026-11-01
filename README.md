@@ -1,8 +1,6 @@
 # Bildeleringen Stats
 
-Nettleserutvidelse som viser hva bildelingen koster deg, hvordan du bruker den og hvor mye CO₂ den slipper ut. For alle som er medlem i en Bilparaplyen-organisasjon på [dele.no](https://dele.no), ikke bare Bildeleringen. Prosjektet er laget av en bruker og er ikke tilknyttet eller godkjent av Dele AS.
-
-Repoet har to utvidelser: `stats/` for statistikk og [`flex/`](flex/README.md) for å finne når en bil er ledig.
+Nettleserutvidelse som viser hva Bildeleringen koster deg og hvordan du bruker det.
 
 ## Funksjoner
 
@@ -21,8 +19,6 @@ Repoet har to utvidelser: `stats/` for statistikk og [`flex/`](flex/README.md) f
 - **PNG-eksport** av hver seksjon.
 
 ## Slik ser det ut
-
-Tallene er demodata fra `?demo=1`, ikke ekte turer. Bildene følger lys eller mørk modus hos deg.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/dashboard-kostnader-mork.png">
@@ -69,14 +65,6 @@ Alt lagres lokalt i nettleseren. Den eneste trafikken er API-kall til dele.no me
 
 Eierkostnader og CO₂ er estimater fra norske kilder (NAF, Miljødirektoratet, TØI). «Slik beregnes det» i dashboardet viser utregningen og kildene.
 
-## Varemerke
-
-Stats-ikonet er tegnet for prosjektet, en bil som bærer et stolpediagram, og låner bare fargen fra dele.no, lilla `#51289D`. Flex bruker fortsatt Dele-symbolet og trenger eget ikon før den kan publiseres.
-
 ## Utvikling
 
 Se [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
-## Lisens
-
-[MIT](LICENSE)
