@@ -4,7 +4,10 @@
 
 :root {
   --header-height: 57px;
-  --nav-height: 47px;
+  /* Regnet av det navigasjonen er bygd av: lenkens polstring over og under,
+     én tekstlinje, lenkens 2 px markering og navigasjonens 1 px linje. Et
+     fast tall her sto 2,5 px for lavt og råtnet. */
+  --nav-height: calc(2 * var(--space-3) + 1.5 * var(--text-base) + 3px);
   --line: 1px solid var(--color-border);
 }
 
@@ -14,10 +17,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-html {
-  scroll-padding-top: calc(var(--nav-height) + var(--space-4));
 }
 
 body {
@@ -88,8 +87,21 @@ code {
 
 .nav__inner {
   display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Lenkene ruller vannrett når de ikke får plass, uten rullefelt: feltet tok
+   en egen linje under lenkene. Rullingen virker fortsatt med fingre, hjul
+   og tastatur, og en fokusert lenke rulles inn av seg selv. Demomerket står
+   utenfor raden, så det ikke kuttes av. */
+.nav__links {
+  display: flex;
+  flex: 1;
+  min-width: 0;
   gap: var(--space-4);
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
 /* overflow-x klipper alt utenfor linjen, så fokusringen står innenfor
@@ -280,6 +292,8 @@ a:focus-visible,
 .section {
   padding-block: var(--space-7);
   border-bottom: var(--line);
+  /* Ankre og nav-klikk lander under den faste navigasjonen, ikke bak den. */
+  scroll-margin-top: calc(var(--nav-height) + var(--space-4));
 }
 
 .main > .section:last-child {
@@ -889,8 +903,7 @@ a:focus-visible,
 
 .nav__inner .demo-badge {
   flex: none;
-  align-self: center;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 /* ---- Smal skjerm ---- */
@@ -904,7 +917,8 @@ a:focus-visible,
     grid-template-columns: 1fr;
   }
 
-  .nav__inner {
+  .nav__inner,
+  .nav__links {
     gap: var(--space-2);
   }
 }
