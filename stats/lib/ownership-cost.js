@@ -14,6 +14,17 @@ const CATEGORY_COSTS = {
   Varebil: { depreciation: 35000, insurance: 10000, tax: 3800, maintenance: 8000, parking: 12000 },
 };
 
+// Tekst og kilder til «Slik beregner vi» ved eierkostnad og sparetall.
+export const OWNERSHIP_METHOD = {
+  note: "Eierkostnaden er snittall for bilkategorien du bruker mest: verditap, " +
+    "forsikring, årsavgift, vedlikehold, parkering og drivstoff for kilometerne du kjørte. " +
+    "Bildeling er det du faktisk har betalt.",
+  sources: [
+    "NAF: Bilkostnadsindeks",
+    "OFV: Kjøretøystatistikk",
+  ],
+};
+
 // Fuel cost per km (NOK)
 const FUEL_COST_PER_KM = {
   Bensin: 1.2,

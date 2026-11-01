@@ -10,45 +10,40 @@ export function isAuthError(error) {
  * gikk som det skulle. Auth-feil håndteres for seg av sidene (login-boksen).
  */
 export function describeSyncResult(result) {
-  if (!result) return "Synkroniseringen ga ikke noe svar.";
-  if (result.status === "BUSY") {
-    return "En synkronisering pågår allerede i et annet vindu. Prøv igjen om et minutt.";
-  }
+  if (!result) return "Synkroniseringen svarte ikke. Prøv igjen.";
+  if (result.status === "BUSY") return "Synkroniserer allerede i et annet vindu.";
   if (result.error === "SERVICE_UNAVAILABLE") {
-    return withProgress(
-      result,
-      "Dele sin tjeneste svarer ikke akkurat nå. Prøver igjen ved neste synkronisering."
-    );
+    return withProgress(result, "Dele svarer ikke nå. Prøver igjen senere.");
   }
+  // Andre feil kommer som rå tekst («API-feil 403», nettleserens egne meldinger).
+  // Den står i syncHistory og vises i utviklerpanelet, ikke her.
   if (result.error && !isAuthError(result.error)) {
-    return withProgress(result, `Synkroniseringen stoppet: ${result.error}`);
+    return withProgress(result, "Synkroniseringen stoppet. Prøv igjen om litt.");
   }
   if (result.status === "PARTIAL") {
-    return `Hentet ${result.done} av ${result.total}. Resten hentes når du åpner dashbordet.`;
-  }
-  if (result.status === "SYNCED" && result.failedThisRun > 0) {
-    return `Hentet ${result.done - result.failedThisRun} av ${result.total}. ${missingDetails(result.failed)}`;
+    return `Hentet ${result.done} av ${result.total}. Resten hentes når du åpner dashboardet.`;
   }
   if (result.failed > 0) return missingDetails(result.failed);
   return null;
 }
 
-// Reservasjoner der detaljkallet feilet, ligger i syncState.failed og prøves
-// igjen med økende mellomrom (se sync.js), så brukeren skal vite at de kommer.
+// Turer der detaljkallet feilet, ligger i syncState.failed og prøves igjen med
+// økende mellomrom (se sync.js), så brukeren skal vite at de kommer.
 function missingDetails(n) {
-  const what = n === 1 ? "1 reservasjon mangler detaljer" : `${n} reservasjoner mangler detaljer`;
-  return `${what} fordi Dele svarte med feil. De prøves igjen ved senere synkroniseringer.`;
+  return n === 1
+    ? "1 tur mangler detaljer. Den prøves igjen senere."
+    : `${n} turer mangler detaljer. De prøves igjen senere.`;
 }
 
 function withProgress(result, message) {
   if (!result.total) return message;
-  return `${message} Hentet ${result.done} av ${result.total} så langt.`;
+  return `${message} Hentet ${result.done} av ${result.total}.`;
 }
 
 export function describeProgress({ phase, current, total }) {
   if (phase === "list") {
-    return total ? `Henter reservasjonslisten (${total} totalt)…` : "Henter reservasjonslisten…";
+    return total ? `Henter listen over ${total} turer…` : "Henter turlisten…";
   }
-  if (phase === "details" && total > 0) return `Henter detaljer: ${current} av ${total}`;
+  if (phase === "details" && total > 0) return `Henter detaljer for ${current} av ${total} turer…`;
   return "Synkroniserer…";
 }

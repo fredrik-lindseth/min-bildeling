@@ -16,7 +16,7 @@ import {
 
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 
-import { estimateOwnershipCost, estimateVolvoComparison } from "../lib/ownership-cost.js";
+import { estimateOwnershipCost, estimateVolvoComparison, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
 import {
   CATEGORIES,
@@ -36,7 +36,7 @@ import {
 import { storage } from "../lib/browser-polyfill.js";
 import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
 
-import { totalCO2, monthlyCO2 } from "../lib/co2.js";
+import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
 
 import {
   TRANSPORT_MODES,
@@ -67,7 +67,7 @@ function colorWithAlpha(cssColor, alpha) {
   // The browser normalises any color to rgb()/rgba() in fillStyle
   const parsed = _colorCtx.fillStyle;
   if (parsed.startsWith("#")) {
-    // Short hex — convert manually
+    // Kort hex, konverter for hånd
     const r = parseInt(parsed.slice(1, 3), 16);
     const g = parseInt(parsed.slice(3, 5), 16);
     const b = parseInt(parsed.slice(5, 7), 16);
@@ -167,7 +167,7 @@ function updateDataSummary(reservations) {
     years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0]}`;
 
   dataSummaryEl.textContent =
-    `${reservations.length} turer • ${yearLabel} • ${formatNOK.format(total)}`;
+    `${formatTrips(reservations.length)} • ${yearLabel} • ${formatNOK.format(total)}`;
 }
 
 // ---------- Chart instances (for cleanup) ----------
@@ -192,13 +192,13 @@ function showStatus(message) {
 
 function showLoginRequired() {
   statusEl.classList.add("status--login");
-  statusText.innerHTML = `<strong>Du må logge inn på Bildeleringen</strong><br>Vi henter dataene dine så snart du er innlogget på app.dele.no.`;
+  statusText.innerHTML = `<strong>Ikke innlogget</strong><br>Logg inn på app.dele.no og trykk Synkroniser.`;
   removeStatusAction();
 
   const action = document.createElement("a");
   action.id = "status-action";
   action.className = "status__action";
-  action.textContent = "Åpne app.dele.no →";
+  action.textContent = "Åpne app.dele.no";
   action.href = "https://app.dele.no";
   action.target = "_blank";
   action.rel = "noopener";
@@ -436,7 +436,7 @@ function renderUsage(reservations) {
       li.innerHTML = `
         <span class="ranked-list__rank">${i + 1}</span>
         <span class="ranked-list__name">${escapeHtml(top5[i].name)}</span>
-        <span class="ranked-list__value">${top5[i].count} turer</span>
+        <span class="ranked-list__value">${formatTrips(top5[i].count)}</span>
       `;
       topCarsList.appendChild(li);
     }
@@ -620,11 +620,7 @@ function renderBookingPatterns(reservations) {
   const methodDetail = $("booking-method-detail");
   if (methodDetail) {
     methodDetail.innerHTML = `
-      <p><strong>Forhåndsvarsel</strong> = tid fra du opprettet bookingen (<code>created</code>) til turen startet (<code>start</code>).</p>
-      <p>Negative verdier (opprettet etter starttid, typisk for spontane turer) settes til 0 timer.</p>
-      <p>Inkluderer alle bookinger med en kostnad, også turer som ikke ble kjørt, siden de fortsatt viser bookingatferd. Avbestilte turer ekskluderes.</p>
-      <p style="margin-top: 4px;">Stasjon hentes fra <code>location.name</code> på hver booking.</p>
-      <p style="margin-top: 4px;">Reservasjoner som mangler <code>created</code>-felt (eldre data) ekskluderes fra beregningen.</p>
+      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer. Turer som ikke ble kjørt er med. Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke.</p>
     `;
   }
 }
@@ -781,7 +777,7 @@ function renderRollingAverage(monthly) {
     data.push(Math.round(avg));
   }
 
-  charts.rollingAvg = createLineChart(canvas, labels, data, "3-mnd. snitt", { yTitle: "Kr" });
+  charts.rollingAvg = createLineChart(canvas, labels, data, "Snitt tre måneder", { yTitle: "Kr" });
 }
 
 function renderSeasonalComparison(reservations, yearly) {
@@ -827,15 +823,15 @@ function renderOwnership(reservations) {
 
   // Set cost amounts
   setText("sharing-cost", formatNOK.format(result.sharingCost));
-  setText("ownership-cost", formatNOK.format(result.ownershipCost));
+  setText("ownership-cost", `ca. ${formatNOK.format(result.ownershipCost)}`);
 
   // Build verdict
   const verdictEl = $("comparison-verdict");
   if (result.savings > 0) {
-    verdictEl.textContent = `Du sparer ${formatNOK.format(result.savings)} per år med bildeling`;
+    verdictEl.textContent = `Du sparer ca. ${formatNOK.format(result.savings)} i året med bildeling`;
     verdictEl.className = "comparison__verdict comparison__verdict--saving";
   } else {
-    verdictEl.textContent = `Bildeling koster ${formatNOK.format(Math.abs(result.savings))} mer per år`;
+    verdictEl.textContent = `Bildeling koster ca. ${formatNOK.format(Math.abs(result.savings))} mer i året`;
     verdictEl.className = "comparison__verdict comparison__verdict--more";
   }
 
@@ -906,14 +902,14 @@ function renderOwnership(reservations) {
   const volvo = estimateVolvoComparison(reservations);
   if (volvo) {
     setText("volvo-sharing-cost", formatNOK.format(volvo.sharingCost));
-    setText("volvo-ownership-cost", formatNOK.format(volvo.ownershipCost));
+    setText("volvo-ownership-cost", `ca. ${formatNOK.format(volvo.ownershipCost)}`);
 
     const volvoVerdictEl = $("volvo-verdict");
     if (volvo.savings > 0) {
-      volvoVerdictEl.textContent = `Du sparer ${formatNOK.format(volvo.savings)} per år med bildeling`;
+      volvoVerdictEl.textContent = `Du sparer ca. ${formatNOK.format(volvo.savings)} i året med bildeling`;
       volvoVerdictEl.className = "comparison__verdict comparison__verdict--saving";
     } else {
-      volvoVerdictEl.textContent = `Bildeling koster ${formatNOK.format(Math.abs(volvo.savings))} mer per år`;
+      volvoVerdictEl.textContent = `Bildeling koster ca. ${formatNOK.format(Math.abs(volvo.savings))} mer i året`;
       volvoVerdictEl.className = "comparison__verdict comparison__verdict--more";
     }
   }
@@ -921,21 +917,17 @@ function renderOwnership(reservations) {
   // Note text
   const categoryName = result.category || "ukjent";
   const noteEl = $("comparison-note");
-  noteEl.textContent =
-    `Estimat basert på din mest brukte bilkategori (${categoryName}) og Volvo EX C40 2026. ` +
-    `Eierkostnader inkluderer verditap, forsikring, årsavgift, vedlikehold, parkering og drivstoff/strøm.`;
+  noteEl.textContent = `Regnet mot din mest brukte bilkategori (${categoryName}) og Volvo EX C40 2026.`;
 
   // Ownership methodology detail
   const ownershipMethodDetail = $("ownership-method-detail");
   if (ownershipMethodDetail && result) {
     const bd = result.breakdownOwnership;
     ownershipMethodDetail.innerHTML = `
-      <p><strong>Eierkostnader (${result.category}, per \u00e5r):</strong></p>
-      <p><code>Verditap: ${formatNOK.format(bd.depreciation)} + Forsikring: ${formatNOK.format(bd.insurance)} + Avgift: ${formatNOK.format(bd.tax)} + Vedlikehold: ${formatNOK.format(bd.maintenance)} + Parkering: ${formatNOK.format(bd.parking)} + Drivstoff: ${formatNOK.format(bd.fuel)}</code></p>
-      <p><code>= ${formatNOK.format(result.ownershipCost)}</code></p>
-      <p style="margin-top: 4px;"><strong>Bildeling:</strong> Sum av alle dine faktiske kostnader, annualisert: <code>${formatNOK.format(result.sharingCost)}</code></p>
-      <p style="margin-top: 8px;">Eierkostnader er estimater basert p\u00e5 norske gjennomsnitt (NAF Bilkostnadsindeks, OFV). Bildeleforbruk er dine faktiske kostnader fra dele.no.</p>
-      <p style="margin-top: 4px;">Kontekst: 75% av Bildeleringen-medlemmer har ikke egen bil, og 49% har latt v\u00e6re \u00e5 kj\u00f8pe bil pga. bildeling. Hver delebil erstatter 10\u201315 privatbiler i Bergen (T\u00d8I 1895/2022).</p>
+      <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
+      <p style="margin-top: 4px;"><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + årsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
+      <p style="margin-top: 4px;">Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
+      ${sourcesHtml(OWNERSHIP_METHOD.sources)}
     `;
   }
 }
@@ -980,7 +972,7 @@ async function renderCategories(reservations) {
               label: (ctx) => {
                 const val = formatNOK.format(ctx.parsed);
                 const pct = Math.round((ctx.parsed / data.reduce((a, b) => a + b, 0)) * 100);
-                return `${ctx.label}: ${val} (${pct}%)`;
+                return `${ctx.label}: ${val} (${pct} %)`;
               },
             },
           },
@@ -997,7 +989,7 @@ async function renderCategories(reservations) {
     row.className = "category-row";
     row.innerHTML = `
       <span class="category-row__name">${escapeHtml(val.label)}</span>
-      <span class="category-row__stat">${val.count} turer</span>
+      <span class="category-row__stat">${formatTrips(val.count)}</span>
       <span class="category-row__stat">${formatNOK.format(val.totalCost)}</span>
     `;
     tableEl.appendChild(row);
@@ -1060,7 +1052,7 @@ function setKeywordStatus(message) {
   }, 4000);
 }
 
-function formatHitCount(n) {
+function formatTrips(n) {
   return n === 1 ? "1 tur" : `${n} turer`;
 }
 
@@ -1087,7 +1079,7 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
       <input type="text" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
         aria-describedby="${hintId}">
       <span class="keyword-row__hits" id="${hintId}">
-        ${formatHitCount(hits.perCategory[key] || 0)}${defaults.length > 0 ? `, ${defaults.length} standardord` : ""}
+        ${formatTrips(hits.perCategory[key] || 0)}${defaults.length > 0 ? `, ${defaults.length} standardord` : ""}
       </span>
     `;
     row.querySelector("input").value = (userKeywords[key] || []).join(", ");
@@ -1108,7 +1100,7 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     }
     await saveUserKeywords(storage, next);
     await renderCategories(reservations);
-    setKeywordStatus("Lagret!");
+    setKeywordStatus("Lagret");
   };
 
   $("keyword-export").onclick = () => {
@@ -1125,7 +1117,7 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     try {
       parsed = JSON.parse(await file.text());
     } catch {
-      setKeywordStatus("Kunne ikke lese filen. Er det en JSON-fil?");
+      setKeywordStatus("Klarte ikke å lese filen. Velg en JSON-fil.");
       return;
     }
     const imported = normalizeUserKeywords(parsed?.userKeywords ?? parsed);
@@ -1163,15 +1155,15 @@ function renderClimate(reservations) {
   $("co2-content").hidden = false;
 
   // Stat cards
-  setText("co2-total", `${formatKm.format(Math.round(total.totalKg))} kg`);
-  setText("co2-avg-km", `${Math.round(total.avgPerKm)} g/km`);
+  setText("co2-total", `ca. ${formatKm.format(Math.round(total.totalKg))} kg`);
+  setText("co2-avg-km", `ca. ${Math.round(total.avgPerKm)} g/km`);
 
   // Electric percentage
   const elTrips = total.byFuelType["Elektrisitet"]?.trips || 0;
   const elPct = total.tripCount > 0 ? Math.round((elTrips / total.tripCount) * 100) : 0;
-  setText("co2-electric-pct", `${elPct}%`);
+  setText("co2-electric-pct", `${elPct} %`);
 
-  // Methodology detail — show actual calculation per fuel type
+  // Utregningen per drivstofftype, med tekst og kilder fra CO2_METHOD.
   const methodDetail = $("co2-method-detail");
   if (methodDetail) {
     const fuelLines = Object.entries(total.byFuelType)
@@ -1183,10 +1175,10 @@ function renderClimate(reservations) {
       })
       .join("");
     methodDetail.innerHTML = `
-      <p><strong>Beregnet fra faktisk biltype per tur:</strong></p>
+      <p>${escapeHtml(CO2_METHOD.note)}</p>
       ${fuelLines}
-      <p style="margin-top: 4px;"><strong>Totalt:</strong> <code>${formatKm.format(Math.round(total.totalKg))} kg CO\u2082</code> fra <code>${formatKm.format(total.totalKm)} km</code></p>
-      <p style="margin-top: 8px;">Utslipp beregnes per tur basert på bilens drivstofftype og kategori. Elbiler = 0 g/km. Bensin og diesel estimert fra norske gjennomsnitt per bilkategori (Miljødirektoratet).</p>
+      <p style="margin-top: 4px;">Totalt: <code>${formatKm.format(Math.round(total.totalKg))} kg CO\u2082</code> fra <code>${formatKm.format(total.totalKm)} km</code></p>
+      ${sourcesHtml(CO2_METHOD.sources)}
     `;
   }
 
@@ -1211,8 +1203,8 @@ function renderClimate(reservations) {
     row.className = "category-row";
     row.innerHTML = `
       <span class="category-row__name">${escapeHtml(fuel)}</span>
-      <span class="category-row__stat">${data.trips} turer</span>
-      <span class="category-row__stat">${formatKm.format(Math.round(data.kg))} kg</span>
+      <span class="category-row__stat">${formatTrips(data.trips)}</span>
+      <span class="category-row__stat">ca. ${formatKm.format(Math.round(data.kg))} kg</span>
     `;
     fuelList.appendChild(row);
   }
@@ -1375,20 +1367,20 @@ async function renderTransport(reservations) {
 
     // Show save status
     const status = $("transport-save-status");
-    status.textContent = "Lagret!";
+    status.textContent = "Lagret";
     setTimeout(() => { status.textContent = ""; }, 2000);
 
     // Re-render summary
     renderTransportSummary(reservations, freshData, transportYear);
   };
 
-  // "Null alt"-knappen tømmer alle input-felt (men lagrer ikke før bruker
+  // «Tøm feltene» tømmer alle input-felt (men lagrer ikke før bruker
   // trykker Lagre, gir mulighet til å ombestemme seg).
   $("transport-reset").onclick = () => {
     const inputs = document.querySelectorAll("#transport-fields input");
     for (const input of inputs) input.value = "";
     const status = $("transport-save-status");
-    status.textContent = "Trykk Lagre for å bekrefte";
+    status.textContent = "Trykk Lagre for å slette";
     setTimeout(() => { status.textContent = ""; }, 3000);
   };
 }
@@ -1413,14 +1405,14 @@ function renderTransportSummary(reservations, savedData, year) {
   setText("transport-total-cost", formatNOK.format(summary.totals.cost));
   setText(
     "transport-total-co2",
-    `${formatKm.format(Math.round(summary.totals.co2Kg))} kg`
+    `ca. ${formatKm.format(Math.round(summary.totals.co2Kg))} kg`
   );
 
   if (summary.totals.cost > 0 && summary.modes.bildeling) {
     const pct = Math.round(
       (summary.modes.bildeling.cost / summary.totals.cost) * 100
     );
-    setText("transport-sharing-pct", `${pct}%`);
+    setText("transport-sharing-pct", `${pct} %`);
   } else {
     setText("transport-sharing-pct", "\u2013");
   }
@@ -1457,7 +1449,7 @@ function renderTransportSummary(reservations, savedData, year) {
                 const val = formatNOK.format(ctx.parsed);
                 const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                 const pct = Math.round((ctx.parsed / total) * 100);
-                return `${ctx.label}: ${val} (${pct}%)`;
+                return `${ctx.label}: ${val} (${pct} %)`;
               },
             },
           },
@@ -1492,7 +1484,7 @@ function renderTransportSummary(reservations, savedData, year) {
               label: (ctx) => {
                 const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                 const pct = Math.round((ctx.parsed / total) * 100);
-                return `${ctx.label}: ${ctx.parsed} kg (${pct}%)`;
+                return `${ctx.label}: ca. ${ctx.parsed} kg (${pct} %)`;
               },
             },
           },
@@ -1501,7 +1493,7 @@ function renderTransportSummary(reservations, savedData, year) {
     });
   }
 
-  // Detail table — sorted by cost descending
+  // Tabellen, sortert etter kostnad, høyest først
   const tableEl = $("transport-table");
   tableEl.innerHTML = "";
   for (const [, mode] of sortedModes) {
@@ -1510,7 +1502,7 @@ function renderTransportSummary(reservations, savedData, year) {
     row.innerHTML = `
       <span class="category-row__name">${escapeHtml(mode.label)}</span>
       <span class="category-row__stat">${formatNOK.format(mode.cost)}</span>
-      <span class="category-row__stat">${formatKm.format(Math.round(mode.co2Kg))} kg</span>
+      <span class="category-row__stat">ca. ${formatKm.format(Math.round(mode.co2Kg))} kg</span>
       <span class="category-row__stat">${formatKm.format(mode.km)} km</span>
     `;
     tableEl.appendChild(row);
@@ -1519,14 +1511,9 @@ function renderTransportSummary(reservations, savedData, year) {
   // Methodology detail
   const methodDetail = $("transport-method-detail");
   if (methodDetail) {
-    const sourcesHtml = TRANSPORT_METHOD.sources
-      .map((s) => `<li>${escapeHtml(s)}</li>`)
-      .join("");
     methodDetail.innerHTML = `
-      <p>${escapeHtml(TRANSPORT_METHOD.note)}</p>
-      <p style="margin-top: 8px;"><strong>Kilder:</strong></p>
-      <ul style="margin-left: 16px; margin-top: 4px;">${sourcesHtml}</ul>
-      <p style="margin-top: 8px;">Bildeling-data hentes automatisk fra dele.no. Annen transport registreres manuelt.</p>
+      <p>${escapeHtml(TRANSPORT_METHOD.note)} Bildelingstallene hentes fra dele.no.</p>
+      ${sourcesHtml(TRANSPORT_METHOD.sources)}
     `;
   }
 }
@@ -1537,6 +1524,11 @@ function escapeHtml(str) {
   const el = document.createElement("span");
   el.textContent = str;
   return el.innerHTML;
+}
+
+function sourcesHtml(sources) {
+  const items = sources.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+  return `<p style="margin-top: 8px;">Kilder:</p><ul style="margin-left: 16px; margin-top: 4px;">${items}</ul>`;
 }
 
 // ---------- Sync ----------
@@ -1582,7 +1574,7 @@ function onSyncProgress(progress) {
 async function syncAndRender(force) {
   syncBtn.disabled = true;
   syncBtn.classList.add("is-syncing");
-  if (force) showStatus("Synkroniserer...");
+  if (force) showStatus("Synkroniserer…");
 
   const result = await startSync({ force, onProgress: onSyncProgress });
 
@@ -1596,7 +1588,7 @@ async function syncAndRender(force) {
     if (result.fetched > 0 || !hasRendered) hasData = await loadStored();
   } catch (e) {
     console.error("[dashboard] Klarte ikke å lese lagrede data", e);
-    showStatus(`Klarte ikke å lese lagrede data: ${e.message}`);
+    showStatus("Klarte ikke å lese lagrede turer. Last inn siden på nytt.");
     return;
   }
   if (isDevMode()) refreshDevInfo();
@@ -1618,9 +1610,9 @@ async function syncAndRender(force) {
 // ---------- Init ----------
 
 async function init() {
-  showStatus("Laster data...");
+  showStatus("Laster…");
   const hasData = await loadStored();
-  if (!hasData) showStatus("Ingen data funnet. Synkroniserer...");
+  if (!hasData) showStatus("Synkroniserer…");
   // Uten force synker den bare når det er over en time siden sist, eller når
   // en tidligere synk ble avbrutt.
   await syncAndRender(false);
@@ -1672,7 +1664,7 @@ document.addEventListener("click", (e) => {
   if (detail) {
     const open = !detail.hidden;
     detail.hidden = open;
-    toggle.textContent = open ? "Slik beregner vi \u25b8" : "Slik beregner vi \u25be";
+    toggle.setAttribute("aria-expanded", String(!open));
   }
 });
 
@@ -1709,8 +1701,8 @@ function clearDevStatusLater(ms = 4000) {
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes < 1024 * 1024) return `${formatOneDecimal.format(bytes / 1024)} kB`;
+  return `${formatOneDecimal.format(bytes / (1024 * 1024))} MB`;
 }
 
 async function refreshDevInfo() {
@@ -1738,7 +1730,7 @@ async function refreshDevInfo() {
   setText("dev-storage-size", `~${formatBytes(size)}`);
 }
 
-const formatSeconds = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 1 });
+const formatOneDecimal = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 1 });
 
 function describeHistoryEntry(entry) {
   const c = entry.calls || {};
@@ -1751,8 +1743,8 @@ function describeHistoryEntry(entry) {
   const outcome = entry.error ? ` (${entry.status}: ${entry.error})` : entry.status === "SYNCED" ? "" : ` (${entry.status})`;
   return (
     `${when}: ${c.list ?? 0} listekall, ${c.detail ?? 0} detaljkall, ` +
-    `${c.retries ?? 0} retries, ${c.failed ?? 0} feil, ` +
-    `${formatSeconds.format((entry.durationMs || 0) / 1000)} s${outcome}`
+    `${c.retries ?? 0} nye forsøk, ${c.failed ?? 0} feil, ` +
+    `${formatOneDecimal.format((entry.durationMs || 0) / 1000)} s${outcome}`
   );
 }
 
@@ -1807,12 +1799,27 @@ async function handleDevExport() {
     });
     const today = new Date().toISOString().slice(0, 10);
     downloadBlob(blob, `bildeleringen-backup-${today}.json`);
-    setDevStatus(`Eksporterte ${payload.reservations.length} turer`, "ok");
+    setDevStatus(`Eksporterte ${formatTrips(payload.reservations.length)}.`, "ok");
     clearDevStatusLater();
   } catch (err) {
     console.error("Export failed:", err);
     setDevStatus(`Eksport feilet: ${err.message}`, "error");
   }
+}
+
+// Bekreftelse i et eget <dialog> framfor window.confirm(), som WebDriver avviser
+// stille i den fjernstyrte nettleseren. Esc og Avbryt gir false, og fokus
+// starter på Avbryt.
+function confirmDialog(message, confirmLabel) {
+  const dialog = $("dev-confirm");
+  $("dev-confirm-text").textContent = message;
+  $("dev-confirm-ok").textContent = confirmLabel;
+  dialog.returnValue = "";
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"), { once: true });
+    dialog.showModal();
+    $("dev-confirm-cancel").focus();
+  });
 }
 
 function extractReservations(parsed) {
@@ -1847,14 +1854,14 @@ async function handleDevImportFile(file) {
     const reservations = extractReservations(parsed);
     if (!reservations) {
       setDevStatus(
-        "Filen mangler en reservations-array. Forventet { reservations: [...] } eller en JSON-array.",
+        "Fant ingen reservasjoner i filen. Bruk en eksport herfra eller en JSON-liste.",
         "error"
       );
       return;
     }
 
     if (reservations.length === 0) {
-      setDevStatus("Filen inneholder 0 reservasjoner, avbryter.", "error");
+      setDevStatus("Filen har ingen reservasjoner.", "error");
       return;
     }
 
@@ -1867,8 +1874,9 @@ async function handleDevImportFile(file) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Importer ${reservations.length} turer? Dette overskriver alle eksisterende reservasjoner.`
+    const confirmed = await confirmDialog(
+      `Importere ${formatTrips(reservations.length)}? De erstatter alle turene som er lagret nå.`,
+      "Importer"
     );
     if (!confirmed) {
       setDevStatus("Import avbrutt.", null);
@@ -1880,7 +1888,7 @@ async function handleDevImportFile(file) {
       reservations,
       lastSync: Date.now(),
     });
-    setDevStatus(`Importerte ${reservations.length} turer. Laster p\u00e5 nytt...`, "ok");
+    setDevStatus(`Importerte ${formatTrips(reservations.length)}. Laster p\u00e5 nytt\u2026`, "ok");
     // Reload for \u00e5 trigge full re-render av alle seksjoner.
     setTimeout(() => location.reload(), 800);
   } catch (err) {
@@ -1890,15 +1898,20 @@ async function handleDevImportFile(file) {
 }
 
 async function handleDevReset() {
-  const confirmed = window.confirm(
-    "Nullstille alt? Dette sletter reservasjoner, kategorier og transportdata fra storage. Kan ikke angres."
+  const confirmed = await confirmDialog(
+    "Nullstille alt? Reservasjoner, kategorier, nøkkelord og transportdata slettes. Kan ikke angres.",
+    "Slett alt"
   );
-  if (!confirmed) return;
+  if (!confirmed) {
+    setDevStatus("Nullstilling avbrutt.", null);
+    clearDevStatusLater();
+    return;
+  }
 
   try {
     // storage-polyfill eksponerer ikke remove(), bruk underliggende API direkte.
     await browserAPI.storage.local.remove(DEV_STORAGE_KEYS);
-    setDevStatus("Alt nullstilt. Laster p\u00e5 nytt...", "ok");
+    setDevStatus("Alt nullstilt. Laster p\u00e5 nytt\u2026", "ok");
     setTimeout(() => location.reload(), 600);
   } catch (err) {
     console.error("Reset failed:", err);
