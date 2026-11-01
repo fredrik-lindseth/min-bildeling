@@ -35,7 +35,7 @@ PRIVAT="${BILDELERINGEN_PERSONDATA:-$HOME/.config/bildeleringen/persondata.txt}"
 # dele.no (Bildeleringen og Trondheim Bilkollektiv) og den oppdiktede
 # medlemskaps-id-en i demodataene.
 TILLATT_SED='s#github\.com/fredrik-lindseth/bildeleringen-stats##g
-s#"delebil-statistikk@fredriklindseth\.no"#""#g
+s#"delebil@fredriklindseth\.no"#""#g
 s#Copyright \(c\) [0-9]{4} Fredrik##g
 s#3212bcbe-8e34-4c28-9439-a44e6d5cf9c0##g
 s#8dba8f19-c438-f278-ed7c-912ec6537cb9##g

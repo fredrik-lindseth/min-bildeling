@@ -24,18 +24,23 @@ FEILET=0
 ok()   { echo "ok   $1"; }
 ikke() { echo "FEIL $1"; FEILET=1; }
 
+# Gecko-id-en fra det ekte manifestet. Den ser ut som en e-postadresse,
+# så den rene pakken viser at unntaket i vakten følger med når id-en byttes.
+GECKO_ID="$(sed -nE 's/^ *"id" *: *"([^"]+)".*/\1/p' "$STATS/manifest.json" | head -1)"
+[ -n "$GECKO_ID" ] || { echo "Fant ikke gecko-id i $STATS/manifest.json" >&2; exit 1; }
+
 # Liten, ren pakke med ekte vendor-filer, så testen ikke faller på
 # uavhengige feil i resten av koden.
 ren_pakke() {
   local d="$1"
   mkdir -p "$d/lib" "$d/vendor"
   cp "$STATS"/vendor/* "$d/vendor/"
-  cat > "$d/manifest.json" <<'EOF'
+  cat > "$d/manifest.json" <<EOF
 {
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
-      "id": "test@extension",
+      "id": "$GECKO_ID",
       "strict_min_version": "140.0",
       "data_collection_permissions": { "required": ["none"] }
     }
@@ -79,6 +84,9 @@ if [ "$kode" -eq 0 ] && ! printf '%s' "$ut" | grep -q 'ADVARSEL'; then
 else
   ikke "ren pakke (exit $kode)"; printf '%s\n' "$ut" | sed 's/^/     /'
 fi
+
+sak; printf 'const id = "annen-%s";\n' "$GECKO_ID" >> "$TMP/sak/lib/b.js"
+forvent_funn "annen adresse enn gecko-id-en" "$TMP/sak" "lib/b.js:2: e-postadresse"
 
 sak; printf 'const x = 1;\nconst kontakt = "kontakt@example.com";\n' >> "$TMP/sak/lib/b.js"
 forvent_funn "e-post" "$TMP/sak" "lib/b.js:3: e-postadresse"

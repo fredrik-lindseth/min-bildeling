@@ -2,10 +2,10 @@
 
 Repoet har to Firefox-utvidelser med hver sin gecko-id, så de signeres og distribueres hver for seg.
 
-| Mappe    | Navn                    | Gecko-id                                |
-| -------- | ----------------------- | --------------------------------------- |
-| `stats/` | Bildeleringen Stats     | `delebil-statistikk@fredriklindseth.no` |
-| `flex/`  | Bildeleringen Fleksibel | `bildeleringen-flex@extension`          |
+| Mappe    | Navn                    | Gecko-id                       |
+| -------- | ----------------------- | ------------------------------ |
+| `stats/` | Bildeleringen Stats     | `delebil@fredriklindseth.no`   |
+| `flex/`  | Bildeleringen Fleksibel | `bildeleringen-flex@extension` |
 
 Stats går ut på addons.mozilla.org (AMO) i denne rekkefølgen: unlisted, signert xpi, installert og verifisert i Fredriks egen Firefox, og først når Dele har sagt ok, listed. Flex har ikke eget `package.sh` ennå og kommer når den skal ut.
 
