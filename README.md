@@ -42,7 +42,7 @@ Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar 
 
 ## Personvern
 
-All data lagres lokalt i nettleseren din. Eneste nettverkstrafikk er API-kall til dele.no med din eksisterende innlogging. Ingen tredjeparter.
+All data lagres lokalt i nettleseren din. Eneste nettverkstrafikk er API-kall til dele.no med din eksisterende innlogging. Ingen tredjeparter. Hvilke kall som gjøres, hvor ofte og med hvilke grenser, står i [docs/api-bruk.md](docs/api-bruk.md).
 
 ## Estimater
 
