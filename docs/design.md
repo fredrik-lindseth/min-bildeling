@@ -221,7 +221,7 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 
 ## Synk, fremdrift og feil
 
-Synk er informasjon, ikke en advarsel. Banneret over innholdet er et panel i surface med 1 px border, en tekstlinje og en fremdriftslinje på 4 px: spor i sunken, fyll i accent, bredden er faktisk andel (`aria-valuenow` på et `role="progressbar"`). Teksten er konkret og følger fasen fra bakgrunnsscriptet:
+Synk er informasjon, ikke en advarsel. Banneret over innholdet er et panel i surface med 1 px border, en tekstlinje og en fremdriftslinje på 4 px: spor i sunken, fyll i accent, bredden er faktisk andel (`aria-valuenow` på et `role="progressbar"`). Teksten er konkret og følger fasen fra synkmotoren:
 
 - «Henter turlisten …»
 - «Henter detaljer for 240 av 412 turer …»
