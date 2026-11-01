@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bildeleringen Stats (Dashboard)</title>
+  <title>Bildeleringen Stats</title>
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -42,7 +42,7 @@
 
   <!-- Loading / status -->
   <div id="status" class="status" hidden>
-    <span id="status-text">Laster data...</span>
+    <span id="status-text">Laster…</span>
     <div id="progress-bar" class="progress" hidden>
       <div class="progress__bar" id="progress-fill"></div>
     </div>
@@ -50,8 +50,8 @@
 
   <!-- Empty state -->
   <div id="empty-state" class="empty-state" hidden>
-    <p class="empty-state__text">Ingen data tilgjengelig enda.</p>
-    <p class="empty-state__sub">Trykk Synkroniser for &aring; hente data, eller logg inn p&aring; <a href="https://app.dele.no" target="_blank" rel="noopener">app.dele.no</a> f&oslash;rst.</p>
+    <p class="empty-state__text">Ingen turer lagret ennå.</p>
+    <p class="empty-state__sub">Logg inn på <a href="https://app.dele.no" target="_blank" rel="noopener">app.dele.no</a> og trykk Synkroniser.</p>
   </div>
 
   <main id="main-content" class="main" hidden>
@@ -81,7 +81,7 @@
           <div class="card__value" id="cost-yearly-total">&ndash;</div>
         </div>
         <div class="card">
-          <span class="card__label">Gjennomsnitt per tur</span>
+          <span class="card__label">Snitt per tur</span>
           <span class="card__value" id="cost-avg-trip">&ndash;</span>
         </div>
         <div class="card">
@@ -133,11 +133,11 @@
 
       <div class="cards cards--2">
         <div class="card">
-          <span class="card__label">Gjennomsnittlig varighet</span>
+          <span class="card__label">Snittvarighet</span>
           <span class="card__value" id="usage-avg-duration">&ndash;</span>
         </div>
         <div class="card">
-          <span class="card__label">Antall turer totalt</span>
+          <span class="card__label">Turer totalt</span>
           <span class="card__value" id="usage-total-trips">&ndash;</span>
         </div>
       </div>
@@ -162,17 +162,17 @@
       </div>
 
       <div id="booking-empty" class="empty-state empty-state--inline" hidden>
-        <p class="empty-state__text">Ikke nok data for bookingm&oslash;nster.</p>
+        <p class="empty-state__text">Ingen turer med bookingtidspunkt.</p>
       </div>
 
       <div id="booking-content">
         <div class="cards cards--2">
           <div class="card">
-            <span class="card__label">Snitt forh&aring;ndsvarsel</span>
+            <span class="card__label">Booket i forveien, snitt</span>
             <span class="card__value" id="booking-avg-lead">&ndash;</span>
           </div>
           <div class="card">
-            <span class="card__label">Median forh&aring;ndsvarsel</span>
+            <span class="card__label">Booket i forveien, median</span>
             <span class="card__value" id="booking-median-lead">&ndash;</span>
           </div>
           <div class="card">
@@ -180,7 +180,7 @@
             <span class="card__value" id="booking-short-notice">&ndash;</span>
           </div>
           <div class="card">
-            <span class="card__label">Unike stasjoner</span>
+            <span class="card__label">Ulike stasjoner</span>
             <span class="card__value" id="booking-unique-stations">&ndash;</span>
           </div>
         </div>
@@ -196,7 +196,7 @@
         </div>
 
         <div class="method-block">
-          <button class="method-toggle" id="booking-method-toggle">Slik beregner vi &#9656;</button>
+          <button type="button" class="method-toggle" id="booking-method-toggle" aria-expanded="false">Slik beregner vi</button>
           <div class="method-detail" id="booking-method-detail" hidden></div>
         </div>
       </div>
@@ -214,7 +214,7 @@
       </div>
 
       <div id="km-empty" class="empty-state empty-state--inline" hidden>
-        <p class="empty-state__text">Ingen kilometerdata tilgjengelig.</p>
+        <p class="empty-state__text">Ingen kilometerdata ennå.</p>
       </div>
 
       <div id="km-content">
@@ -259,17 +259,17 @@
       </div>
 
       <div id="trends-empty" class="empty-state empty-state--inline" hidden>
-        <p class="empty-state__text">Ikke nok data for trendanalyse.</p>
+        <p class="empty-state__text">Trender vises når du har turer fra minst tre måneder.</p>
       </div>
 
       <div id="trends-content">
         <div class="chart-container">
-          <h3 class="chart-container__title">&Aring;r-over-&aring;r sammenligning</h3>
+          <h3 class="chart-container__title">År mot år</h3>
           <canvas id="yoy-chart"></canvas>
         </div>
 
         <div class="chart-container">
-          <h3 class="chart-container__title">Rullerende 3-m&aring;neders snitt</h3>
+          <h3 class="chart-container__title">Glidende snitt, tre måneder</h3>
           <canvas id="rolling-avg-chart"></canvas>
         </div>
 
@@ -292,7 +292,7 @@
       </div>
 
       <div id="ownership-empty" class="empty-state empty-state--inline" hidden>
-        <p class="empty-state__text">Ikke nok data for sammenligning.</p>
+        <p class="empty-state__text">Ingen kjørte turer å regne på ennå.</p>
       </div>
 
       <div id="ownership-content" hidden>
@@ -302,7 +302,7 @@
             <span class="comparison__amount" id="sharing-cost">&ndash;</span>
             <span class="comparison__period">per &aring;r</span>
           </div>
-          <div class="comparison__vs">vs</div>
+          <div class="comparison__vs">mot</div>
           <div class="comparison__column">
             <span class="comparison__label">Eid bil</span>
             <span class="comparison__amount" id="ownership-cost">&ndash;</span>
@@ -325,7 +325,7 @@
             <span class="comparison__amount" id="volvo-sharing-cost">&ndash;</span>
             <span class="comparison__period">per &aring;r</span>
           </div>
-          <div class="comparison__vs">vs</div>
+          <div class="comparison__vs">mot</div>
           <div class="comparison__column">
             <span class="comparison__label">Volvo EX C40</span>
             <span class="comparison__amount" id="volvo-ownership-cost">&ndash;</span>
@@ -338,7 +338,7 @@
         <p class="comparison__note" id="comparison-note"></p>
 
         <div class="method-block">
-          <button class="method-toggle" id="ownership-method-toggle">Slik beregner vi &#9656;</button>
+          <button type="button" class="method-toggle" id="ownership-method-toggle" aria-expanded="false">Slik beregner vi</button>
           <div class="method-detail" id="ownership-method-detail" hidden></div>
         </div>
       </div>
@@ -368,7 +368,7 @@
       </div>
 
       <div class="card card--list" id="uncategorized-section" hidden>
-        <span class="card__label">Ukategoriserte turer med forslag</span>
+        <span class="card__label">Forslag til kategori</span>
         <div class="suggestion-list" id="suggestion-list"></div>
       </div>
 
@@ -378,9 +378,7 @@
           <span class="keyword-card__total" id="keyword-total"></span>
         </summary>
         <p class="keyword-card__help">
-          Turer kategoriseres etter ord i turnotatet. Standardlisten dekker kjeder, h&oslash;ytider og vanlige ord.
-          Legg til egne ord som stedsnavn og personer, kommaseparert. Ordene lagres bare i denne nettleseren
-          og slettes ikke ved synkronisering. Kategoriene sjekkes i rekkef&oslash;lgen under, og f&oslash;rste treff vinner.
+          Skill ordene med komma. Første kategori ovenfra med treff i turnotatet vinner.
         </p>
         <form id="keyword-form" class="keyword-form">
           <div id="keyword-fields"></div>
@@ -409,13 +407,13 @@
       </div>
 
       <div id="co2-empty" class="empty-state empty-state--inline" hidden>
-        <p class="empty-state__text">Ingen kilometerdata tilgjengelig for klimaberegning.</p>
+        <p class="empty-state__text">Ingen kilometerdata å regne utslipp fra.</p>
       </div>
 
       <div id="co2-content" hidden>
         <div class="cards cards--3">
           <div class="card">
-            <span class="card__label">Totalt CO&#8322;-utslipp</span>
+            <span class="card__label">CO&#8322; totalt</span>
             <span class="card__value" id="co2-total">&ndash;</span>
           </div>
           <div class="card">
@@ -423,13 +421,13 @@
             <span class="card__value" id="co2-avg-km">&ndash;</span>
           </div>
           <div class="card">
-            <span class="card__label">Elektriske turer</span>
+            <span class="card__label">Turer med elbil</span>
             <span class="card__value" id="co2-electric-pct">&ndash;</span>
           </div>
         </div>
 
         <div class="chart-container">
-          <h3 class="chart-container__title">M&aring;nedlig CO&#8322;-utslipp</h3>
+          <h3 class="chart-container__title">CO&#8322; per m&aring;ned</h3>
           <canvas id="monthly-co2-chart"></canvas>
         </div>
 
@@ -439,7 +437,7 @@
         </div>
 
         <div class="method-block">
-          <button class="method-toggle" id="co2-method-toggle">Slik beregner vi &#9656;</button>
+          <button type="button" class="method-toggle" id="co2-method-toggle" aria-expanded="false">Slik beregner vi</button>
           <div class="method-detail" id="co2-method-detail" hidden></div>
         </div>
       </div>
@@ -458,19 +456,19 @@
 
       <!-- Year selector for transport data -->
       <div class="transport-year" id="transport-year-selector">
-        <label for="transport-year">Velg &aring;r:</label>
+        <label for="transport-year">År</label>
         <select id="transport-year" class="transport-select"></select>
       </div>
 
       <!-- Input form -->
       <div class="card card--list">
-        <span class="card__label">Annen transport (manuell registrering)</span>
+        <span class="card__label">Annen transport</span>
         <form id="transport-form" class="transport-form">
           <!-- JS will build rows for each transport mode -->
           <div id="transport-fields"></div>
           <div class="transport-form__actions">
             <button type="submit" class="btn btn--save">Lagre</button>
-            <button type="button" id="transport-reset" class="btn btn--reset">Null alt</button>
+            <button type="button" id="transport-reset" class="btn btn--reset">Tøm feltene</button>
             <span id="transport-save-status" class="transport-save-status"></span>
           </div>
         </form>
@@ -490,7 +488,7 @@
 
         <div class="cards cards--3">
           <div class="card">
-            <span class="card__label">Total transportkostnad</span>
+            <span class="card__label">Kostnad totalt</span>
             <span class="card__value" id="transport-total-cost">&ndash;</span>
           </div>
           <div class="card">
@@ -498,18 +496,18 @@
             <span class="card__value" id="transport-total-co2">&ndash;</span>
           </div>
           <div class="card">
-            <span class="card__label">Bildeling-andel (kostnad)</span>
+            <span class="card__label">Bildelingens andel</span>
             <span class="card__value" id="transport-sharing-pct">&ndash;</span>
           </div>
         </div>
 
         <div class="card card--list">
-          <span class="card__label">Detaljert oversikt</span>
+          <span class="card__label">Per transportmiddel</span>
           <div class="category-table" id="transport-table"></div>
         </div>
 
         <div class="method-block">
-          <button class="method-toggle" id="transport-method-toggle">Slik beregner vi &#9656;</button>
+          <button type="button" class="method-toggle" id="transport-method-toggle" aria-expanded="false">Slik beregner vi</button>
           <div class="method-detail" id="transport-method-detail" hidden></div>
         </div>
       </div>
@@ -524,10 +522,7 @@
         <h2 class="section__title">Utviklerverkt&oslash;y</h2>
       </div>
 
-      <p class="dev-warning">
-        Dette panelet er kun for utvikling. Det er synlig fordi
-        <code>?dev=1</code> er i URL-en.
-      </p>
+      <p class="dev-warning">Synlig fordi URL-en har <code>?dev=1</code>.</p>
 
       <div class="cards cards--3">
         <div class="card">
@@ -545,7 +540,7 @@
       </div>
 
       <div class="card card--list">
-        <span class="card__label">Kall mot dele.no, siste tre synker</span>
+        <span class="card__label">Kall mot dele.no, tre siste synker</span>
         <ol id="dev-sync-history" class="dev-sync-history">
           <li>Ingen synker registrert enn&aring;.</li>
         </ol>
@@ -554,7 +549,7 @@
 
       <div class="card card--list">
         <span class="card__label">Sikkerhetskopi</span>
-        <p class="dev-help">Eksporter alle reservasjoner og synkroniseringstidspunkt som JSON, eller importer fra en tidligere eksport. Brukerdata (kategorier, transport) inkluderes ikke.</p>
+        <p class="dev-help">Reservasjoner og synktidspunkt som JSON. Kategorier, transport og egne nøkkelord er ikke med.</p>
         <div class="dev-actions">
           <button type="button" id="dev-export-btn" class="btn btn--save">Eksporter data</button>
           <button type="button" id="dev-import-btn" class="btn btn--reset">Importer data</button>
@@ -564,13 +559,23 @@
       </div>
 
       <div class="card card--list">
-        <span class="card__label">Farlig sone</span>
-        <p class="dev-help">Sletter <code>reservations</code>, <code>lastSync</code>, <code>tripCategories</code>, <code>transportData</code>, <code>userKeywords</code> og synktilstanden (<code>syncState</code>, <code>syncLock</code>, <code>syncHistory</code>) fra storage. Kan ikke angres.</p>
+        <span class="card__label">Nullstilling</span>
+        <p class="dev-help">Sletter reservasjoner, kategorier, nøkkelord og transportdata. Kan ikke angres.</p>
         <div class="dev-actions">
           <button type="button" id="dev-reset-btn" class="btn btn--danger">Nullstill alt</button>
         </div>
       </div>
     </section>
+
+    <dialog id="dev-confirm" class="dev-dialog" aria-labelledby="dev-confirm-text">
+      <form method="dialog">
+        <p id="dev-confirm-text"></p>
+        <div class="dev-actions">
+          <button type="submit" value="cancel" id="dev-confirm-cancel" class="btn btn--reset" autofocus>Avbryt</button>
+          <button type="submit" value="confirm" id="dev-confirm-ok" class="btn btn--danger"></button>
+        </div>
+      </form>
+    </dialog>
   </aside>
 
   <script src="../vendor/html2canvas.min.js"></script>

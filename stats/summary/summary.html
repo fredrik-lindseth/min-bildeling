@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bildeleringen (Årsoppsummering)</title>
+  <title>Årsoppsummering</title>
   <link rel="stylesheet" href="summary.css">
 </head>
 <body>
   <div class="summary">
     <div class="year-picker">
-      <select id="year-select"></select>
+      <select id="year-select" aria-label="Velg år"></select>
     </div>
 
     <section class="slide slide--hero">
@@ -18,7 +18,7 @@
     </section>
 
     <section class="slide">
-      <span class="slide__label">Totalt brukt på bildeling</span>
+      <span class="slide__label">Brukt på bildeling</span>
       <span class="slide__big" id="total-cost"></span>
       <span class="slide__sub" id="trip-count"></span>
     </section>
@@ -42,7 +42,7 @@
     </section>
 
     <section class="slide slide--green">
-      <span class="slide__label">Spart sammenlignet med å eie bil</span>
+      <span class="slide__label" id="savings-label">Spart mot å eie bil</span>
       <span class="slide__big" id="savings"></span>
       <span class="slide__sub" id="savings-vs"></span>
     </section>
@@ -50,11 +50,14 @@
     <section class="slide slide--green">
       <span class="slide__label">CO₂ spart</span>
       <span class="slide__big" id="co2-saved"></span>
-      <span class="slide__sub">sammenlignet med gjennomsnittlig privatbil</span>
+      <span class="slide__sub">mot snittet for privatbiler</span>
     </section>
 
-    <section class="slide slide--closing">
-      <h2 class="slide__title">Et år uten egen bil.</h2>
+    <section class="slide slide--method">
+      <details class="method">
+        <summary>Slik beregner vi</summary>
+        <div id="method-detail"></div>
+      </details>
     </section>
   </div>
 

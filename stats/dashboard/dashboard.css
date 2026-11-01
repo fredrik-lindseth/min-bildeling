@@ -1,5 +1,5 @@
 /* ============================================
-   Bildeleringen Stats — Dashboard Stylesheet
+   Bildeleringen Stats, dashboard
    ============================================ */
 
 :root {
@@ -1248,7 +1248,22 @@ a:focus-visible {
   border-color: var(--color-danger-hover);
 }
 
-/* Dev panel cards have smaller value text — these are info, not stats */
+.dev-dialog {
+  max-width: 420px;
+  margin: auto;
+  padding: 20px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.dev-dialog p {
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+/* Mindre verditekst i utviklerpanelet, siden det er info og ikke statistikk */
 .section--dev .card__value {
   font-size: 15px;
   font-weight: 600;

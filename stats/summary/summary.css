@@ -9,7 +9,7 @@
   --sum-picker-border: rgba(255, 255, 255, 0.15);
 }
 
-/* No light/dark toggle needed — summary is always dark themed for visual impact */
+/* Årsoppsummeringen er alltid mørk, så den trenger ingen lys variant */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -99,21 +99,37 @@ body {
   color: var(--sum-green);
 }
 
-.slide--closing {
-  min-height: 60vh;
+.slide--method {
+  min-height: 40vh;
 }
 
-.slide--closing .slide__title {
-  font-size: 36px;
-  font-weight: 700;
-  color: var(--sum-text);
+.method {
+  max-width: 68ch;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sum-text-secondary);
+}
+
+.method summary {
+  cursor: pointer;
+  color: var(--sum-accent);
+  text-align: center;
+}
+
+.method p,
+.method ul {
+  margin-top: 8px;
+}
+
+.method ul {
+  padding-left: 16px;
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .slide__year { font-size: 64px; }
   .slide__big { font-size: 40px; }
-  .slide--closing .slide__title { font-size: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

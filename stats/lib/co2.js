@@ -29,11 +29,9 @@ const PRIVATE_CAR_AVG_CO2 = 110;
 //   TØI "Bildelingens miljøkonsekvenser" (Julsrud)
 //   Miljødirektoratet / SSB
 export const CO2_METHOD = {
-  note: "CO₂ beregnes per tur fra bilens drivstofftype og kategori " +
-    "(Miljødirektoratet). Elbiler = 0 g/km (direkte utslipp). " +
-    "Bildeleringen-medlemmer kjører ~1/3 av det bileiere gjør, " +
-    "og 49% har latt være å kjøpe bil pga. bildeling " +
-    "(TØI 1895/2022, Bildeling i Bergen).",
+  note: "Utslippet per tur regnes fra bilens drivstoff og kategori. " +
+    "Elbil teller 0 g/km, siden bare direkte utslipp er med.",
+  comparison: `Spart utslipp er regnet mot snittet for norske privatbiler, ${PRIVATE_CAR_AVG_CO2} g/km.`,
   sources: [
     "TØI 1895/2022: Bildeling i Bergen (Nenseth & Ellis, 2022)",
     "TØI: Bildelingens miljøkonsekvenser (Julsrud)",
