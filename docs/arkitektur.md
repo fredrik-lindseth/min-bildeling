@@ -10,11 +10,22 @@ Hvordan utvidelsene henger sammen inni: lagring, synk, filtrering og varsler. Fe
 2. Popupen eller dashbordet starter synken via `lib/sync-page.js`, som kjører motoren i `lib/sync.js` i selve siden.
 3. Reservasjonene lagres i `browser.storage.local`. Sidene regner ut statistikken ved visning med de rene funksjonene i `lib/stats.js`, `lib/co2.js` og `lib/ownership-cost.js`.
 
-Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rundt 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så feilen synes ikke der. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`, `GET_AUTH_STATUS`) og lesing av lagrede data (`GET_DATA`, `DEBUG_DUMP`).
+Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rundt 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så feilen synes ikke der. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`, `GET_AUTH_STATUS`, `RELOAD_DELE_TAB`) og lesing av lagrede data (`GET_DATA`, `DEBUG_DUMP`).
 
 ### Innlogging
 
-`getAuth()` i `background.js` spør først content-scriptet i en app.dele.no-fane med `tabs.sendMessage`. Er det ikke injisert (Firefox MV3 ved oppstart), leser den `localStorage` direkte med `scripting.executeScript`, derfor `scripting`-tillatelsen. Uten åpen app.dele.no-fane får synken ingen innlogging og stopper med `NOT_LOGGED_IN`. 401 gir `AUTH_EXPIRED`, og siden ber background nullstille innloggingen med `CLEAR_AUTH`.
+`probeAuth()` i `background.js` leser innloggingen og sier hvorfor den mangler når den mangler. Den sjekker først host-tilgangen med `permissions.contains` for `https://app.dele.no/*`. Uten den finner `tabs.query` ingen app.dele.no-faner, så en tom liste sier ingenting om innloggingen. I hver fane spør den content-scriptet med `tabs.sendMessage`. Svarer det ikke (fanen var åpen før utvidelsen ble lastet), leser den `localStorage` direkte med `scripting.executeScript`, derfor `scripting`-tillatelsen. Lastede faner prøves først.
+
+En fane Firefox har lastet ut (`tab.discarded`, en fane som ikke er vist siden omstart eller er lagt i dvale) har verken content-script eller en side å kjøre i. Firefox injiserer ikke content-scriptet i den ved installasjon, og `executeScript` feiler med «An unexpected error occurred». Slike faner prøves ikke. Var dette den eneste app.dele.no-fanen, sa popupen før «Ikke innlogget» selv om brukeren var innlogget, og en ny fane fra «Åpne app.dele.no» virket.
+
+`chooseAuthState()` i `lib/auth-state.js` gjør forsøkene om til én av fire tilstander, og `GET_AUTH_STATUS` svarer `{ hasAuth, state, tabId }`:
+
+- `ok`: tokenet ble lest.
+- `no-permission`: host-tilgangen mangler. Brukeren kan ha trukket den tilbake i `about:addons`, og Firefox husker det for id-en også når tillegget installeres på nytt over seg selv. Knappen «Gi tilgang» kaller `permissions.request` direkte i klikket.
+- `logged-out`: ingen app.dele.no-fane, eller en fane som kunne leses, uten innlogging. `localStorage` er felles for hele app.dele.no, så én lest fane avgjør.
+- `reload-needed`: det finnes faner, men ingen kunne leses. Knappen «Last inn fanen på nytt» sender `RELOAD_DELE_TAB`, og background laster den ene fanen. `tabs.reload` på en utlastet fane gir en tom side i Firefox, så en utlastet fane lastes med `tabs.update` og sin egen adresse. Ingenting lastes uten klikket.
+
+Banneret i popupen og dashbordet bygges av `lib/auth-banner.js`. Når synken stopper med `NOT_LOGGED_IN`, spør siden `GET_AUTH_STATUS` og viser tilstanden derfra (`stateForSyncError`). 401 gir `AUTH_EXPIRED`, som alltid er `logged-out`, og siden ber background nullstille innloggingen med `CLEAR_AUTH`.
 
 ### Storage-nøkler
 

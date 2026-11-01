@@ -13,6 +13,9 @@ import {
 // for resten. Det som er hentet, står i storage uansett.
 import { POPUP_MAX_DETAILS } from "../lib/sync.js";
 import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
+import { AUTH_STATE, stateForSyncError } from "../lib/auth-state.js";
+import { historyProgress, describeIncompleteHistory } from "../lib/sync-messages.js";
+import { showAuthBanner } from "../lib/auth-banner.js";
 
 const browserAPI = globalThis.browser ?? globalThis.chrome;
 // ?demo=1: syntetiske data, ingen synk og ingen utvidelses-API.
@@ -30,6 +33,8 @@ const monthsCanvas = document.getElementById("months-chart");
 const syncBtn = document.getElementById("sync-btn");
 const lastSyncedEl = document.getElementById("last-synced");
 const dashboardLink = document.getElementById("dashboard-link");
+const historyNote = document.getElementById("history-note");
+const savingsMethod = document.getElementById("savings-method");
 
 const MONTH_SHORT = ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"];
 const formatAmount = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
@@ -56,23 +61,19 @@ function showStatus(message, progress = null) {
   }
 }
 
-function showLoginRequired() {
-  statusEl.classList.add("status--login");
-  statusText.innerHTML = `<strong>Ikke innlogget</strong><br>Logg inn på app.dele.no og trykk Synkroniser.`;
-  removeStatusAction();
-
-  const action = document.createElement("a");
-  action.id = "status-action";
-  action.className = "btn btn--primary status__action";
-  action.textContent = "Åpne app.dele.no";
-  action.href = "https://app.dele.no";
-  action.target = "_blank";
-  action.rel = "noopener";
-  statusEl.appendChild(action);
-
+// Hvorfor innloggingen mangler, med én handling som løser det. Se lib/auth-state.js.
+function showAuthProblem({ state, tabId }) {
   progressEl.hidden = true;
   progressBar.style.width = "0%";
-  statusEl.hidden = false;
+  showAuthBanner({
+    statusEl,
+    textEl: statusText,
+    state,
+    tabId,
+    getStatus: () => sendMessage({ type: "GET_AUTH_STATUS" }),
+    onRetry: () => init(),
+    onWait: (message) => showStatus(message),
+  });
 }
 
 function removeStatusAction() {
@@ -101,7 +102,9 @@ function hideStatus() {
   progressEl.hidden = true;
 }
 
-function renderStats(reservations) {
+// tripHistory: historyProgress(syncState). Mangler turer, holdes tallene som
+// trenger hele historikken tilbake (se «Foreløpige tall» i docs/design.md).
+function renderStats(reservations, tripHistory = { complete: true }) {
   const stats = currentMonthStats(reservations);
   const monthly = monthlyCosts(reservations);
 
@@ -125,7 +128,7 @@ function renderStats(reservations) {
   // Most used car (across all data)
   const patterns = usagePatterns(reservations);
   const topCar = patterns.topCars[0];
-  mostUsedCar.textContent = topCar ? topCar.name : "–";
+  mostUsedCar.textContent = tripHistory.complete && topCar ? topCar.name : "–";
 
   renderLastSixMonths(monthly);
 
@@ -133,7 +136,12 @@ function renderStats(reservations) {
   const currentYear = new Date().getFullYear();
   const ownership = estimateOwnershipCost(reservations, currentYear);
   const savingsEl = document.getElementById("yearly-savings");
-  if (ownership && ownership.savings > 0) {
+  historyNote.hidden = tripHistory.complete;
+  savingsMethod.hidden = !tripHistory.complete;
+  if (!tripHistory.complete) {
+    historyNote.textContent = describeIncompleteHistory(tripHistory, "Spart i år og mest brukte bil");
+    savingsEl.textContent = "–";
+  } else if (ownership && ownership.savings > 0) {
     savingsEl.textContent = `ca. ${formatNOK.format(ownership.savings)}`;
   } else if (ownership) {
     savingsEl.textContent = "0 kr";
@@ -190,7 +198,7 @@ function showProgress(progress) {
 async function renderStored() {
   const data = await sendMessage({ type: "GET_DATA" });
   if (!data || !data.reservations || data.reservations.length === 0) return false;
-  renderStats(data.reservations);
+  renderStats(data.reservations, historyProgress(data.syncState));
   lastSyncedEl.textContent = formatSyncTime(data.lastSync);
   return true;
 }
@@ -220,7 +228,8 @@ async function syncAndRender(force) {
   }
 
   if (isAuthError(result.error)) {
-    showLoginRequired();
+    const status = await sendMessage({ type: "GET_AUTH_STATUS" }).catch(() => null);
+    showAuthProblem(stateForSyncError(result.error, status));
     return;
   }
   const message = describeSyncResult(result);
@@ -265,8 +274,9 @@ async function init() {
   }
 
   if (!authStatus || !authStatus.hasAuth) {
-    // Med lagrede data er tallene viktigere enn login-boksen.
-    if (!hasData) showLoginRequired();
+    // Med lagrede data er tallene viktigere enn login-boksen. Synkroniser-
+    // knappen viser den når brukeren ber om ny henting.
+    if (!hasData) showAuthProblem(authStatus ?? { state: AUTH_STATE.LOGGED_OUT, tabId: null });
     return;
   }
 
@@ -290,7 +300,7 @@ function openDashboard(hash = "") {
 dashboardLink.addEventListener("click", () => openDashboard());
 
 // Metoden og kildene for sparetallet står i bilregnestykket i dashboardet.
-document.getElementById("savings-method").addEventListener("click", (e) => {
+savingsMethod.addEventListener("click", (e) => {
   e.preventDefault();
   openDashboard("#bilregnestykket");
 });

@@ -20,7 +20,12 @@ import {
   detailRetryDelayMs,
 } from "../lib/sync.js";
 import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
-import { describeProgress, describeSyncResult } from "../lib/sync-messages.js";
+import {
+  describeProgress,
+  describeSyncResult,
+  historyProgress,
+  describeIncompleteHistory,
+} from "../lib/sync-messages.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-01T12:00:00Z");
@@ -804,8 +809,35 @@ test("fremdriften står bare i banneret, med tall", () => {
 test("popupen sier i banneret at resten hentes i dashboardet", () => {
   assert.equal(
     describeProgress({ phase: "details", current: 18, total: 662, stopsAt: 25, limit: 25 }),
-    "Henter detaljer for 18 av 662 turer. Popupen henter 25 om gangen, resten hentes når du åpner dashboardet."
+    "Henter 18 av 662. Resten hentes i dashboardet."
   );
+});
+
+test("hele historikken er hentet først når køen er tom", () => {
+  // Ingen synk ennå, eller en ferdig synk: alt som finnes, er hentet.
+  assert.equal(historyProgress(undefined).complete, true);
+  assert.equal(historyProgress(null).complete, true);
+  assert.equal(historyProgress({ phase: "done", pendingIds: [], total: 662, done: 662 }).complete, true);
+  // Popupen har hentet 25 og stoppet: 637 igjen i køen.
+  const partial = historyProgress({
+    phase: "details",
+    pendingIds: Array.from({ length: 637 }, (_, i) => `r${i}`),
+    total: 662,
+    done: 25,
+  });
+  assert.deepEqual(partial, { complete: false, done: 25, total: 662 });
+  // En pause (503) med id-er igjen er like uferdig.
+  assert.equal(historyProgress({ phase: "paused", pendingIds: ["r1"], total: 2, done: 1 }).complete, false);
+  // done kan ikke vise mer enn totalen.
+  assert.equal(historyProgress({ phase: "details", pendingIds: ["r1"], total: 3, done: 5 }).done, 3);
+});
+
+test("tall som trenger hele historikken, får en kort tekst", () => {
+  assert.equal(
+    describeIncompleteHistory({ done: 25, total: 662 }, "Totalen"),
+    "Totalen vises når alle turene er hentet. Hentet 25 av 662."
+  );
+  assert.equal(describeIncompleteHistory({ done: 0, total: 0 }), "Tallet vises når alle turene er hentet.");
 });
 
 test("en annen side som synker, vises som fremdrift og ikke som feil", () => {
