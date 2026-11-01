@@ -5,10 +5,15 @@
 # icon.svg er for lyse verktøylinjer, icon-dark.svg for mørke. PNG-ene sjekkes
 # inn, så scriptet trengs bare når SVG-ene endres. 256 px-versjonen er til
 # AMO-listingen og ligger i icons/listing/, som package.sh holder utenfor zip-en.
+#
+# Nøklene i manifestets theme_icons beskriver temaets tekstfarge, ikke
+# ikonet: "dark" vises på lyst tema (mørk tekst) og "light" på mørkt tema
+# (lys tekst). Derfor skal "light" peke på icon-dark-*.png og "dark" på
+# icon-*.png. Sjekken nederst stopper den motsatte koblingen.
 
 set -euo pipefail
 
-# Kjør alltid fra stats/-rota (skriptet ligger i stats/scripts/)
+# Kjør alltid fra stats/-roten (skriptet ligger i stats/scripts/)
 cd "$(dirname "$0")/.."
 
 if ! command -v rsvg-convert >/dev/null 2>&1; then
@@ -27,5 +32,10 @@ done
 
 mkdir -p icons/listing
 rsvg-convert --width 256 --height 256 icons/icon.svg --output icons/listing/icon-256.png
+
+if grep -q -E '"light": *"icons/icon-[0-9]|"dark": *"icons/icon-dark-' manifest.json; then
+  echo "manifest.json: theme_icons er snudd. \"light\" skal peke på icon-dark-*.png og \"dark\" på icon-*.png." >&2
+  exit 1
+fi
 
 echo "Rendret ${#SIZES[@]} størrelser i lys og mørk variant, pluss icons/listing/icon-256.png."
