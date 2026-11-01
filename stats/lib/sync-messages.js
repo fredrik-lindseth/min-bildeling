@@ -11,7 +11,9 @@ export function isAuthError(error) {
  */
 export function describeSyncResult(result) {
   if (!result) return "Synkroniseringen svarte ikke. Prøv igjen.";
-  if (result.status === "BUSY") return "Synkroniserer allerede i et annet vindu.";
+  // Sidene venter på en annen side som synker (runSyncWhenFree) og får ikke
+  // BUSY tilbake. Kommer den likevel, er det ingenting brukeren skal gjøre.
+  if (result.status === "BUSY") return null;
   if (result.error === "SERVICE_UNAVAILABLE") {
     return withProgress(result, "Dele svarer ikke nå. Prøver igjen senere.");
   }
@@ -65,16 +67,22 @@ function withProgress(result, message) {
   return `${message} Hentet ${result.fetchedSoFar} av ${result.total}.`;
 }
 
-export function describeProgress({ phase, current, total }) {
+// Fremdriften står bare i banneret. Synk-knappen er deaktivert og sier
+// «Synkroniserer…» uten tall, så samme teller ikke vises to ganger.
+export function describeProgress({ phase, current, total, limit, elsewhere }) {
+  if (elsewhere) {
+    return phase === "details" && total > 0
+      ? `Et annet vindu henter detaljer for ${current} av ${total} turer…`
+      : "Et annet vindu synkroniserer…";
+  }
   if (phase === "list") {
     return total ? `Henter listen over ${total} turer…` : "Henter turlisten…";
   }
-  if (phase === "details" && total > 0) return `Henter detaljer for ${current} av ${total} turer…`;
-  return "Synkroniserer…";
-}
-
-// Kort form til synk-knappen, så knapp og banner viser samme tall.
-export function describeProgressShort({ phase, current, total }) {
-  if (phase === "details" && total > 0) return `Synkroniserer ${current} av ${total}`;
+  if (phase === "details" && total > 0) {
+    const base = `Henter detaljer for ${current} av ${total} turer`;
+    // Bare popupen har en grense, og den stopper før totalen.
+    if (limit) return `${base}. Popupen henter ${limit} om gangen, resten hentes når du åpner dashboardet.`;
+    return `${base}…`;
+  }
   return "Synkroniserer…";
 }
