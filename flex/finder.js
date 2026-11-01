@@ -1,12 +1,12 @@
-import { solve, splitPairs, ORG_BILDELERINGEN } from "./lib/flex.js";
+import { solve, splitPairs } from "./lib/flex.js";
 import { parseLocalISO, toLocalISO } from "./lib/format.js";
 import { getPlaces, savePlace } from "./lib/storage.js";
 import { stationPlaces } from "./lib/places.js";
 import { searchErrorText } from "./lib/search-api.js";
 
-// "Uansett" avstand = hele regionen. Taket holder Bildeleringen sine
-// fjern-biler (beboer-restringerte biler i Tromsø, ~1200 km) ute av et
-// Bergen-søk, uten at brukeren må tenke på gangavstand.
+// "Uansett" avstand = regionen rundt stedet brukeren har valgt. Søket gir
+// biler fra hele landet med avstand fra det stedet, så taket holder andre
+// byer ute, også beboerbilene i Tromsø som har Bildeleringens organisasjon.
 const REGION_CEILING_M = 100000;
 // 2→4 km-utvidelsen gir bare mening ved en bevisst kort radius.
 const WIDEN_MAX_M = 5000;
@@ -360,9 +360,9 @@ function readWish() {
   const categories = pressedValues("categoryChips");
   const fuels = pressedValues("fuelChips");
   const distVal = document.getElementById("maxdist").value;
+  const excluded = CATEGORIES.filter((c) => !categories.includes(c));
   const filters = {
-    organizationId: ORG_BILDELERINGEN,
-    categories: categories.length ? categories : undefined,
+    excludeCategories: categories.length && excluded.length ? excluded : undefined,
     fuels: fuels.length && fuels.length < FUELS.length ? fuels : undefined,
     maxDistanceM: distVal ? Number(distVal) : REGION_CEILING_M,
   };

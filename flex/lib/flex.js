@@ -2,10 +2,6 @@ import { parseLocalISO } from "./format.js";
 
 export const MS_PER_MINUTE = 60 * 1000;
 
-// dele.no er en felles plattform for flere bilkollektiv. Vi vil kun ha
-// Bildeleringen sine biler, ikke Trondheim Bilkollektiv o.l.
-export const ORG_BILDELERINGEN = "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0";
-
 export function blockMinutes(b) {
   return (b.end - b.start) / MS_PER_MINUTE;
 }
@@ -113,10 +109,15 @@ function carFuels(car) {
     .map((p) => p.carPropertyName);
 }
 
+// Ingen organisasjonsfilter: /api/search gir biler fra alle bilkollektivene på
+// dele.no, og app.dele.no viser og booker dem alle med det valgte medlemskapet.
+// Et organizationId i eldre lagrede overvåkninger ignoreres derfor.
 export function matchesFilters(car, filters = {}) {
-  if (filters.organizationId && car.organizationId !== filters.organizationId) return false;
   if (filters.category && car.carCategory !== filters.category) return false;
   if (filters.categories && filters.categories.length && !filters.categories.includes(car.carCategory)) return false;
+  // Utelukk heller enn å inkludere, så en biltype finderen ikke har brikke for
+  // (andre bilkollektiv kan ha egne) ikke forsvinner stille.
+  if (filters.excludeCategories && filters.excludeCategories.includes(car.carCategory)) return false;
   if (filters.seats && (car.seats || 0) < filters.seats) return false;
   if (filters.fuel && !carFuels(car).includes(filters.fuel)) return false;
   if (filters.fuels && filters.fuels.length && !carFuels(car).some((f) => filters.fuels.includes(f))) return false;

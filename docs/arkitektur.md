@@ -74,7 +74,7 @@ Matchingen er substring mot `notes` (små bokstaver, ingen ordgrenser). Første 
 - `background.js`: `getAuth()` (content-scriptet først, `scripting.executeScript` som reserve), proxy for `SEARCH` og `GET_LOCATIONS`. Nullstiller innloggingen ved `AUTH_EXPIRED`. Eier varslene: eneste som skriver `watches`, poller med `alarms` (`pollWatches`) og sender varsler.
 - `lib/search-api.js`: `searchAvailability()` og `fetchLocations()`, med 50 ms pause og backoff ved 429.
 - `lib/places.js`: `stationPlaces()` gjør `/locations` om til ett punkt per stasjon (snittet av hjørnene). Finderen tilbyr i tillegg «Min posisjon» og «Husk stedet».
-- `lib/flex.js`: motoren, `freeBlocks`, `fitCar`, `solve` (bøttene whole, adjusted og siblings) og `splitPairs`. `matchesFilters` og `withinDistance` gjenbrukes av `watch.js`. Søket filtreres alltid til `ORG_BILDELERINGEN` og et avstandstak (`REGION_CEILING_M` i `finder.js`), se Tromsø i [api/README.md](api/README.md).
+- `lib/flex.js`: motoren, `freeBlocks`, `fitCar`, `solve` (bøttene whole, adjusted og siblings) og `splitPairs`. `matchesFilters` og `withinDistance` gjenbrukes av `watch.js`. Søket filtreres ikke på organisasjon, bare med et avstandstak fra det valgte stedet (`REGION_CEILING_M` i `finder.js`), se Organisasjoner og Tromsø i [api/README.md](api/README.md).
 - `lib/watch.js`: `detectHits(searchResult, watch, window)` og `reconcile(hits, notified, now)`.
 - `lib/relay.js`: vasker relay-adressen (https, eller http mot localhost) og lager match-mønsteret for tillatelsen.
 - `lib/format.js`: `parseLocalISO` og `toLocalISO`, naiv lokal ISO uten tidssone.
