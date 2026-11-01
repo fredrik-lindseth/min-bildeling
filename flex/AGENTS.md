@@ -4,7 +4,7 @@ Firefox-utvidelse ved siden av stats som finner *når* en bil er ledig, oppå de
 
 ## Søk
 
-- Ikke filtrer på organisasjon. Søket gir biler fra alle bilkollektivene på dele.no, og medlemmet kan bruke dem, se Organisasjoner i `../docs/api/README.md`.
+- Ikke filtrer på organisasjon. Søket gir biler fra alle bilkollektivene på dele.no, og app.dele.no viser og booker dem alle. Om backend godtar booking på tvers av organisasjoner, er ukjent, se Organisasjoner i `../docs/api/README.md`.
 - Avstandstaket `REGION_CEILING_M` regnes fra stedet brukeren velger og holder andre byer ute, også Tromsø-bilene.
 - Biltypefilteret utelukker de brikkene som er slått av. Andre bilkollektiv kan ha biltyper finderen ikke har brikke for.
 - Større radius kjører `solve` på nytt over samme svar, ikke et nytt kall.
