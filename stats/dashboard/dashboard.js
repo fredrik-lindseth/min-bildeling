@@ -154,6 +154,7 @@ const statusText = $("status-text");
 const progressBar = $("progress-bar");
 const progressFill = $("progress-fill");
 const emptyState = $("empty-state");
+const firstRun = $("first-run");
 const mainContent = $("main-content");
 const syncBtn = $("sync-btn");
 const lastSyncedEl = $("last-synced");
@@ -218,6 +219,7 @@ function showLoginRequired() {
   progressBar.hidden = true;
   statusEl.hidden = false;
   emptyState.hidden = true;
+  firstRun.hidden = true;
 }
 
 function removeStatusAction() {
@@ -261,7 +263,9 @@ function showEmpty() {
 function showMain() {
   mainContent.hidden = false;
   emptyState.hidden = true;
-  hideStatus();
+  firstRun.hidden = true;
+  // Under synk står banneret med fremdriften over tallene som fylles inn.
+  if (!syncing) hideStatus();
 }
 
 // ---------- Navigation ----------
@@ -1563,6 +1567,30 @@ async function renderAll(reservations, lastSync) {
 }
 
 let hasRendered = false;
+let syncing = false;
+
+// Synken lagrer turene fortløpende, så seksjonene tegnes opp underveis. Høyst
+// én opptegning per LIVE_RENDER_MS, ellers tegner Chart.js hundrevis av ganger.
+const LIVE_RENDER_MS = 2000;
+let lastLiveRender = 0;
+let liveRender = null;
+
+function renderWhileSyncing() {
+  if (liveRender || Date.now() - lastLiveRender < LIVE_RENDER_MS) return;
+  lastLiveRender = Date.now();
+  liveRender = (async () => {
+    const data = await sendMessage({ type: "GET_DATA" });
+    const count = data?.reservations?.length || 0;
+    if (count === 0 || count === allReservations.length) return;
+    await renderAll(data.reservations, data.lastSync);
+    showMain();
+    hasRendered = true;
+  })()
+    .catch((e) => console.error("[dashboard] Opptegning under synk feilet", e))
+    .finally(() => {
+      liveRender = null;
+    });
+}
 
 async function loadStored() {
   const data = await sendMessage({ type: "GET_DATA" });
@@ -1578,6 +1606,7 @@ function onSyncProgress(progress) {
   syncBtn.textContent = describeProgressShort(progress);
   if (progress.phase === "details" && progress.total > 0) {
     showProgress(Math.round((progress.current / progress.total) * 100));
+    renderWhileSyncing();
   }
 }
 
@@ -1588,17 +1617,26 @@ async function syncAndRender(force) {
   syncBtn.disabled = true;
   syncBtn.textContent = "Synkroniserer…";
   if (force) showStatus("Synkroniserer…");
+  syncing = true;
+  // Første gang er det ingenting å vise på flere minutter, så siden sier hva som skjer.
+  if (!hasRendered) {
+    emptyState.hidden = true;
+    firstRun.hidden = false;
+  }
 
   const result = await startSync({ force, onProgress: onSyncProgress });
+  if (liveRender) await liveRender;
 
+  syncing = false;
   syncBtn.disabled = false;
   syncBtn.textContent = "Synkroniser";
   progressBar.hidden = true;
+  firstRun.hidden = true;
 
   // Tegn opp på nytt bare når synken faktisk hentet noe, eller ingenting vises ennå.
   let hasData = hasRendered;
   try {
-    if (result.fetched > 0 || !hasRendered) hasData = await loadStored();
+    if (result.fetched > 0 || !hasRendered) hasData = (await loadStored()) || hasRendered;
   } catch (e) {
     console.error("[dashboard] Klarte ikke å lese lagrede data", e);
     showStatus("Klarte ikke å lese lagrede turer. Last inn siden på nytt.");

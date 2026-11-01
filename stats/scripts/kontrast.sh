@@ -28,6 +28,10 @@ PARS = [
     ("dashboard/dashboard.css", "--color-warning-text", "--color-warning-bg", TEKST, "ikke innlogget og feil"),
     ("dashboard/dashboard.css", "--color-accent-text", "--color-accent", TEKST, "primærknapp og banner-handling"),
     ("dashboard/dashboard.css", "--color-accent-text", "--color-accent-hover", TEKST, "primærknapp, hover"),
+    # Dashboard: tom tilstand og første synk
+    ("dashboard/dashboard.css", "--color-text", "--color-bg", TEKST, "tom tilstand, første linje"),
+    ("dashboard/dashboard.css", "--color-text-secondary", "--color-bg", TEKST, "tom tilstand, forklaring"),
+    ("dashboard/dashboard.css", "--color-link", "--color-bg", TEKST, "lenke i tom tilstand"),
     # Dashboard: knapper
     ("dashboard/dashboard.css", "--color-btn-sync-text", "--color-btn-sync-bg", TEKST, "sekundærknapp"),
     ("dashboard/dashboard.css", "--color-btn-sync-text", "--color-btn-sync-hover", TEKST, "sekundærknapp, hover"),

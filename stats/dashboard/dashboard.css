@@ -380,13 +380,14 @@ body {
 .empty-state__text {
   font-size: 16px;
   font-weight: 500;
-  color: var(--color-empty-text);
+  color: var(--color-text);
 }
 
 .empty-state__sub {
-  margin-top: 8px;
+  max-width: 68ch;
+  margin: 8px auto 0;
   font-size: 14px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .empty-state__sub a {
