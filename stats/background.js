@@ -63,7 +63,7 @@ async function getAuth() {
 
   // Prøv hver fane til vi finner auth (bruker kan ha flere åpne).
   for (const tab of tabs) {
-    console.log(`[BG] getAuth: trying tab ${tab.id} (${tab.url})`);
+    console.log(`[BG] getAuth: trying tab ${tab.id}`);
 
     // Først: prøv content-scriptet hvis det er lastet (raskt).
     try {
