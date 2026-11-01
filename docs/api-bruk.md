@@ -29,7 +29,7 @@ Popupen henter høyst 25 detaljer om gangen, siden den lukkes så fort medlemmet
 
 ## Hvor mange kall
 
-Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp, uten å hente noe på nytt.
+Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp. Bare detaljene som var hentet etter siste lagring, altså høyst én gruppe, hentes en gang til. Det gjelder også når dashbordet tar over en synkronisering popupen holdt på med.
 
 Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner fra før, og det er nesten alltid én side. Svarets `x-totalelements` brukes som kontroll: dekker kjente og nye reservasjoner ikke totalen, leses flere sider. Detaljer hentes for nye reservasjoner og for de som fortsatt kan endre seg. Pausen er da 100 ms.
 

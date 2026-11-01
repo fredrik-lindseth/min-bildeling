@@ -508,6 +508,29 @@ test("popupen som mister låsen til dashboardet, venter og henter ikke de samme 
   assert.ok(world.api.count("detail") <= 60 + DETAIL_BATCH_SIZE + 1, `detaljkall: ${world.api.count("detail")}`);
 });
 
+test("dashboardet leser lageret på nytt etter låsen, så popupens siste lagrede batch ikke hentes igjen", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = makeStorage();
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const popup = runSyncWhenFree({ ...world.opts("popup"), storage, role: "popup", maxDetails: POPUP_MAX_DETAILS });
+  // Dashboardet leser lageret når popupen har hentet 18 detaljer. Innloggingen
+  // tar så lang tid at popupen rekker å lagre batchen på 20 før låsen tas.
+  while (world.api.count("detail") < 18) await settle();
+  const slowAuth = async () => {
+    while (world.api.count("detail") < 23) await settle();
+    return { token: "Bearer test", membershipId: "m-1" };
+  };
+  const dashboard = runSyncWhenFree({ ...world.opts("dashboard"), storage, getAuth: slowAuth });
+  const [, resultDashboard] = await Promise.all([popup, dashboard]);
+
+  assert.equal(resultDashboard.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 60);
+  // Bare det popupen hentet etter siste lagring (tre, pluss kallet som var i
+  // gang) hentes på nytt. Med den gamle kopien ville hele batchen på 20 gått igjen.
+  assert.ok(world.api.count("detail") <= 60 + 5, `detaljkall: ${world.api.count("detail")}`);
+});
+
 test("leasen forlenges over en lang Retry-After-ventetid", async () => {
   const all = makeReservations(2);
   const api = makeApi(all, { failures: { "list:0": [{ status: 503, headers: { "Retry-After": "90" } }] } });

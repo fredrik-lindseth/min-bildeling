@@ -198,12 +198,19 @@ export async function runSync({
   random = Math.random,
 }) {
   const startedAt = now();
-  const stored = await storage.get(["reservations", "lastSync", ...SYNC_STORAGE_KEYS]);
-  let reservations = Array.isArray(stored.reservations) ? stored.reservations : [];
-  const prev = stored.syncState || null;
-  const failed = { ...(prev?.failed || {}) };
-  const resumable =
-    prev != null && prev.phase !== "done" && Array.isArray(prev.pendingIds) && prev.pendingIds.length > 0;
+  const readStored = async () => {
+    const stored = await storage.get(["reservations", "lastSync", ...SYNC_STORAGE_KEYS]);
+    const prev = stored.syncState || null;
+    return {
+      stored,
+      reservations: Array.isArray(stored.reservations) ? stored.reservations : [],
+      prev,
+      failed: { ...(prev?.failed || {}) },
+      resumable:
+        prev != null && prev.phase !== "done" && Array.isArray(prev.pendingIds) && prev.pendingIds.length > 0,
+    };
+  };
+  let { stored, reservations, prev, failed, resumable } = await readStored();
   const servicePaused =
     prev?.phase === "paused" &&
     prev.reason === "SERVICE_UNAVAILABLE" &&
@@ -228,6 +235,10 @@ export async function runSync({
 
   if (!(await acquireLock(storage, owner, role, now, sleep))) return summary({ status: "BUSY" });
   onLock(true);
+  // Mellom lesingen over og låsen kan siden vi tar over fra (popupen) ha
+  // lagret en batch til. Les lageret på nytt nå som låsen er vår, ellers
+  // skrives den batchen over med den gamle kopien og hentes en gang til.
+  ({ stored, reservations, prev, failed, resumable } = await readStored());
   let leaseRenewedAt = now();
 
   // Sjekk at låsen fortsatt er vår, og forny den. Kalles før hver skriving og
