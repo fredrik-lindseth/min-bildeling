@@ -1,8 +1,6 @@
 # Personvernerklæring for Bildeleringen Stats
 
-Sist endret 1. november 2026.
-
-Bildeleringen Stats samler ikke inn noe om deg. Utvidelsen har ingen server, ingen analyse og ingen sporing, og ingenting sendes til meg eller til andre.
+Utvidelsen samler ikke inn noe om deg. Utvidelsen har ingen server, ingen analyse og ingen sporing, og ingenting sendes til noen.
 
 Når du bruker utvidelsen, leser den innloggingen du alt har på app.dele.no og bruker den til å hente dine egne reservasjoner fra API-et til dele.no. Det er det eneste stedet utvidelsen kobler seg til. Hvilke kall den gjør og hvor ofte, står i [api-bruk.md](api-bruk.md).
 
