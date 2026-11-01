@@ -25,7 +25,7 @@ export function describeSyncResult(result) {
   const failures = describeFailures(result);
   if (result.status === "PARTIAL") {
     return join(
-      `Hentet ${result.fetchedSoFar} av ${result.total}. Resten hentes når du åpner dashboardet.`,
+      `Hentet ${result.fetchedSoFar} av ${result.total}. Resten hentes i dashboardet.`,
       failures
     );
   }
@@ -79,10 +79,33 @@ export function describeProgress({ phase, current, total, limit, elsewhere }) {
     return total ? `Henter listen over ${total} turer…` : "Henter turlisten…";
   }
   if (phase === "details" && total > 0) {
-    const base = `Henter detaljer for ${current} av ${total} turer`;
-    // Bare popupen har en grense, og den stopper før totalen.
-    if (limit) return `${base}. Popupen henter ${limit} om gangen, resten hentes når du åpner dashboardet.`;
-    return `${base}…`;
+    // Bare popupen har en grense, og den stopper før totalen. Banneret i
+    // popupen er smalt, så teksten holdes på én linje.
+    if (limit) return `Henter ${current} av ${total}. Resten hentes i dashboardet.`;
+    return `Henter detaljer for ${current} av ${total} turer…`;
   }
   return "Synkroniserer…";
+}
+
+/**
+ * Er hele historikken hentet? Så lenge synken har id-er igjen i køen
+ * (syncState.pendingIds), mangler turer, og tall som summerer over hele
+ * historikken (spart i år, mest brukte bil, årstall) blir feil. Samme regel
+ * som avgjør om en synk kan fortsette der den slapp (runSync i sync.js).
+ * @returns {{ complete: boolean, done: number, total: number }}
+ */
+export function historyProgress(syncState) {
+  const pending = Array.isArray(syncState?.pendingIds) ? syncState.pendingIds.length : 0;
+  const complete = !syncState || syncState.phase === "done" || pending === 0;
+  const total = syncState?.total || 0;
+  return { complete, done: Math.min(syncState?.done || 0, total), total };
+}
+
+/**
+ * Kort tekst der tall som trenger hele historikken, er holdt tilbake.
+ * subject er det som holdes tilbake, med stor forbokstav («Totalen»).
+ */
+export function describeIncompleteHistory({ done, total }, subject = "Tallet") {
+  const count = total > 0 ? ` Hentet ${done} av ${total}.` : "";
+  return `${subject} vises når alle turene er hentet.${count}`;
 }

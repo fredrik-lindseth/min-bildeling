@@ -331,6 +331,11 @@ a:focus-visible,
   letter-spacing: -0.01em;
 }
 
+/* Totalen skjules til hele historikken er hentet, og teksten forklarer hvorfor. */
+.lead__number[hidden] {
+  display: none;
+}
+
 .lead__text {
   display: block;
   margin-top: var(--space-1);

@@ -143,11 +143,14 @@ test("innloggingsstien i background.js logger aldri tokenet eller medlemskapet",
   let listener;
   // Hver fane har sitt svar fra content-scriptet og fra executeScript.
   let tabs = [];
+  let hasPermission = true;
   globalThis.browser = {
     runtime: { onMessage: { addListener: (fn) => { listener = fn; } } },
+    permissions: { contains: async () => hasPermission },
     storage: { local: { get: async () => ({}), set: async () => {} } },
     tabs: {
-      query: async () => tabs.map(({ id }) => ({ id })),
+      // Uten host-tilgang finner tabs.query ingen app.dele.no-faner.
+      query: async () => (hasPermission ? tabs.map(({ id, discarded }) => ({ id, discarded })) : []),
       sendMessage: async (id) => {
         const reply = tabs.find((t) => t.id === id).content;
         if (reply instanceof Error) throw reply;
@@ -190,7 +193,7 @@ test("innloggingsstien i background.js logger aldri tokenet eller medlemskapet",
         { id: 2, content: new Error("Could not establish connection"), injected: auth },
       ];
       assert.deepEqual(await send({ type: "GET_SYNC_AUTH" }), auth);
-      assert.deepEqual(await send({ type: "GET_AUTH_STATUS" }), { hasAuth: true });
+      assert.deepEqual(await send({ type: "GET_AUTH_STATUS" }), { hasAuth: true, state: "ok", tabId: null });
 
       // Content-scriptet svarer med tokenet.
       await send({ type: "CLEAR_AUTH" });
@@ -201,6 +204,23 @@ test("innloggingsstien i background.js logger aldri tokenet eller medlemskapet",
       await send({ type: "CLEAR_AUTH" });
       tabs = [{ id: 4, content: null, injected: new Error("Missing host permission") }];
       assert.equal(await send({ type: "GET_SYNC_AUTH" }), null);
+
+      // Fanen var åpen før installasjonen og er lastet ut: den prøves ikke,
+      // og svaret ber om å laste den på nytt.
+      tabs = [{ id: 5, discarded: true, content: new Error("ikke brukt"), injected: new Error("ikke brukt") }];
+      assert.deepEqual(await send({ type: "GET_AUTH_STATUS" }), {
+        hasAuth: false,
+        state: "reload-needed",
+        tabId: 5,
+      });
+
+      // Uten host-tilgang er det tilgangen som mangler.
+      hasPermission = false;
+      assert.deepEqual(await send({ type: "GET_AUTH_STATUS" }), {
+        hasAuth: false,
+        state: "no-permission",
+        tabId: null,
+      });
     });
 
     assert.ok(lines.length >= 8, `for lite logg til å si noe: ${lines.length} linjer`);

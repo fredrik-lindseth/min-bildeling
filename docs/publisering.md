@@ -50,6 +50,9 @@ Har den gamle utgaven ikke Sikkerhetskopi, tar den samme importen også de eldre
 Sjekk at:
 
 - popupen og dashbordet åpner, og synken går ferdig mens du er innlogget på app.dele.no
+- innloggingen finnes med en app.dele.no-fane som var åpen før installasjonen. Er fanen lastet ut (ikke vist siden omstart), sier popupen «Fanen må lastes på nytt», og knappen laster fanen og starter synken
+- etter at tilgangen til app.dele.no er trukket tilbake i `about:addons`, sier popupen «Tilgang mangler», og «Gi tilgang» gir den tilbake
+- med 25 av alle turene hentet viser popupen «–» for «Spart i år» og «Mest brukte bil», med teksten om at de vises når alle turene er hentet
 - tallene stemmer med det du så i den gamle utgaven
 - utvidelsen er der og virker etter omstart av Firefox
 

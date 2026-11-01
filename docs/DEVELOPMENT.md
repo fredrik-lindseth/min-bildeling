@@ -64,7 +64,9 @@ lib/
   stats.js                 # Statistikk (rene funksjoner)
   sync.js                  # Synkmotoren
   sync-page.js             # Kobler synken til popup og dashboard
-  sync-messages.js         # Norske tekster for synkstatus
+  sync-messages.js         # Norske tekster for synkstatus, og om hele historikken er hentet
+  auth-state.js            # Tilstand og tekst når innloggingen mangler (ren)
+  auth-banner.js           # Banneret og knappen for den tilstanden
   transport.js             # Transportkalkulator
 scripts/                   # Pakking, release, ikoner og skjermbilder
 test/                      # node --test

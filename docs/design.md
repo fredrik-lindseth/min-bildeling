@@ -225,14 +225,33 @@ Synk er informasjon, ikke en advarsel. Banneret over innholdet er et panel i sur
 
 - «Henter turlisten …»
 - «Henter detaljer for 240 av 412 turer …»
-- I popupen, som henter 25 om gangen: «Henter detaljer for 18 av 662 turer. Popupen henter 25 om gangen, resten hentes når du åpner dashboardet.»
+- I popupen, som henter 25 om gangen: «Henter 18 av 662. Resten hentes i dashboardet.» Banneret i popupen er smalt, så teksten holdes på én linje.
 - Når et annet vindu synker: «Et annet vindu henter detaljer for 240 av 412 turer …»
 
 Fremdriften står ett sted, i banneret med linjen. Synk-knappen er deaktivert under henting og sier bare «Synkroniserer…», så samme teller ikke står to ganger. Ikonet går ut, det spinner ikke. Banneret har `role="status"` så skjermlesere får fasebytter uten å avbrytes. Når synken er ferdig forsvinner banneret, og headeren er én setning: «176 turer i 2024–2026 for 102 147 kr, sist synkronisert 1. nov. kl. 09:14».
 
-Synker en annen side, venter siden stille og viser fremdriften fra `syncState`, og fortsetter selv når låsen blir ledig. Dashboardet tar alltid over fra popupen. Det er aldri en feil at et annet vindu synker, så det får verken advarsel eller «Prøv igjen». «Prøv igjen» står bare ved ekte feil. Et delvis resultat («Hentet 25 av 662. Resten hentes når du åpner dashboardet.») og turer som prøves igjen senere, står som vanlig melding uten knapp.
+Synker en annen side, venter siden stille og viser fremdriften fra `syncState`, og fortsetter selv når låsen blir ledig. Dashboardet tar alltid over fra popupen. Det er aldri en feil at et annet vindu synker, så det får verken advarsel eller «Prøv igjen». «Prøv igjen» står bare ved ekte feil. Et delvis resultat («Hentet 25 av 662. Resten hentes i dashboardet.») og turer som prøves igjen senere, står som vanlig melding uten knapp.
 
-Feil bruker warning-bg og warning-text uten kant, `role="alert"`, og sier hva som skjedde og hva du gjør: «Fant ingen innlogging. Åpne app.dele.no, logg inn og trykk Synkroniser igjen.» Rate-limit: «Dele svarer sakte. Prøver igjen om 8 sekunder.» Ingen unnskyldninger, ingen «Oops».
+Feil bruker warning-bg og warning-text uten kant, `role="alert"`, og sier hva som skjedde og hva du gjør.
+
+Mangler innloggingen, står én av tre tilstander i banneret, med overskrift, én setning og én knapp (`lib/auth-state.js`). Bare den første ber om innlogging:
+
+- «Ikke innlogget. Logg inn på app.dele.no og trykk Synkroniser.» Knapp: «Åpne app.dele.no».
+- «Tilgang mangler. Utvidelsen trenger tilgang til app.dele.no for å lese innloggingen.» Knapp: «Gi tilgang».
+- «Fanen må lastes på nytt. Innloggingen i dele.no-fanen kan ikke leses før fanen er lastet inn på nytt.» Knapp: «Last inn fanen på nytt». Fanen lastes bare etter klikket, aldri av seg selv.
+
+Ved rate-limit: «Dele svarer sakte. Prøver igjen om 8 sekunder.» Ingen unnskyldninger, ingen «Oops».
+
+## Foreløpige tall
+
+Så lenge synken har turer igjen i køen (`syncState.pendingIds` er ikke tom), mangler en del av historikken. Popupen henter 25 om gangen, så etter første åpning er 25 av kanskje 662 turer lagret. Tall som summerer over hele historikken blir da feil uten at det synes, og «Spart i år» blir for høyt fordi bildelingen ser billigere ut enn den er.
+
+Løsningen er å holde slike tall tilbake med en kort tekst, ikke å vise dem med et merke. Et tall med «foreløpig» ved siden av leses likevel som tallet. Regelen er `historyProgress()` i `lib/sync-messages.js`, og teksten er `describeIncompleteHistory()`: «Spart i år og mest brukte bil vises når alle turene er hentet. Hentet 25 av 662.»
+
+- Popupen: «Mest brukte bil» og «Spart i år» viser «–», med teksten under nøkkeltallene. «Slik beregnes det» skjules.
+- Dashbordet: headeren sier «Hentet 25 av 662 turer» i stedet for antall, år og sum. Totalen og årslinjene i Kostnader, listen over mest brukte biler, «År mot år» i Trender og hele Bilregnestykket holdes tilbake.
+
+Månedstallene står. Turene hentes nyest først, så siste måned er på plass først, og dashbordet fyller inn resten mens det synker.
 
 ## Tom tilstand og lasting
 

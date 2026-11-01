@@ -52,6 +52,9 @@ import {
   describeSyncResult,
   describeProgress,
 } from "../lib/sync-page.js";
+import { historyProgress, describeIncompleteHistory } from "../lib/sync-messages.js";
+import { stateForSyncError } from "../lib/auth-state.js";
+import { showAuthBanner } from "../lib/auth-banner.js";
 
 import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
 import { createBackup, parseBackup, mergeBackup } from "../lib/backup.js";
@@ -190,7 +193,10 @@ function updateHeaderMeta(reservations, lastSync) {
   // teller likt. Avbestilte og turer uten pris er med i lageret, men ikke her.
   const valid = filterValid(reservations || []);
   let summary = "";
-  if (valid.length > 0) {
+  if (!tripHistory.complete) {
+    // Antallet og summen over alle år blir feil før hele historikken er hentet.
+    summary = tripHistory.total > 0 ? `hentet ${tripHistory.done} av ${tripHistory.total} turer` : "";
+  } else if (valid.length > 0) {
     const total = valid.reduce((sum, r) => sum + (r.price?.total || 0), 0);
     const years = [...new Set(valid.map((r) => new Date(r.start).getFullYear()))]
       .sort((a, b) => a - b);
@@ -202,6 +208,10 @@ function updateHeaderMeta(reservations, lastSync) {
   const text = [summary, synced].filter(Boolean).join(", ");
   headerMetaEl.textContent = text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+// Er hele historikken hentet? Se historyProgress i lib/sync-messages.js og
+// «Foreløpige tall» i docs/design.md. Demomodus har alltid alt.
+let tripHistory = { complete: true, done: 0, total: 0 };
 
 // ---------- Chart instances (for cleanup) ----------
 const charts = {};
@@ -228,24 +238,20 @@ function showStatus(message) {
   emptyState.hidden = true;
 }
 
-function showLoginRequired() {
-  statusEl.classList.add("status--login");
-  statusText.innerHTML = `<strong>Ikke innlogget</strong><br>Logg inn på app.dele.no og trykk Synkroniser.`;
-  removeStatusAction();
-
-  const action = document.createElement("a");
-  action.id = "status-action";
-  action.className = "btn btn--primary status__action";
-  action.textContent = "Åpne app.dele.no";
-  action.href = "https://app.dele.no";
-  action.target = "_blank";
-  action.rel = "noopener";
-  statusEl.appendChild(action);
-
+// Hvorfor innloggingen mangler, med én handling som løser det. Se lib/auth-state.js.
+function showAuthProblem({ state, tabId }) {
   progressBar.hidden = true;
-  statusEl.hidden = false;
   emptyState.hidden = true;
   firstRun.hidden = true;
+  showAuthBanner({
+    statusEl,
+    textEl: statusText,
+    state,
+    tabId,
+    getStatus: () => sendMessage({ type: "GET_AUTH_STATUS" }),
+    onRetry: () => syncAndRender(false),
+    onWait: (message) => showStatus(message),
+  });
 }
 
 function removeStatusAction() {
@@ -415,19 +421,26 @@ function renderCosts(reservations) {
   const yearly = yearlyCosts(filtered);
   const mileage = mileageStats(filtered);
 
-  // Hovedtallet: summen av faktiske beløp, derfor uten «ca.»
-  setText("cost-total", stats ? formatNOK.format(stats.total) : "–");
+  // Hovedtallet: summen av faktiske beløp, derfor uten «ca.». Summen og
+  // årslinjene holdes tilbake til hele historikken er hentet.
   const years = yearly.map((y) => y.year);
   const period = years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0] ?? ""}`;
-  setText(
-    "cost-total-text",
-    stats ? `brukt på bildeling i ${period}, fordelt på ${formatTrips(stats.count)}.` : ""
-  );
+  $("cost-total").hidden = !tripHistory.complete;
+  if (!tripHistory.complete) {
+    setText("cost-total", "–");
+    setText("cost-total-text", describeIncompleteHistory(tripHistory, "Totalen"));
+  } else {
+    setText("cost-total", stats ? formatNOK.format(stats.total) : "–");
+    setText(
+      "cost-total-text",
+      stats ? `brukt på bildeling i ${period}, fordelt på ${formatTrips(stats.count)}.` : ""
+    );
+  }
 
   // Alle år: én linje per år øverst i nøkkeltallene
   const figures = $("cost-figures");
   figures.querySelectorAll(".figures__year").forEach((row) => row.remove());
-  if (selectedYear === "all" && yearly.length > 1) {
+  if (tripHistory.complete && selectedYear === "all" && yearly.length > 1) {
     const rows = yearly.map((y) => {
       const row = document.createElement("div");
       row.className = "figures__year";
@@ -495,7 +508,12 @@ function renderUsage(reservations) {
   const topCarsList = $("top-cars-list");
   topCarsList.innerHTML = "";
   const top5 = patterns.topCars.slice(0, 5);
-  if (top5.length === 0) {
+  if (!tripHistory.complete) {
+    const li = document.createElement("li");
+    li.className = "ranked__empty";
+    li.textContent = describeIncompleteHistory(tripHistory, "Listen");
+    topCarsList.appendChild(li);
+  } else if (top5.length === 0) {
     topCarsList.innerHTML = '<li class="ranked__empty">Ingen data</li>';
   } else {
     for (let i = 0; i < top5.length; i++) {
@@ -772,8 +790,9 @@ function renderTrends(reservations) {
 
   // År mot år trenger to år. Med ett år ville panelet stått tomt, så det
   // skjules som sesongsammenligningen under.
-  $("yoy-container").hidden = yearly.length < 2;
-  if (yearly.length >= 2) {
+  // År mot år sammenligner hele år og venter på hele historikken.
+  $("yoy-container").hidden = yearly.length < 2 || !tripHistory.complete;
+  if (yearly.length >= 2 && tripHistory.complete) {
     renderYearOverYear(reservations, yearly);
   } else {
     destroyChart("yoy");
@@ -905,7 +924,10 @@ function renderSeasonalComparison(reservations, yearly) {
 function renderOwnership(reservations) {
   const result = estimateOwnershipCost(reservations);
 
-  if (!result) {
+  if (!result || !tripHistory.complete) {
+    $("ownership-empty-text").textContent = tripHistory.complete
+      ? "Ingen kjørte turer å regne på ennå."
+      : describeIncompleteHistory(tripHistory, "Forskjellen mot egen bil");
     $("ownership-empty").hidden = false;
     $("ownership-content").hidden = true;
     return;
@@ -1742,7 +1764,10 @@ onColorSchemeChange(() => {
   if (allReservations.length > 0) renderAll(allReservations, renderedLastSync);
 });
 
-async function renderAll(reservations, lastSync) {
+// syncState er med når dataene kommer fra lageret. Uten den gjelder forrige
+// historyProgress, for eksempel ved ny opptegning etter fargebytte.
+async function renderAll(reservations, lastSync, syncState) {
+  if (syncState !== undefined) tripHistory = historyProgress(syncState);
   renderedLastSync = lastSync;
   allReservations = reservations;
   updateHeaderMeta(allReservations, lastSync);
@@ -1775,7 +1800,7 @@ function renderWhileSyncing() {
     const data = await sendMessage({ type: "GET_DATA" });
     const count = data?.reservations?.length || 0;
     if (count === 0 || count === allReservations.length) return;
-    await renderAll(data.reservations, data.lastSync);
+    await renderAll(data.reservations, data.lastSync, data.syncState ?? null);
     showMain();
     hasRendered = true;
   })()
@@ -1788,7 +1813,7 @@ function renderWhileSyncing() {
 async function loadStored() {
   const data = await sendMessage({ type: "GET_DATA" });
   if (!data || !data.reservations || data.reservations.length === 0) return false;
-  await renderAll(data.reservations, data.lastSync);
+  await renderAll(data.reservations, data.lastSync, data.syncState ?? null);
   showMain();
   hasRendered = true;
   return true;
@@ -1839,7 +1864,8 @@ async function syncAndRender(force) {
   if (isDevMode()) refreshDevInfo();
 
   if (isAuthError(result.error)) {
-    showLoginRequired();
+    const status = await sendMessage({ type: "GET_AUTH_STATUS" }).catch(() => null);
+    showAuthProblem(stateForSyncError(result.error, status));
     return;
   }
   const message = describeSyncResult(result);
