@@ -300,6 +300,22 @@ function showMain() {
   firstRun.hidden = true;
   // Under synk står banneret med fremdriften over tallene som fylles inn.
   if (!syncing) hideStatus();
+  scrollToHashOnce();
+}
+
+// Seksjonene er skjult når siden lastes, så nettleseren finner ikke ankeret i
+// en lenke som dashboard.html#klima. Vi hopper dit selv første gang innholdet
+// vises. Det gjelder lenken fra popupen og skjermbildescriptet. "instant"
+// hindrer myk scroll, så posisjonen er ferdig med en gang.
+let hashScrollDone = false;
+function scrollToHashOnce() {
+  if (hashScrollDone) return;
+  hashScrollDone = true;
+  const id = decodeURIComponent(window.location.hash.slice(1));
+  const target = id ? document.getElementById(id) : null;
+  if (!target?.classList.contains("section")) return;
+  target.scrollIntoView({ behavior: "instant", block: "start" });
+  setActiveNav(id);
 }
 
 // ---------- Navigation ----------
@@ -312,6 +328,9 @@ function updateActiveNav() {
 
   for (const section of sections) {
     const rect = section.getBoundingClientRect();
+    // Utviklerpanelet ligger i en skjult wrapper utenfor ?dev=1 og har da
+    // top 0, så uten denne vant det alltid og ingen lenke ble markert.
+    if (rect.height === 0) continue;
     if (rect.top <= 140) {
       current = section.id;
     }
@@ -1835,7 +1854,9 @@ async function init() {
   if (demo) {
     syncBtn.remove();
     lastSyncedEl.remove();
-    document.querySelector(".header__title").append(" ", createDemoBadge(document));
+    // I navigasjonslinjen, som står fast øverst, så merket synes uansett hvor
+    // langt ned man har scrollet.
+    document.querySelector(".nav__inner").append(createDemoBadge(document));
     await renderAll(demo.reservations, null);
     showMain();
     return;

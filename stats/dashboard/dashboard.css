@@ -832,6 +832,12 @@ a:focus-visible,
   vertical-align: middle;
 }
 
+.nav__inner .demo-badge {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+}
+
 /* ---- Smal skjerm ---- */
 @media (max-width: 720px) {
   .wrap {
