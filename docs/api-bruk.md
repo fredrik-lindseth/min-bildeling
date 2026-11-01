@@ -19,16 +19,17 @@ Alle kall har headeren `authorization` med medlemmets token, slik app.dele.no se
 
 Kall skjer bare når medlemmet selv har utvidelsen åpen:
 
-- når dashbordet eller popupen åpnes og det er over én time siden forrige fullførte synkronisering, eller
+- når dashbordet eller popupen åpnes og det er over én time siden forrige fullførte synkronisering,
+- når dashbordet eller popupen åpnes og en synkronisering ble avbrutt, uansett hvor lenge siden, så den fortsetter der den slapp, eller
 - når medlemmet trykker Synkroniser eller Prøv igjen.
 
 Det finnes ingen bakgrunnspolling, ingen alarmer og ingen synkronisering når nettleseren står i ro. Én synkronisering kjører om gangen, også med flere vinduer åpne. Vinduet som synkroniserer, holder en lås i det lokale lageret som gjelder i 45 sekunder og fornyes hvert 15. sekund. Lukkes vinduet, går låsen ut av seg selv. Har et vindu mistet låsen, for eksempel etter et svar som tok over 45 sekunder, stopper det før neste kall.
 
-Popupen henter høyst 25 detaljer per åpning, siden den lukkes så fort medlemmet klikker utenfor. Resten hentes når dashbordet er åpent.
+Popupen henter høyst 25 detaljer om gangen, siden den lukkes så fort medlemmet klikker utenfor. Hver ny åpning eller hvert trykk på Synkroniser i popupen henter 25 til. Resten hentes når dashbordet er åpent.
 
 ## Hvor mange kall
 
-Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp, uten å hente noe på nytt.
+Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp, uten å hente noe på nytt.
 
 Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner fra før, og det er nesten alltid én side. Svarets `x-totalelements` brukes som kontroll: dekker kjente og nye reservasjoner ikke totalen, leses flere sider. Detaljer hentes for nye reservasjoner og for de som fortsatt kan endre seg. Pausen er da 100 ms.
 
@@ -54,13 +55,13 @@ Det blir 4–6 kall den dagen. En dag uten nye eller nylig avsluttede turer gir 
 
 Utvidelsen skiller mellom feil i hele tjenesten og feil i én reservasjon.
 
-- **429, 502, 503, 504 og nettverksfeil** gjelder tjenesten. Utvidelsen venter så lenge `Retry-After` sier, i sekunder eller som dato. Uten `Retry-After` venter den 2 s, så 4 s, med tilfeldig variasjon på ±50 % så flere klienter ikke prøver samtidig.
+- **429, 502, 503, 504 og nettverksfeil**, og 500 på et listekall, gjelder tjenesten. Utvidelsen venter så lenge `Retry-After` sier, i sekunder eller som dato. Uten `Retry-After` venter den 2 s, så 4 s, med tilfeldig variasjon på ±50 % så flere klienter ikke prøver samtidig.
 - **Tre slike feil på rad** stopper synkroniseringen. Det som er hentet, er lagret, og medlemmet får beskjed om at tjenesten ikke svarer akkurat nå. Automatiske forsøk venter da i minst ti minutter. Ber `Retry-After` om mer enn to minutter, stopper synkroniseringen med en gang.
 - **500 på en detalj** gjelder som regel bare den ene reservasjonen. Den prøves én gang til, og svarer den 500 igjen, hoppes den over og synkroniseringen går videre. Feiler tre ulike reservasjoner på rad med 5xx, regnes det som feil i tjenesten, og synkroniseringen stopper som over.
 - **404 eller annen 4xx på en detalj** hopper over den ene reservasjonen.
 - **401** stopper synkroniseringen og ber medlemmet logge inn på app.dele.no igjen.
 
-En reservasjon som er hoppet over, prøves igjen ved senere synkroniseringer med økende mellomrom: tidligst etter én time, så etter fire, seksten og 64 timer, deretter én gang i uken. Medlemmet ser hvor mange reservasjoner som mangler detaljer, og kan prøve igjen med en gang ved å trykke Synkroniser.
+En reservasjon som er hoppet over, prøves igjen ved senere synkroniseringer med økende mellomrom: tidligst etter én time, så etter fire, seksten og 64 timer, deretter én gang i uken. Svarer den 404 fire ganger, regnes den som slettet og prøves ikke igjen. Medlemmet ser hvor mange reservasjoner som mangler detaljer eller ikke kunne oppdateres, og kan prøve igjen med en gang ved å trykke Synkroniser.
 
 ## Hva som lagres, og hvor
 

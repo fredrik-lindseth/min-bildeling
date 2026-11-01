@@ -43,6 +43,10 @@ export const LOCK_CONFIRM_MS = 100;
 export const DETAIL_RETRY_BASE_MS = HOUR;
 export const DETAIL_RETRY_FACTOR = 4;
 export const DETAIL_RETRY_MAX_MS = 7 * DAY;
+// Svarer en reservasjon 404 så mange ganger, er den slettet hos Dele. Den
+// prøves ikke igjen, heller ikke av Synkroniser, og telles ikke lenger blant
+// dem som mangler detaljer. Med backoff-rekken over tar det knapt et døgn.
+export const NOT_FOUND_MAX_ATTEMPTS = 4;
 // Popupen lukkes så fort brukeren klikker utenfor. Den henter derfor bare så
 // mange detaljer per synk, resten tar dashbordet.
 export const POPUP_MAX_DETAILS = 25;
@@ -88,7 +92,12 @@ export function detailRetryDelayMs(attempts) {
   return Math.min(DETAIL_RETRY_MAX_MS, DETAIL_RETRY_BASE_MS * DETAIL_RETRY_FACTOR ** (n - 1));
 }
 
+export function isGone(failure) {
+  return failure.status === 404 && failure.attempts >= NOT_FOUND_MAX_ATTEMPTS;
+}
+
 export function retryDue(failure, nowMs, force = false) {
+  if (isGone(failure)) return false;
   if (force || failure.lastAttemptAt == null) return true;
   return nowMs - failure.lastAttemptAt >= detailRetryDelayMs(failure.attempts);
 }
@@ -97,6 +106,20 @@ function dueRetryIds(failed, nowMs, force) {
   return Object.entries(failed)
     .filter(([, f]) => retryDue(f, nowMs, force))
     .map(([id]) => id);
+}
+
+// Feilede id-er som fortsatt prøves igjen. En lagret reservasjon som ikke kunne
+// oppdateres, vises med forrige versjon og mangler altså ikke detaljer.
+export function countFailed(failed, reservations) {
+  const stored = new Set(reservations.map((r) => r.id));
+  let missing = 0;
+  let stale = 0;
+  for (const [id, f] of Object.entries(failed)) {
+    if (isGone(f)) continue;
+    if (stored.has(id)) stale += 1;
+    else missing += 1;
+  }
+  return { failed: missing + stale, missing, stale };
 }
 
 function startMs(r) {
@@ -133,9 +156,13 @@ async function releaseLock(storage, owner) {
 /**
  * Kjør én synk.
  *
- * @returns {Promise<object>} { status, error?, count, fetched, failed, pending, total, done, calls, durationMs }
+ * @returns {Promise<object>} { status, error?, count, fetched, fetchedSoFar, failed, missing, stale,
+ *   failedThisRun, pending, total, done, calls, durationMs }
  *   status: SYNCED | PARTIAL | PAUSED | CACHED | BUSY | ERROR
- *   failed: antall reservasjoner som mangler detaljer og prøves igjen senere
+ *   failed: missing + stale, altså feilede id-er som prøves igjen senere
+ *   missing: feilede som ikke er lagret, stale: lagrede som ikke kunne oppdateres
+ *   done/total: id-er behandlet av køen, til fremdriftslinjen.
+ *   fetchedSoFar: detaljer hentet i denne synken, også før et avbrudd.
  *   error:  NOT_LOGGED_IN | AUTH_EXPIRED | SERVICE_UNAVAILABLE | annen melding
  */
 export async function runSync({
@@ -167,7 +194,7 @@ export async function runSync({
   const summary = (extra) => ({
     count: reservations.length,
     pending: resumable ? prev.pendingIds.length : 0,
-    failed: Object.keys(failed).length,
+    ...countFailed(failed, reservations),
     ...extra,
   });
 
@@ -222,6 +249,9 @@ export async function runSync({
   let total = 0;
   let done = 0;
   let fetched = 0;
+  // En synk kan gå over flere sideåpninger. Det som ble hentet før avbruddet,
+  // står i syncState, så «Hentet X av Y» teller hele synken.
+  const fetchedBefore = resumable ? prev.fetchedSoFar || 0 : 0;
   let failedThisRun = 0;
   let buffer = [];
 
@@ -233,6 +263,7 @@ export async function runSync({
     failed,
     total,
     done,
+    fetchedSoFar: fetchedBefore + fetched,
     calls,
     updatedAt: now(),
     ...extra,
@@ -285,7 +316,8 @@ export async function runSync({
       ...(error ? { error } : {}),
       count: reservations.length,
       fetched,
-      failed: Object.keys(failed).length,
+      fetchedSoFar: fetchedBefore + fetched,
+      ...countFailed(failed, reservations),
       failedThisRun,
       pending: pendingIds.length,
       total,
@@ -298,11 +330,15 @@ export async function runSync({
   try {
     if (resumable) {
       pendingIds = prev.pendingIds.slice();
+      done = prev.done || 0;
       const queued = new Set(pendingIds);
       for (const id of dueRetryIds(failed, startedAt, force)) {
-        if (!queued.has(id)) pendingIds.push(id);
+        if (queued.has(id)) continue;
+        pendingIds.push(id);
+        // Feilet den tidligere i denne synken, er den talt som ferdig. Nå står
+        // den i køen igjen, ellers ville totalen vokse forbi antall turer.
+        if (failed[id].lastAttemptAt >= prev.startedAt) done = Math.max(0, done - 1);
       }
-      done = prev.done || 0;
       total = Math.max(prev.total || 0, done + pendingIds.length);
     } else {
       onProgress({ phase: "list", current: 0, total: null });

@@ -18,6 +18,7 @@ import {
   SERVICE_PAUSE_MS,
   POPUP_MAX_DETAILS,
   DETAIL_RETRY_MAX_MS,
+  NOT_FOUND_MAX_ATTEMPTS,
   detailRetryDelayMs,
 } from "../lib/sync.js";
 import {
@@ -80,7 +81,8 @@ test("lås: lease og fornyelse", () => {
 });
 
 test("popupens grense", () => {
-  mentions(`Popupen henter høyst ${POPUP_MAX_DETAILS} detaljer per åpning`);
+  mentions(`Popupen henter høyst ${POPUP_MAX_DETAILS} detaljer om gangen`);
+  mentions(`henter ${POPUP_MAX_DETAILS} til`);
 });
 
 test("synkintervall", () => {
@@ -118,4 +120,5 @@ test("feil per reservasjon og nye forsøk", () => {
   );
   assert.equal(DETAIL_RETRY_MAX_MS, 7 * DAY);
   assert.equal(detailRetryDelayMs(5), DETAIL_RETRY_MAX_MS);
+  mentions(`Svarer den 404 ${word(NOT_FOUND_MAX_ATTEMPTS)} ganger, regnes den som slettet`);
 });
