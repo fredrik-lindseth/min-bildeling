@@ -37,7 +37,7 @@ Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner
 
 En reservasjon kan få endelig pris og kilometer en stund etter at den er avsluttet. Utvidelsen henter derfor detaljen på nytt høyst én gang i døgnet, fram til den har en versjon hentet minst sju dager etter reservasjonens slutt. Deretter hentes den aldri igjen.
 
-API-et sender `Cache-Control: no-store` og verken `ETag` eller `Last-Modified`, så betingede kall er ikke mulig i dag. Regelen over og pagineringen som stopper ved første kjente reservasjon, er utvidelsens cache. Med en `ETag` på detaljkallet kunne vi sendt `If-None-Match` og fått 304 tilbake.
+API-et sender `Cache-Control: no-store` og verken `ETag` eller `Last-Modified`, så betingede kall er ikke mulig i dag. Regelen over og pagineringen som stopper ved første kjente reservasjon, er utvidelsens cache. Med en `ETag` på detaljkallet kunne utvidelsen sendt `If-None-Match` og fått 304 tilbake.
 
 ### En typisk dag
 

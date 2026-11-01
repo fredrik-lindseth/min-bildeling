@@ -73,7 +73,7 @@ export const DEFAULT_KEYWORDS = {
   transport: [
     "hente", "levere", "frakt", "flytt", "sofa", "møbler", "stillas",
     "dump ", "dumpe", "avfall", "hageavfall", "gjenbruk", "gjenvinning",
-    "miljøstasjon", "boss", "kaste", "pante", "returnere",
+    "miljøstasjon", "boss", "søppel", "kaste", "pante", "returnere",
   ],
   aktivitet: [
     "skøyte", "fotball", "trening", "svømme", "bade", "tur ", "ski ",
