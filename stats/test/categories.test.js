@@ -8,8 +8,13 @@ import {
   parseKeywordInput,
   mergeKeywords,
   suggestCategory,
+  matchKeyword,
+  keywordPattern,
   keywordHits,
   autoSuggestAll,
+  loadCategories,
+  saveCategories,
+  normalizeTripCategories,
   loadUserKeywords,
   saveUserKeywords,
 } from "../lib/categories.js";
@@ -33,10 +38,119 @@ test("standardlisten bruker bare kjente kategorier", () => {
   }
 });
 
-test("første kategori som treffer vinner: juleshopping er handletur", () => {
+// Oppdiktede notater slik folk skriver dem, med kategorien standardlisten
+// skal gi. null betyr at notatet med vilje ikke skal treffe noe.
+const CORPUS = [
+  ["Storhandel på Coop", "handletur"],
+  ["IKEA, ny kommode", "handletur"],
+  ["Rema 1000 og Europris", "handletur"],
+  ["Juleshopping", "handletur"],
+  ["Loppemarked på skolen", "handletur"],
+  ["Hente pakke på posten", "handletur"],
+  ["Kjøpe maling", "handletur"],
+  ["Tannlege", "helse"],
+  ["Legevakt med sønnen", "helse"],
+  ["Røntgen av kneet", "helse"],
+  ["Til MR", "helse"],
+  ["Koloskopi på sykehuset", "helse"],
+  ["Katten til dyrelegen", "helse"],
+  ["Optiker, nye briller", "helse"],
+  ["Kjøre til flyplassen", "flyplass"],
+  ["Hente på flyplassen", "flyplass"],
+  ["Fly til Tromsø", "flyplass"],
+  ["Hente barna i barnehagen", "skyss"],
+  ["Skyss til fotballkamp", "skyss"],
+  ["Julebord", "hoytid"],
+  ["Julaften hos familien", "hoytid"],
+  ["17. mai-frokost", "hoytid"],
+  ["Konfirmasjon", "hoytid"],
+  ["Bursdagsbesøk", "besok"],
+  ["Middag hos venner", "besok"],
+  ["Dugnad i borettslaget", "besok"],
+  ["Opp på hytta", "hyttetur"],
+  ["Fjelltur", "hyttetur"],
+  ["Sommerferie langs kysten", "helgetur"],
+  ["Helgetur til byen", "helgetur"],
+  ["Overnatting på camping", "helgetur"],
+  ["Flytting", "transport"],
+  ["Flyttelass", "transport"],
+  ["Hente sofa", "transport"],
+  ["Miljøstasjon med hageavfall", "transport"],
+  ["Levere til gjenbruk", "transport"],
+  ["Skitur med ungene", "aktivitet"],
+  ["Tur i skogen", "aktivitet"],
+  ["Bade og fiske", "aktivitet"],
+  ["Konsert", "aktivitet"],
+  ["Lunsjbuldring", "aktivitet"],
+  ["Langrenn", "aktivitet"],
+  ["Kundemøte", "jobb"],
+  ["Jobbintervju", "jobb"],
+  ["Diverse ærender", "aerend"],
+  ["Frisør", "aerend"],
+  ["EU-kontroll", "aerend"],
+  ["Litt av hvert", null],
+  // Kjente feiltreff fra substring-matchingen.
+  ["Skifer til terrassen", null],
+  ["Montere kjøkken", null],
+  ["Bygge terrasse", null],
+  ["Kulturhuset", null],
+  ["Boligvisning", null],
+  ["Julaften", "hoytid"],
+  ["Privilegert parkering", "aerend"],
+];
+
+test("testkorpuset får forventet kategori", () => {
   const kw = mergeKeywords(DEFAULT_KEYWORDS, {});
-  assert.equal(suggestCategory(trip(1, "Juleshopping"), kw), "handletur");
-  assert.equal(suggestCategory(trip(2, "Julebord"), kw), "hoytid");
+  for (const [notes, expected] of CORPUS) {
+    assert.equal(suggestCategory(trip(1, notes), kw), expected, notes);
+  }
+});
+
+test("kjente feiltreff er borte", () => {
+  const kw = mergeKeywords(DEFAULT_KEYWORDS, {});
+  const not = (notes, category) =>
+    assert.notEqual(suggestCategory(trip(1, notes), kw), category, notes);
+  not("Flytting", "flyplass");
+  not("Flyttesker", "flyplass");
+  not("Skifer", "aktivitet");
+  not("Dumpling", "transport");
+  not("Montere hylle", "handletur");
+  not("Bygge garasje", "handletur");
+  not("Kultur", "aktivitet");
+  not("Visning", "jobb");
+  not("Kollega", "helse");
+});
+
+test("ordstart, helt ord og sammensetning", () => {
+  assert.ok(keywordPattern("lege").test("legevakt"));
+  assert.ok(!keywordPattern("lege").test("privilegert"));
+  assert.ok(keywordPattern("lege").test("time hos lege."));
+  assert.ok(keywordPattern("fly ").test("fly"));
+  assert.ok(keywordPattern("fly ").test("fly, tog"));
+  assert.ok(!keywordPattern("fly ").test("flytting"));
+  assert.ok(keywordPattern("*besøk").test("bursdagsbesøk"));
+  assert.ok(keywordPattern("ærend").test("ærender"));
+  assert.ok(!keywordPattern("ærend").test("tærende"));
+  assert.ok(keywordPattern("17. mai").test("17. mai"));
+  assert.ok(!keywordPattern("17. mai").test("17x mai"));
+  assert.ok(keywordPattern("eu-kontroll").test("eu-kontroll"));
+});
+
+test("blandede notater: kategorien som står først i listen vinner", () => {
+  const kw = mergeKeywords(DEFAULT_KEYWORDS, {});
+  assert.equal(suggestCategory(trip(1, "Handle, så legevakt"), kw), "helse");
+  assert.equal(suggestCategory(trip(2, "Lege og handle etterpå"), kw), "helse");
+  assert.equal(suggestCategory(trip(3, "Hente på flyplassen"), kw), "flyplass");
+  assert.equal(suggestCategory(trip(4, "Juleshopping"), kw), "handletur");
+  assert.deepEqual(matchKeyword("Frisør og handle", kw), { category: "handletur", keyword: "handle" });
+});
+
+test("gamle kategorinøkler finnes fortsatt, så lagrede valg står", () => {
+  const before = [
+    "handletur", "helgetur", "hyttetur", "besok", "transport", "aktivitet",
+    "helse", "hoytid", "jobb", "flyplass", "annet",
+  ];
+  for (const key of before) assert.ok(CATEGORIES[key], key);
 });
 
 test("ingen notat eller ingen treff gir null", () => {
@@ -54,10 +168,9 @@ test("egne nøkkelord treffer og bevarer kategorirekkefølgen", () => {
 });
 
 test("kategorier uten standardord kommer sist", () => {
-  const kw = mergeKeywords(DEFAULT_KEYWORDS, { helgetur: ["helg"], annet: ["diverse"] });
-  const keys = Object.keys(kw);
-  assert.deepEqual(keys.slice(-2), ["helgetur", "annet"]);
-  assert.equal(suggestCategory(trip(1, "helg i byen"), kw), "helgetur");
+  const kw = mergeKeywords(DEFAULT_KEYWORDS, { annet: ["diverse"] });
+  assert.deepEqual(Object.keys(kw).slice(-1), ["annet"]);
+  assert.equal(suggestCategory(trip(1, "diverse"), kw), "annet");
 });
 
 test("normalizeUserKeywords rydder bort søppel og beholder kantmellomrom", () => {
@@ -91,6 +204,7 @@ test("keywordHits teller kjørte turer med notat etter første treff", () => {
     matched: 2,
     perCategory: { handletur: 1, helse: 1 },
   });
+  assert.deepEqual(keywordHits([trip(7, "Stoppested")], mergeKeywords({}, { annet: ["*sted"] })).matched, 1);
 });
 
 test("autoSuggestAll hopper over turer som alt er kategorisert", () => {
@@ -106,4 +220,20 @@ test("userKeywords lagres normalisert og leses tilbake", async () => {
   assert.deepEqual(storage.data.reservations, [1]);
   assert.deepEqual(await loadUserKeywords(storage), { besok: ["bestemor"] });
   assert.deepEqual(await loadUserKeywords(memoryStorage()), {});
+});
+
+test("normalizeTripCategories tar eksportformatet og hopper over ukjente nøkler", () => {
+  assert.deepEqual(
+    normalizeTripCategories({ tripCategories: { a: "helse", b: "ukjent", c: 3, " ": "jobb" } }),
+    { categories: { a: "helse" }, skipped: 3 },
+  );
+  assert.deepEqual(normalizeTripCategories({ a: "aerend" }), { categories: { a: "aerend" }, skipped: 0 });
+  assert.deepEqual(normalizeTripCategories(null), { categories: {}, skipped: 0 });
+  assert.deepEqual(normalizeTripCategories([1]), { categories: {}, skipped: 0 });
+});
+
+test("saveCategories legger til uten å slette andre valg", async () => {
+  const storage = memoryStorage({ tripCategories: { a: "helse" } });
+  await saveCategories(storage, { b: "jobb", a: "annet" });
+  assert.deepEqual(await loadCategories(storage), { a: "annet", b: "jobb" });
 });

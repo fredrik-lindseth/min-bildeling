@@ -73,7 +73,8 @@ test("notatene treffer standard-nøkkelordene slik de er ment", () => {
   for (const type of DEMO_TRIP_TYPES) {
     for (const notes of type.notes) {
       if (notes == null) continue;
-      assert.equal(suggestCategory({ notes }, DEFAULT_KEYWORDS), type.category, notes);
+      const expected = type.noteCategory?.[notes] ?? type.category;
+      assert.equal(suggestCategory({ notes }, DEFAULT_KEYWORDS), expected, notes);
     }
   }
   for (const [notes, category] of Object.entries(DEMO_EXTREME_NOTES)) {

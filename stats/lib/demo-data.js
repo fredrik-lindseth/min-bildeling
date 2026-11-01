@@ -42,6 +42,8 @@ const FUEL_KEYS = { Bensin: "GASOLINE", Diesel: "DIESEL", Elektrisitet: "ELECTRI
 // Turtyper med notater. `category` er den kategorien standard-nøkkelordene
 // skal gi notatet (sjekkes i testen). null betyr at notatet med vilje ikke
 // treffer, så forslagslisten og treffprosenten blir realistiske.
+// `noteCategory` overstyrer for enkeltnotater, så turtypene og dermed
+// tilfeldighetene i demodataene kan stå uendret.
 export const DEMO_TRIP_TYPES = [
   {
     weight: 22, km: [6, 30], hours: [1, 3], category: "handletur",
@@ -82,6 +84,7 @@ export const DEMO_TRIP_TYPES = [
   {
     weight: 14, km: [5, 70], hours: [1, 5], category: null,
     notes: ["Diverse ærender", "Litt av hvert", "Ærend i byen", null, null, null],
+    noteCategory: { "Diverse ærender": "aerend", "Ærend i byen": "aerend" },
   },
 ];
 
@@ -299,7 +302,7 @@ function startHour(rnd, startMs, type) {
 // spontane og tidligste booking alltid har noe å vise. Nøkkelordene i
 // notatene sjekkes i testen.
 export const DEMO_EXTREME_NOTES = {
-  "Sommerferie langs kysten": null,
+  "Sommerferie langs kysten": "helgetur",
   "Julemiddag hos svigers": "hoytid",
   "Hente pakke på posten": "handletur",
   "17. mai-frokost": "hoytid",
@@ -390,8 +393,8 @@ export function generateDemoReservations({ seed = DEMO_SEED, now = new Date() } 
 
 /**
  * Brukerdata som ellers kommer fra skjemaene: noen kategorier satt for hånd
- * (blant dem helgetur, som ikke har standard-nøkkelord) og transportdata for
- * hvert år, så Transport-seksjonen har noe å sammenligne med.
+ * og transportdata for hvert år, så Transport-seksjonen har noe å
+ * sammenligne med.
  */
 export function demoUserData(reservations) {
   const tripCategories = {};
