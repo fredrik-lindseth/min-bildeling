@@ -1,6 +1,6 @@
 # Arkitektur
 
-Hvordan utvidelsene henger sammen inni: lagring, synk, filtrering og varsler. Feltnavn og endepunkter står i [api/README.md](api/README.md), hva stats gjør mot API-et og hvor ofte i [api-bruk.md](api-bruk.md), filstrukturen for stats i [DEVELOPMENT.md](DEVELOPMENT.md).
+Hvordan utvidelsene henger sammen inni: lagring, synk, filtrering og varsler. Feltnavn og endepunkter står i [api/README.md](api/README.md), hva stats gjør mot API-et og hvor ofte i [api-bruk.md](api-bruk.md), bygging og testing i [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Stats
 
@@ -80,6 +80,56 @@ Tallene for pauser, batcher, låsen, bryteren, fryseregelen, popupens grense og 
 Et nøkkelord treffer i starten av et ord i `notes` (`(?<!\p{L})ord`, flagget `u`, små bokstaver), så «lege» treffer «legevakt», men ikke «privilegert». Mellomrom til slutt krever helt ord («fly » treffer ikke «flytting»), og `*` først lar ordet også treffe sist i et ord, med høyst en bøyningsending etter (`ord(?:e|en|et|…)?(?!\p{L})`), så «*besøk» treffer «bursdagsbesøket», men «*kurs» treffer ikke «ekskursjon». `STOP_WORDS` fjerner ord som ellers treffer feil, før matchingen: «juli» er ikke «jul», og «konkurs» er ikke et kurs. Første kategori i listen med treff vinner, ikke det første ordet i notatet: tidligste treff lot verb som «hente» og «handle» bestemme. Derfor står kategoriene med tydelig formål først (Helse, Flyplass, Skyss), Handletur før Høytid for «juleshopping», og de vide sekkene sist. `test/categories.test.js` har et korpus med oppdiktede notater og forventet kategori, også de kjente feiltreffene fra substring-tiden. Flettingen beholder kategorirekkefølgen fra `DEFAULT_KEYWORDS`, legger brukerens ord først innen hver kategori og setter kategorier som bare brukeren har ord i (`annet`) sist.
 
 Forslagene teller med i oversikten. Et manuelt valg i `tripCategories` overstyrer alltid, og settes i listen «Sjekk forslag»: en nedtrekksliste per tur, «Godta alle forslag», filter for turer med notat uten valgt kategori eller alle turer, og ti rader om gangen. Listen er merket `data-html2canvas-ignore`, så notatene ikke blir med i «Last ned bilde». `tripCategories` eksporteres som `{ "tripCategories": { id: kategori } }`, og importen tar også det rene kartet, hopper over ukjente kategorinøkler og overskriver ikke valg som finnes. Nye kategorier (`aerend`, `skyss`) og nytt navn på `helgetur` («Ferie og helgetur») lar lagrede nøkler stå uendret.
+
+### Filer
+
+```text
+manifest.json              # Manifest V3
+background.js              # Innlogging og lesing av lagrede data
+content.js                 # Leser auth fra dele.no localStorage
+popup/                     # Rask oversikt
+dashboard/                 # Dashbord med grafer
+summary/                   # Årsoppsummering
+lib/
+  api.js                   # API-klient (paginering, pauser, retry)
+  auth-state.js            # Tilstand og tekst når innloggingen mangler (ren)
+  auth-banner.js           # Banneret og knappen for den tilstanden
+  backup.js                # Sikkerhetskopi: eksport og import
+  browser-polyfill.js      # Firefox/Chrome-kompatibilitet
+  categories.js            # Turkategorier fra notater
+  chart-helpers.js         # Chart.js-hjelpere
+  co2.js                   # CO₂ per drivstofftype og kategori
+  demo-data.js             # Oppdiktede turer for ?demo=1
+  formatters.js            # NOK- og datoformatering
+  method-panel.js/.css     # «Slik beregnes det»: ett panel for alle metodene
+  ownership-cost.js        # Bilregnestykket mot referansebilen
+  referansebil.js          # Volvo EX40: forutsetningene med kilde og dato
+  stats.js                 # Statistikk (rene funksjoner)
+  sync.js                  # Synkmotoren
+  sync-page.js             # Kobler synken til popup og dashbord
+  sync-messages.js         # Norske tekster for synkstatus
+  tokens.css               # Alle farger og størrelser
+  transport.js             # Transportkalkulator
+scripts/                   # Pakking, byggevakt, release, ikoner og skjermbilder
+test/                      # node --test
+vendor/                    # Chart.js og html2canvas, låst med sjekksummer
+icons/
+```
+
+### Estimater
+
+| Estimat               | Kilde                                                |
+| --------------------- | ---------------------------------------------------- |
+| Eierkostnader         | OFV kalkyle 2026 (elbil, 10 000 km), NAF             |
+| Parkering             | Bergen eller Trondheim kommune, etter organisasjonen |
+| Volvo EX40            | Volvo Norge-pris 10.09.2026 (Elbil24, Finn)          |
+| CO₂ bildeling         | Miljødirektoratet (per biltype)                      |
+| CO₂ buss              | SSB, buss 2019 (~59 g/passasjer-km)                  |
+| CO₂ taxi              | 0 g/km etter nullutslippskravet, før det 229 g/km    |
+| CO₂ fly               | Avinor (~150 g/passasjer-km)                         |
+| Substitusjonseffekter | TØI 1895/2022                                        |
+
+Forutsetningene skal gjelde alle medlemmene i Bilparaplyen. Er en verdi lokal, velges den ut fra `organizationId` (`regionForOrganization` i `lib/ownership-cost.js`), og begge byene står i «Slik beregnes det». For et år som pågår tas de faste eierkostnadene for den delen av året som er gått (`yearFraction`), så «Spart i år» ikke stiller helårskostnaden mot bildelingen hittil.
 
 ## Flex
 
