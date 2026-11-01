@@ -1,25 +1,62 @@
 # Publisering
 
-Repoet har to Firefox-utvidelser med hver sin gecko-id, så de signeres og distribueres hver for seg som egne `.xpi`-filer.
+Repoet har to Firefox-utvidelser med hver sin gecko-id, så de signeres og distribueres hver for seg.
 
-| Mappe    | Navn                    | Gecko-id                        |
-| -------- | ----------------------- | ------------------------------- |
-| `stats/` | Bildeleringen Stats     | `bildeleringen-stats@extension` |
-| `flex/`  | Bildeleringen Fleksibel | `bildeleringen-flex@extension`  |
+| Mappe    | Navn                    | Gecko-id                                |
+| -------- | ----------------------- | --------------------------------------- |
+| `stats/` | Bildeleringen Stats     | `delebil-statistikk@fredriklindseth.no` |
+| `flex/`  | Bildeleringen Fleksibel | `bildeleringen-flex@extension`          |
+
+Stats går ut på addons.mozilla.org (AMO) i denne rekkefølgen: unlisted, signert xpi, installert og verifisert i Fredriks egen Firefox, og først når Dele har sagt ok, listed. Flex har ikke eget `package.sh` ennå og kommer når den skal ut.
 
 ## 1. Bygg zip-en
 
-Øk `"version"` i `manifest.json` først, så kjør fra repo-roten:
+Øk `"version"` i `stats/manifest.json` først, så kjør fra repo-roten:
 
 ```bash
 ./stats/scripts/package.sh     # gir stats/dist/bildeleringen-stats-v<versjon>.zip
 ```
 
-Flex har ikke eget `package.sh` ennå. Det kommer når den skal ut.
+`package.sh` kjører kontrast- og stilsjekken først og byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en, og sletter zip-en ved funn. Vakten ser etter e-post, telefonnummer, koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene til AMO (`data_collection_permissions` og `strict_min_version` på minst 140) er feil, ikke advarsler. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
 
-`package.sh` kjører byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en og sletter den ved funn. Vakten ser etter e-post, telefonnummer (med mellomrom, +47 eller et telefonord foran), koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene for AMO (`data_collection_permissions` og en høy nok `strict_min_version`, grensen står i scriptet) gir advarsel til AMO-manifestet er på plass, og da settes `MANIFEST_KRAV_ER_FEIL=1` i scriptet. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
+Pakken har med `LICENSE`, men ikke README, siden README viser skjermbilder som ligger utenfor pakken.
 
-### Release på GitHub
+## 2. Send inn som unlisted
+
+Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/) og legg dem i miljøet, aldri i en fil i repoet:
+
+```bash
+export AMO_JWT_ISSUER='user:...'
+export AMO_JWT_SECRET='...'
+./stats/scripts/amo-upload.sh          # tørrkjøring: pakker og sjekker nøklene
+./stats/scripts/amo-upload.sh --yes    # laster opp, venter på signering, laster ned xpi-en
+```
+
+Scriptet bruker curl, openssl og jq mot AMO-API-et v5. Det laster opp zip-en med `channel=unlisted`, venter til valideringen er ferdig, oppretter tillegget (eller en ny versjon) med lisens MIT og legger den signerte xpi-en i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi`. Tar signeringen mer enn ti minutter, lastes xpi-en ned fra [utviklersiden](https://addons.mozilla.org/developers/addons) i stedet. Det samme kan gjøres for hånd der: «Send inn et nytt tillegg», velg «På egenhånd» og last opp zip-en.
+
+Notatet til reviewer står på engelsk i [amo-listing.md](amo-listing.md). Lim det inn under «Notes to Reviewer» på versjonen.
+
+## 3. Installer og verifiser i egen Firefox
+
+Den nye gecko-id-en gir Firefox et nytt lager. Det som er lagret under den gamle id-en (`bildeleringen-stats@extension`), blir ikke med. Gjør derfor dette i den gamle utgaven før den fjernes:
+
+1. Dashbordet, Turkategorier: «Eksporter kategorier».
+2. Dashbordet, nøkkelordene under Turkategorier: «Eksporter JSON».
+3. Transportkalkulatoren har ingen eksport. Skriv ned tallene.
+
+Reservasjonene trenger ingen eksport, de hentes på nytt fra dele.no.
+
+Fjern så den gamle utgaven, og installer den signerte xpi-en permanent: `about:addons`, tannhjulet, «Installer tillegg fra fil». Importer kategoriene og nøkkelordene, og legg inn transporttallene igjen. Sjekk at:
+
+- popupen og dashbordet åpner, og synken går ferdig mens du er innlogget på app.dele.no
+- tallene stemmer med det du så i den gamle utgaven
+- utvidelsen er der og virker etter omstart av Firefox
+
+## 4. Listed
+
+Når Dele har sagt ok, bytt tillegget til listed på AMO. Listingteksten, sammendraget og kategorien står i [amo-listing.md](amo-listing.md), personvernerklæringen i [personvern.md](personvern.md), skjermbildene i `skjermbilder/` og ikonet i `stats/icons/listing/icon-256.png`. Listed betyr strengere review, ofte for hånd.
+
+## Release på GitHub
 
 GitHub er kanonisk for releases og issues, så README lenker dit med absolutt URL. Fillenker er relative og virker også i det private speilet.
 
@@ -30,30 +67,35 @@ GitHub er kanonisk for releases og issues, så README lenker dit med absolutt UR
 
 Scriptet krever ren arbeidskopi på `main` og stopper hvis taggen `v<versjon>` finnes alt. Det kjører `package.sh`, lager en annotert tagg, pusher `main` og taggen til alle remotene og lager GitHub-releasen med zip-en som vedlegg og notatfilen som tekst. `--title` setter tittelen (standard `v<versjon>`). Uten `--yes` kjøres bare sjekkene og pakkingen, og scriptet viser kommandoene det ville kjørt.
 
-## 2. Velg distribusjon
+### Slette de gamle taggene
 
-På [addons.mozilla.org/developers](https://addons.mozilla.org/developers/) velger du mellom to måter:
+Versjonen starter på 1.0.0 igjen, og taggene v0.1.0, v1.0.0 og v1.1.0 fra før AMO må bort, ellers stopper `release.sh` på v1.0.0. Historikken beholdes. Kjør fra repo-roten:
 
-- **På dette nettstedet (listed)**: oppført og søkbar på addons.mozilla.org, med strengere og ofte manuell review.
-- **På egenhånd (unlisted)**: Mozilla signerer, og du laster ned `.xpi` og distribuerer selv. Reviewen er som regel automatisk.
+```bash
+for t in v0.1.0 v1.0.0 v1.1.0; do
+  gh release delete "$t" --repo fredrik-lindseth/bildeleringen-stats --yes
+  for r in $(git remote); do git push --delete "$r" "$t"; done
+  git tag -d "$t"
+done
+```
 
-Velg «På egenhånd» inntil videre. Du får en signert `.xpi` som kan installeres permanent, og utvidelsene bruker et uoffisielt dele.no-API som tjener på lav profil. Flex trenger eget ikon før en listed utgivelse. Stats-ikonet er klart (`stats/icons/listing/icon-256.png`, rendret med `stats/scripts/render-icons.sh`).
+`gh release delete` gir feil for en tagg uten release, og `git push --delete` for en tagg remoten ikke har. Begge kan overses.
 
-## 3. Signer
+## Sjekk mot AMO-reglene
 
-1. Logg inn på [addons.mozilla.org/developers](https://addons.mozilla.org/developers/).
-2. Send inn ny versjon og velg «På egenhånd».
-3. Last opp zip-en fra steg 1.
-4. Vent på signeringen.
-5. Last ned den signerte `.xpi`-en.
+AMO sin linter (`addons-linter`) krever npm og er ikke kjørt. Valideringen ved opplasting er den samme linteren og stopper innsendingen ved feil. Pakken for 1.0.0 ble 1. november 2026 sjekket for hånd mot reglene på [extensionworkshop.com](https://extensionworkshop.com/documentation/publish/add-on-policies/):
 
-## 4. Installer
+- `manifest.json` er gyldig JSON med gecko-id, `strict_min_version` 140.0 og `data_collection_permissions: { required: ["none"] }`.
+- Tillatelsene er `storage`, `unlimitedStorage`, `scripting` og `https://app.dele.no/*`. Ingen bred host-tilgang.
+- Ingen `eval`, `new Function`, `document.write`, inline-script eller fjernlastet kode. All kode ligger i pakken.
+- `innerHTML` får bare statisk markup eller verdier gjennom `escapeHtml()`. Linteren gir likevel advarsler på slike tilordninger, men de stopper ikke signering.
+- Vendor-filene er uendrede, og sjekksummene stemmer med Chart.js 4.5.1 og html2canvas 1.4.1 på jsdelivr.
+- Koden er ikke minifisert utenom vendor-filene, så kildekode trengs ikke i tillegg.
+- Tokenet logges ikke og sendes bare til app.dele.no.
+- `background` har både `scripts` og `service_worker`. Firefox bruker `scripts`.
 
-- **Permanent:** `about:addons`, tannhjulet, «Installer tillegg fra fil», velg `.xpi`-en.
-- **Midlertidig:** `about:debugging`, «Last inn midlertidig tillegg», velg `manifest.json`. Forsvinner ved omstart, men trenger ikke signering.
+## Automatisk oppdatering
 
-## 5. Automatisk oppdatering
+Listed tillegg oppdateres av AMO. Et unlisted tillegg oppdateres ved å installere den nye xpi-en, eller med en `update_url` i manifestet som peker på en `updates.json` du hoster selv, se [Firefox Extension Workshop](https://extensionworkshop.com/documentation/manage/updating-your-extension/).
 
-For eget bruk holder det å installere den nye `.xpi`-en. Automatiske oppdateringer krever en `update_url` i manifestet som peker på en `updates.json` du hoster selv, se [Firefox Extension Workshop](https://extensionworkshop.com/documentation/publish/).
-
-Repoet bruker `package.sh` og manuell opplasting framfor `web-ext`, siden `web-ext` krever npm.
+Repoet bruker `package.sh` og `amo-upload.sh` framfor `web-ext`, siden `web-ext` krever npm.
