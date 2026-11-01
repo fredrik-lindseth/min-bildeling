@@ -17,6 +17,8 @@ Repoet har to Firefox-utvidelser med hver sin gecko-id, så de signeres og distr
 
 Flex har ikke eget `package.sh` ennå. Det kommer når den skal ut.
 
+`package.sh` kjører byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en og sletter den ved funn. Vakten ser etter e-post, telefonnummer (med mellomrom, +47 eller et telefonord foran), koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene for AMO (`data_collection_permissions` og en høy nok `strict_min_version`, grensen står i scriptet) gir advarsel til AMO-manifestet er på plass, og da settes `MANIFEST_KRAV_ER_FEIL=1` i scriptet. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
+
 ### Release på GitHub
 
 GitHub er kanonisk for releases og issues, så README lenker dit med absolutt URL. Fillenker er relative og virker også i det private speilet.
