@@ -188,7 +188,6 @@ body {
   font-weight: 500;
 }
 
-
 /* ---- Navigation ---- */
 .nav {
   position: sticky;
@@ -279,7 +278,6 @@ body {
 .btn--export:hover {
   background: var(--color-btn-sync-hover);
 }
-
 
 /* ---- Status ---- */
 .status {
@@ -394,7 +392,6 @@ body {
   color: var(--color-link);
   text-decoration: underline;
 }
-
 
 /* ---- Main ---- */
 .main {

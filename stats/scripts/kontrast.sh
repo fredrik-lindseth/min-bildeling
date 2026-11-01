@@ -2,7 +2,8 @@
 # Måler WCAG 2-kontrast for fargeparene som brukes sammen i stats/.
 # Leser :root i lys modus og :root under prefers-color-scheme: dark (eller
 # light-dark(a, b)) i hver CSS-fil, og feiler under 4.5:1 for tekst og 3:1
-# for UI (kanter, fremdrift, diagramelementer).
+# for UI-elementer uten tekst (fremdriftslinjen). Farger med alfa kan ikke
+# måles og gir feil. summary.css er ikke med ennå.
 #
 # Bruk: stats/scripts/kontrast.sh
 # Nye par legges i PARS under. Format: fil, forgrunn, bakgrunn, krav, beskrivelse.
