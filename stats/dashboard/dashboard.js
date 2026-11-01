@@ -1613,9 +1613,56 @@ async function refreshDevInfo() {
       : "Aldri"
   );
 
+  renderDevSyncHistory(data.syncHistory, data.syncState);
+
   // Bytes-tellingen er omtrentlig, JSON-st\u00f8rrelse, ikke faktisk storage-quota.
   const size = new Blob([JSON.stringify(data)]).size;
   setText("dev-storage-size", `~${formatBytes(size)}`);
+}
+
+const formatSeconds = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 1 });
+
+function describeHistoryEntry(entry) {
+  const c = entry.calls || {};
+  const when = new Date(entry.startedAt).toLocaleString("nb-NO", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const outcome = entry.error ? ` (${entry.status}: ${entry.error})` : entry.status === "SYNCED" ? "" : ` (${entry.status})`;
+  return (
+    `${when}: ${c.list ?? 0} listekall, ${c.detail ?? 0} detaljkall, ` +
+    `${c.retries ?? 0} retries, ${c.failed ?? 0} feil, ` +
+    `${formatSeconds.format((entry.durationMs || 0) / 1000)} s${outcome}`
+  );
+}
+
+function renderDevSyncHistory(history, state) {
+  const list = $("dev-sync-history");
+  if (!list) return;
+  list.replaceChildren();
+  const entries = Array.isArray(history) ? history : [];
+  if (entries.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Ingen synker registrert ennå.";
+    list.appendChild(li);
+  }
+  for (const entry of entries) {
+    const li = document.createElement("li");
+    li.textContent = describeHistoryEntry(entry);
+    list.appendChild(li);
+  }
+
+  const failedCount = state?.failed ? Object.keys(state.failed).length : 0;
+  const pendingCount = state?.pendingIds?.length || 0;
+  setText(
+    "dev-sync-state",
+    state
+      ? `Tilstand: ${state.phase}${state.reason ? ` (${state.reason})` : ""}, ` +
+          `${pendingCount} venter, ${failedCount} feilet.`
+      : ""
+  );
 }
 
 function downloadBlob(blob, filename) {
