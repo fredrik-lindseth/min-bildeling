@@ -546,6 +546,8 @@ function renderHeatmapWithLabels(canvas, heatmapData) {
 
 // ---------- Rendering: Section 3 - Bookingmønster ----------
 
+const formatLeadDecimal = new Intl.NumberFormat("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
 function formatLeadDays(days) {
   if (days == null || isNaN(days)) return "–";
   if (days < 1) {
@@ -554,7 +556,7 @@ function formatLeadDays(days) {
   }
   // En desimal opp til 10 dager, deretter heltall
   return days < 10
-    ? `${days.toFixed(1)} dager`
+    ? `${formatLeadDecimal.format(days)} dager`
     : `${Math.round(days)} dager`;
 }
 
