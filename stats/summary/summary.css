@@ -1,9 +1,8 @@
-/* Årsoppsummeringen er alltid mørk. Den bruker de samme tokenene som resten
-   (../lib/tokens.css) og velger bare den mørke varianten. De store
-   størrelsene finnes bare her, se docs/design.md. */
+/* Årsoppsummeringen følger lys eller mørk modus som resten og bruker de
+   samme tokenene (../lib/tokens.css). De store størrelsene finnes bare her,
+   se docs/design.md. */
 
 :root {
-  color-scheme: dark;
   --summary-year: 96px;
   --summary-big: 56px;
 }
@@ -16,13 +15,17 @@
   padding: 0;
 }
 
+/* Dokumentet er rulleflaten, og hver slide er nøyaktig én skjermhøyde, så
+   snappingen og tastene i summary.js alltid lander på en hel slide. */
+html {
+  scroll-snap-type: y mandatory;
+}
+
 body {
   font-family: var(--font-body);
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
   background-color: var(--color-bg);
-  scroll-snap-type: y mandatory;
-  overflow-y: scroll;
 }
 
 .summary {
@@ -48,15 +51,21 @@ body {
   cursor: pointer;
 }
 
+.method a {
+  color: var(--color-accent);
+  text-underline-offset: 3px;
+}
+
 .year-picker select:focus-visible,
-.method summary:focus-visible {
+.method summary:focus-visible,
+.method a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Én påstand per slide, midt på skjermen */
 .slide {
-  min-height: 80vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -64,10 +73,6 @@ body {
   text-align: center;
   padding: var(--space-7) var(--space-5);
   scroll-snap-align: start;
-}
-
-.slide--hero {
-  min-height: 100vh;
 }
 
 .slide__title {
@@ -108,8 +113,10 @@ body {
   color: var(--color-accent);
 }
 
+/* Metoden kan bli lengre enn skjermen når den åpnes, og får vokse. */
 .slide--method {
-  min-height: 40vh;
+  height: auto;
+  min-height: 100dvh;
 }
 
 .method {
@@ -158,9 +165,5 @@ body {
   }
 }
 
-/* Snapping flytter siden, så den står bare på uten ønske om redusert bevegelse. */
-@media (prefers-reduced-motion: reduce) {
-  body {
-    scroll-snap-type: none;
-  }
-}
+/* Snappingen står på også med redusert bevegelse: den bestemmer hvor siden
+   stopper, ikke hvor mykt. Tastene i summary.js hopper da uten animasjon. */

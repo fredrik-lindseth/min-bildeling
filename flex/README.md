@@ -30,7 +30,7 @@ Ingen sporing. Søket og varslene bruker dele.no sitt API (`/api/search` og `/ap
 
 ## Begrensninger
 
-- dele.no leser bare tid fra en delt lenke, ikke sted. Vi viser stedsnavnet, så du velger stasjonen med ett trykk.
+- dele.no leser bare tid fra en delt lenke, ikke sted. Utvidelsen viser stedsnavnet, så du velger stasjonen med ett trykk.
 - Utvidelsen booker ikke selv. Den finner bilen og sender deg videre til dele.no.
 
 ## Varemerke

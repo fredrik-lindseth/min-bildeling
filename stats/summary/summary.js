@@ -126,4 +126,38 @@ function renderMethod() {
   }
 }
 
+// Én slide per tastetrykk. Nettleserens eget sidesteg for mellomrom og
+// PageDown er ca. 87 % av vinduet, så slidene gled ut av linje. Tastene går
+// til forrige eller neste slide i stedet. I årsvelgeren, på knapper, lenker
+// og «Slik beregnes det» får tastene gjøre det de ellers gjør.
+const NEXT_KEYS = new Set(["PageDown", "ArrowDown"]);
+const PREV_KEYS = new Set(["PageUp", "ArrowUp"]);
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function currentSlideIndex(slides) {
+  let best = 0;
+  for (let i = 1; i < slides.length; i++) {
+    if (Math.abs(slides[i].getBoundingClientRect().top) < Math.abs(slides[best].getBoundingClientRect().top)) best = i;
+  }
+  return best;
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.target.closest?.("select, button, a, input, textarea, summary")) return;
+  let step = 0;
+  if (e.key === " ") step = e.shiftKey ? -1 : 1;
+  else if (NEXT_KEYS.has(e.key)) step = 1;
+  else if (PREV_KEYS.has(e.key)) step = -1;
+  if (step === 0) return;
+
+  const slides = [...document.querySelectorAll(".slide")];
+  const target = slides[currentSlideIndex(slides) + step];
+  // Etter siste slide ruller tastene som vanlig, så en åpen metode som er
+  // lengre enn skjermen, kan leses til bunns.
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ block: "start", behavior: reduceMotion.matches ? "instant" : "smooth" });
+});
+
 init();

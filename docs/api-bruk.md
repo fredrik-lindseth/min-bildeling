@@ -29,7 +29,7 @@ Popupen henter høyst 25 detaljer om gangen, siden den lukkes så fort medlemmet
 
 ## Hvor mange kall
 
-Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp, uten å hente noe på nytt.
+Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp. Bare detaljene som var hentet etter siste lagring, altså høyst én gruppe, hentes en gang til. Det gjelder også når dashbordet tar over en synkronisering popupen holdt på med.
 
 Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner fra før, og det er nesten alltid én side. Svarets `x-totalelements` brukes som kontroll: dekker kjente og nye reservasjoner ikke totalen, leses flere sider. Detaljer hentes for nye reservasjoner og for de som fortsatt kan endre seg. Pausen er da 100 ms.
 
@@ -37,7 +37,7 @@ Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner
 
 En reservasjon kan få endelig pris og kilometer en stund etter at den er avsluttet. Utvidelsen henter derfor detaljen på nytt høyst én gang i døgnet, fram til den har en versjon hentet minst sju dager etter reservasjonens slutt. Deretter hentes den aldri igjen.
 
-API-et sender `Cache-Control: no-store` og verken `ETag` eller `Last-Modified`, så betingede kall er ikke mulig i dag. Regelen over og pagineringen som stopper ved første kjente reservasjon, er utvidelsens cache. Med en `ETag` på detaljkallet kunne vi sendt `If-None-Match` og fått 304 tilbake.
+API-et sender `Cache-Control: no-store` og verken `ETag` eller `Last-Modified`, så betingede kall er ikke mulig i dag. Regelen over og pagineringen som stopper ved første kjente reservasjon, er utvidelsens cache. Med en `ETag` på detaljkallet kunne utvidelsen sendt `If-None-Match` og fått 304 tilbake.
 
 ### En typisk dag
 
@@ -71,4 +71,4 @@ Utviklerpanelet i utvidelsen viser antall kall (listekall, detaljkall, nye fors�
 
 ## Kontakt
 
-Ser dere noe dere vil at vi endrer, for eksempel pauser, grenser eller en header, tar vi gjerne imot beskjed via kontaktadressen på utvidelsens side på addons.mozilla.org.
+Ser dere noe dere vil ha endret, for eksempel pauser, grenser eller en header, tar jeg gjerne imot beskjed via kontaktadressen på utvidelsens side på addons.mozilla.org.

@@ -21,7 +21,7 @@ import {
   onColorSchemeChange,
 } from "../lib/chart-helpers.js";
 
-import { formatNOK, formatSyncTime } from "../lib/formatters.js";
+import { formatNOK, formatSyncPhrase } from "../lib/formatters.js";
 
 import { estimateOwnershipCost, homeOrganizationId, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
@@ -38,6 +38,7 @@ import {
   matchKeyword,
   keywordHits,
   normalizeUserKeywords,
+  STOP_WORDS,
   parseKeywordInput,
   loadUserKeywords,
   saveUserKeywords,
@@ -50,7 +51,6 @@ import {
   isAuthError,
   describeSyncResult,
   describeProgress,
-  describeProgressShort,
 } from "../lib/sync-page.js";
 
 import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
@@ -181,35 +181,26 @@ const emptyState = $("empty-state");
 const firstRun = $("first-run");
 const mainContent = $("main-content");
 const syncBtn = $("sync-btn");
-const lastSyncedEl = $("last-synced");
-const dataSummaryEl = $("data-summary");
+const headerMetaEl = $("header-meta");
 
-// Feltene skjules når de er tomme, så gap-avstanden i headeren ikke står igjen alene.
-function setHeaderText(el, text) {
-  el.textContent = text;
-  el.hidden = !text;
-}
-
-function updateDataSummary(reservations) {
-  if (!reservations || reservations.length === 0) {
-    setHeaderText(dataSummaryEl, "");
-    return;
-  }
+// Headeren er én setning: «176 turer i 2023–2025 for 41 000 kr, sist
+// synkronisert 1. nov. kl. 09:14». Demomodus har ingen synk og får bare første del.
+function updateHeaderMeta(reservations, lastSync) {
   // Samme utvalg som Kostnader og Bruksmønster, så headeren og seksjonene
   // teller likt. Avbestilte og turer uten pris er med i lageret, men ikke her.
-  const valid = filterValid(reservations);
-  if (valid.length === 0) {
-    setHeaderText(dataSummaryEl, "");
-    return;
+  const valid = filterValid(reservations || []);
+  let summary = "";
+  if (valid.length > 0) {
+    const total = valid.reduce((sum, r) => sum + (r.price?.total || 0), 0);
+    const years = [...new Set(valid.map((r) => new Date(r.start).getFullYear()))]
+      .sort((a, b) => a - b);
+    const yearLabel =
+      years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0]}`;
+    summary = `${formatTrips(valid.length)} i ${yearLabel} for ${formatNOK.format(total)}`;
   }
-  const total = valid.reduce((sum, r) => sum + (r.price?.total || 0), 0);
-
-  const years = [...new Set(valid.map((r) => new Date(r.start).getFullYear()))]
-    .sort((a, b) => a - b);
-  const yearLabel =
-    years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0]}`;
-
-  setHeaderText(dataSummaryEl, `${formatTrips(valid.length)} i ${yearLabel}, ${formatNOK.format(total)}`);
+  const synced = formatSyncPhrase(lastSync);
+  const text = [summary, synced].filter(Boolean).join(", ");
+  headerMetaEl.textContent = text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // ---------- Chart instances (for cleanup) ----------
@@ -262,9 +253,11 @@ function removeStatusAction() {
   if (existing) existing.remove();
 }
 
-// Feil og delvise resultater vises med en Prøv igjen-knapp og blir stående.
-function showSyncMessage(message) {
+// Meldingen blir stående. Bare ekte feil får Prøv igjen. Et delvis resultat
+// eller turer som prøves igjen senere, er ikke noe brukeren må gjøre noe med.
+function showSyncMessage(message, { retry }) {
   showStatus(message);
+  if (!retry) return;
   const action = document.createElement("button");
   action.type = "button";
   action.id = "status-action";
@@ -302,6 +295,9 @@ function showMain() {
   // Under synk står banneret med fremdriften over tallene som fylles inn.
   if (!syncing) hideStatus();
   scrollToHashOnce();
+  // Seksjonene var skjult til nå, så en tidligere scroll-hendelse kan ha
+  // fjernet markeringen. Regn den ut på nytt når de vises.
+  updateActiveNav();
 }
 
 // Seksjonene er skjult når siden lastes, så nettleseren finner ikke ankeret i
@@ -332,9 +328,9 @@ function updateActiveNav() {
     // Utviklerpanelet ligger i en skjult wrapper utenfor ?dev=1 og har da
     // top 0, så uten denne vant det alltid og ingen lenke ble markert.
     if (rect.height === 0) continue;
-    if (rect.top <= 140) {
-      current = section.id;
-    }
+    // Helt øverst har ingen seksjon nådd linjen ennå. Da er det den første
+    // som vises, ellers står navigasjonen uten markering ved last.
+    if (!current || rect.top <= 140) current = section.id;
   }
 
   setActiveNav(current);
@@ -774,7 +770,9 @@ function renderTrends(reservations) {
   $("trends-empty").hidden = true;
   $("trends-content").hidden = false;
 
-  // Year-over-year comparison
+  // År mot år trenger to år. Med ett år ville panelet stått tomt, så det
+  // skjules som sesongsammenligningen under.
+  $("yoy-container").hidden = yearly.length < 2;
   if (yearly.length >= 2) {
     renderYearOverYear(reservations, yearly);
   } else {
@@ -1262,6 +1260,12 @@ function formatTrips(n) {
   return n === 1 ? "1 tur" : `${n} turer`;
 }
 
+// Lista står i categories.js og leses derfra, så teksten ikke kan gå ut av takt med den.
+setText(
+  "keyword-stop-words",
+  `Ord i notatet som begynner med ${new Intl.ListFormat("nb", { type: "disjunction" }).format(STOP_WORDS)}, hoppes over, også for egne nøkkelord.`
+);
+
 function renderKeywordCard(reservations, userKeywords, keywords) {
   const hits = keywordHits(reservations, keywords);
   const pct = hits.total > 0 ? Math.round((hits.matched / hits.total) * 100) : 0;
@@ -1739,8 +1743,7 @@ onColorSchemeChange(() => {
 async function renderAll(reservations, lastSync) {
   renderedLastSync = lastSync;
   allReservations = reservations;
-  setHeaderText(lastSyncedEl, formatSyncTime(lastSync));
-  updateDataSummary(allReservations);
+  updateHeaderMeta(allReservations, lastSync);
 
   buildYearSelector(allReservations);
   renderCosts(allReservations);
@@ -1790,8 +1793,8 @@ async function loadStored() {
 }
 
 function onSyncProgress(progress) {
+  // Fremdriften står i banneret. Knappen sier bare «Synkroniserer…».
   showStatus(describeProgress(progress));
-  syncBtn.textContent = describeProgressShort(progress);
   if (progress.phase === "details" && progress.total > 0) {
     showProgress(Math.round((progress.current / progress.total) * 100));
     renderWhileSyncing();
@@ -1824,7 +1827,8 @@ async function syncAndRender(force) {
   // Tegn opp på nytt bare når synken faktisk hentet noe, eller ingenting vises ennå.
   let hasData = hasRendered;
   try {
-    if (result.fetched > 0 || !hasRendered) hasData = (await loadStored()) || hasRendered;
+    // waited: en annen side synket mens denne ventet, og kan ha lagret nye turer.
+    if (result.fetched > 0 || result.waited || !hasRendered) hasData = (await loadStored()) || hasRendered;
   } catch (e) {
     console.error("[dashboard] Klarte ikke å lese lagrede data", e);
     showStatus("Klarte ikke å lese lagrede turer. Last inn siden på nytt.");
@@ -1838,7 +1842,7 @@ async function syncAndRender(force) {
   }
   const message = describeSyncResult(result);
   if (message) {
-    showSyncMessage(message);
+    showSyncMessage(message, { retry: Boolean(result.error) });
   } else if (!hasData) {
     showEmpty();
   } else {
@@ -1851,7 +1855,6 @@ async function syncAndRender(force) {
 async function init() {
   if (demo) {
     syncBtn.remove();
-    lastSyncedEl.remove();
     // I navigasjonslinjen, som står fast øverst, så merket synes uansett hvor
     // langt ned man har scrollet.
     document.querySelector(".nav__inner").append(createDemoBadge(document));
@@ -1905,6 +1908,16 @@ document.addEventListener("click", async (e) => {
   }
 
   btn.disabled = false;
+});
+
+// ---------- Skjemastatus ----------
+
+// «Lagret» står til brukeren endrer et felt i samme skjema, for da stemmer
+// det ikke lenger. Ingen tidsgrense: en melding som forsvinner på tid,
+// rekker ikke alle å lese.
+document.addEventListener("input", (e) => {
+  const status = e.target.closest("form")?.querySelector(".form-status");
+  if (status) status.textContent = "";
 });
 
 // ---------- Methodology Toggles ----------

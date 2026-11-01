@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   runSync,
+  runSyncWhenFree,
+  lockIsFree,
   needsDetail,
   mergeReservations,
   DETAIL_BATCH_SIZE,
@@ -10,12 +12,14 @@ import {
   SETTLE_WINDOW_MS,
   DETAIL_REFRESH_MS,
   LOCK_LEASE_MS,
+  LOCK_POLL_MS,
+  POPUP_MAX_DETAILS,
   DETAIL_RETRY_BASE_MS,
   NOT_FOUND_MAX_ATTEMPTS,
   detailRetryDelayMs,
 } from "../lib/sync.js";
 import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
-import { describeProgress, describeProgressShort, describeSyncResult } from "../lib/sync-messages.js";
+import { describeProgress, describeSyncResult } from "../lib/sync-messages.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-01T12:00:00Z");
@@ -411,6 +415,122 @@ test("en utløpt lås fra en lukket side tas over", async () => {
   assert.equal(result.status, "SYNCED");
 });
 
+test("popupens lås kan alltid tas, en annen sides gyldige lås kan ikke", () => {
+  const live = NOW + 10000;
+  assert.equal(lockIsFree(null, "a", NOW), true);
+  assert.equal(lockIsFree({ owner: "a", expiresAt: live }, "a", NOW), true);
+  assert.equal(lockIsFree({ owner: "b", expiresAt: NOW }, "a", NOW), true);
+  assert.equal(lockIsFree({ owner: "b", role: "popup", expiresAt: live }, "a", NOW), true);
+  assert.equal(lockIsFree({ owner: "b", role: "page", expiresAt: live }, "a", NOW), false);
+  assert.equal(lockIsFree({ owner: "b", expiresAt: live }, "a", NOW), false);
+});
+
+test("dashboardet tar over fra en popup som holder låsen, uten å vente", async () => {
+  const api = makeApi(makeReservations(2));
+  const storage = makeStorage({ syncLock: { owner: "popup", role: "popup", expiresAt: NOW + LOCK_LEASE_MS } });
+  const result = await harness(storage, api).run();
+  assert.equal(result.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 2);
+});
+
+test("venter på en annen sides lås, viser fremdriften derfra og fortsetter selv når leasen går ut", async () => {
+  const all = makeReservations(50);
+  const api = makeApi(all);
+  // Den andre siden ble lukket midt i synken: 20 av 50 er lagret, 30 står i køen.
+  const storage = makeStorage({
+    reservations: all.slice(0, 20).map((r) => ({ ...r, price: { total: 100 } })),
+    syncLock: { owner: "side-b", role: "page", expiresAt: NOW + LOCK_LEASE_MS },
+    syncState: {
+      phase: "details",
+      initial: true,
+      startedAt: NOW - 60000,
+      pendingIds: all.slice(20).map((r) => r.id),
+      failed: {},
+      total: 50,
+      done: 20,
+      fetchedSoFar: 20,
+    },
+  });
+  const h = harness(storage, api);
+  const progress = [];
+  const result = await runSyncWhenFree({ ...h.opts, onProgress: (p) => progress.push(p) });
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(result.waited, true);
+  assert.equal(api.count("list"), 0);
+  assert.equal(api.count("detail"), 30);
+  assert.equal(storage.data.reservations.length, 50);
+  assert.deepEqual(progress[0], { phase: "details", current: 20, total: 50, elsewhere: true });
+  // Ventet i steg på LOCK_POLL_MS til leasen var ute, ikke lenger.
+  const waits = h.sleeps.filter((ms) => ms === LOCK_POLL_MS).length;
+  assert.equal(waits, Math.ceil(LOCK_LEASE_MS / LOCK_POLL_MS));
+});
+
+test("to dashboard-faner synker ikke samtidig", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = makeStorage();
+  const waiting = [];
+  const a = runSyncWhenFree({ ...world.opts("fane-a"), storage });
+  // Fane b åpnes litt ut i synken til fane a.
+  while (world.now() < NOW + 5000) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  const b = runSyncWhenFree({ ...world.opts("fane-b"), storage, onProgress: (p) => waiting.push(p) });
+  const [resultA, resultB] = await Promise.all([a, b]);
+
+  assert.equal(resultA.status, "SYNCED");
+  assert.equal(resultB.waited, true);
+  // Fane b fant en fersk synk da låsen ble ledig, og hentet ingenting selv.
+  assert.equal(resultB.status, "CACHED");
+  assert.equal(world.api.count("detail"), 60);
+  assert.ok(waiting.length > 0 && waiting.every((p) => p.elsewhere));
+  assert.equal(storage.data.syncLock, null);
+});
+
+test("popupen som mister låsen til dashboardet, venter og henter ikke de samme turene", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = makeStorage();
+  const popup = runSyncWhenFree({ ...world.opts("popup"), storage, role: "popup", maxDetails: POPUP_MAX_DETAILS });
+  while (world.now() < NOW + 2000) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  const dashboard = runSyncWhenFree({ ...world.opts("dashboard"), storage });
+  const [resultPopup, resultDashboard] = await Promise.all([popup, dashboard]);
+
+  assert.equal(resultDashboard.status, "SYNCED");
+  assert.equal(resultDashboard.waited, undefined);
+  assert.equal(resultPopup.waited, true);
+  assert.equal(storage.data.reservations.length, 60);
+  // Det popupen hentet etter siste lagring, er tapt og hentes på nytt, høyst
+  // én batch pluss kallet som var i gang. Ingen tur hentes av begge løpende.
+  assert.ok(world.api.count("detail") <= 60 + DETAIL_BATCH_SIZE + 1, `detaljkall: ${world.api.count("detail")}`);
+});
+
+test("dashboardet leser lageret på nytt etter låsen, så popupens siste lagrede batch ikke hentes igjen", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = makeStorage();
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const popup = runSyncWhenFree({ ...world.opts("popup"), storage, role: "popup", maxDetails: POPUP_MAX_DETAILS });
+  // Dashboardet leser lageret når popupen har hentet 18 detaljer. Innloggingen
+  // tar så lang tid at popupen rekker å lagre batchen på 20 før låsen tas.
+  while (world.api.count("detail") < 18) await settle();
+  const slowAuth = async () => {
+    while (world.api.count("detail") < 23) await settle();
+    return { token: "Bearer test", membershipId: "m-1" };
+  };
+  const dashboard = runSyncWhenFree({ ...world.opts("dashboard"), storage, getAuth: slowAuth });
+  const [, resultDashboard] = await Promise.all([popup, dashboard]);
+
+  assert.equal(resultDashboard.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 60);
+  // Bare det popupen hentet etter siste lagring (tre, pluss kallet som var i
+  // gang) hentes på nytt. Med den gamle kopien ville hele batchen på 20 gått igjen.
+  assert.ok(world.api.count("detail") <= 60 + 5, `detaljkall: ${world.api.count("detail")}`);
+});
+
 test("leasen forlenges over en lang Retry-After-ventetid", async () => {
   const all = makeReservations(2);
   const api = makeApi(all, { failures: { "list:0": [{ status: 503, headers: { "Retry-After": "90" } }] } });
@@ -674,11 +794,26 @@ test("rå feiltekst når ikke brukeren", () => {
   }
 });
 
-test("banner og knapp viser samme tall under synk", () => {
+test("fremdriften står bare i banneret, med tall", () => {
   const progress = { phase: "details", current: 40, total: 661 };
   assert.equal(describeProgress(progress), "Henter detaljer for 40 av 661 turer…");
-  assert.equal(describeProgressShort(progress), "Synkroniserer 40 av 661");
-  assert.equal(describeProgressShort({ phase: "list", current: 1, total: 661 }), "Synkroniserer…");
+  assert.equal(describeProgress({ phase: "list", current: 1, total: null }), "Henter turlisten…");
+});
+
+test("popupen sier i banneret at resten hentes i dashboardet", () => {
+  assert.equal(
+    describeProgress({ phase: "details", current: 18, total: 662, stopsAt: 25, limit: 25 }),
+    "Henter detaljer for 18 av 662 turer. Popupen henter 25 om gangen, resten hentes når du åpner dashboardet."
+  );
+});
+
+test("en annen side som synker, vises som fremdrift og ikke som feil", () => {
+  assert.equal(
+    describeProgress({ phase: "details", current: 18, total: 662, elsewhere: true }),
+    "Et annet vindu henter detaljer for 18 av 662 turer…"
+  );
+  assert.equal(describeProgress({ phase: "elsewhere", elsewhere: true }), "Et annet vindu synkroniserer…");
+  assert.equal(describeSyncResult({ status: "BUSY" }), null);
 });
 
 // ---------- Lease etter tid ----------

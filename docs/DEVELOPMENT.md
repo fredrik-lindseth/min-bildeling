@@ -94,7 +94,7 @@ icons/
 | CO₂ fly               | Avinor (~150 g/passasjer-km)                            |
 | Substitusjonseffekter | TØI 1895/2022                                           |
 
-Forutsetningene skal gjelde alle medlemmene i Bilparaplyen. Er en verdi lokal, velges den ut fra `organizationId` (`regionForOrganization` i `lib/ownership-cost.js`), og begge byene står i «Slik beregner vi». For et år som pågår tas de faste eierkostnadene for den delen av året som er gått (`yearFraction`), så «Spart i år» ikke stiller helårskostnaden mot bildelingen hittil.
+Forutsetningene skal gjelde alle medlemmene i Bilparaplyen. Er en verdi lokal, velges den ut fra `organizationId` (`regionForOrganization` i `lib/ownership-cost.js`), og begge byene står i «Slik beregnes det». For et år som pågår tas de faste eierkostnadene for den delen av året som er gått (`yearFraction`), så «Spart i år» ikke stiller helårskostnaden mot bildelingen hittil.
 
 ## Ikoner
 

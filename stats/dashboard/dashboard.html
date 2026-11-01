@@ -11,10 +11,7 @@
   <header class="header">
     <div class="wrap header__inner">
       <h1 class="header__title">Bildeleringen Stats</h1>
-      <p class="header__meta">
-        <span id="data-summary" hidden></span>
-        <span id="last-synced" hidden></span>
-      </p>
+      <p class="header__meta" id="header-meta"></p>
       <div class="header__actions">
         <button id="summary-btn" class="btn" type="button">Årsoppsummering</button>
         <button id="sync-btn" class="btn btn--primary btn--sync" type="button">Synkroniser</button>
@@ -175,7 +172,7 @@
         </div>
 
         <div class="method-block">
-          <button type="button" class="btn btn--quiet method-toggle" id="booking-method-toggle" aria-expanded="false" aria-controls="booking-method-detail">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="booking-method-toggle" aria-expanded="false" aria-controls="booking-method-detail">Slik beregnes det</button>
           <div class="method-detail" id="booking-method-detail" hidden></div>
         </div>
       </div>
@@ -225,7 +222,7 @@
       </div>
 
       <div id="trends-content" class="stack">
-        <div class="panel">
+        <div class="panel" id="yoy-container" hidden>
           <h3 class="panel__title">År mot år</h3>
           <div class="chart-legend" id="yoy-legend" aria-hidden="true"></div>
           <div class="chart-frame"><canvas id="yoy-chart"></canvas></div>
@@ -277,7 +274,7 @@
         </div>
 
         <div class="method-block">
-          <button type="button" class="btn btn--quiet method-toggle" id="ownership-method-toggle" aria-expanded="false" aria-controls="ownership-method-detail">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="ownership-method-toggle" aria-expanded="false" aria-controls="ownership-method-detail">Slik beregnes det</button>
           <div class="method-detail" id="ownership-method-detail" hidden></div>
         </div>
       </div>
@@ -342,6 +339,7 @@
           Skill ordene med komma. Et ord treffer starten av et ord i notatet, så «lege» treffer «legevakt».
           Med * først treffer det også sist i et ord: «*besøk» treffer «bursdagsbesøket».
           Første kategori ovenfra med treff vinner.
+          <span id="keyword-stop-words"></span>
         </p>
         <form id="keyword-form" class="keyword-form">
           <div id="keyword-fields"></div>
@@ -387,7 +385,7 @@
         </div>
 
         <div class="method-block">
-          <button type="button" class="btn btn--quiet method-toggle" id="co2-method-toggle" aria-expanded="false" aria-controls="co2-method-detail">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="co2-method-toggle" aria-expanded="false" aria-controls="co2-method-detail">Slik beregnes det</button>
           <div class="method-detail" id="co2-method-detail" hidden></div>
         </div>
       </div>
@@ -440,7 +438,7 @@
         <div class="table" id="transport-table"></div>
 
         <div class="method-block">
-          <button type="button" class="btn btn--quiet method-toggle" id="transport-method-toggle" aria-expanded="false" aria-controls="transport-method-detail">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="transport-method-toggle" aria-expanded="false" aria-controls="transport-method-detail">Slik beregnes det</button>
           <div class="method-detail" id="transport-method-detail" hidden></div>
         </div>
       </div>

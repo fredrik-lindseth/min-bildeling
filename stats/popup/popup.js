@@ -7,7 +7,6 @@ import {
   isAuthError,
   describeSyncResult,
   describeProgress,
-  describeProgressShort,
 } from "../lib/sync-page.js";
 // Popupen lukkes så snart brukeren klikker et annet sted, og da stopper synken.
 // Den henter derfor bare et lite antall detaljer om gangen og ber om dashbordet
@@ -81,9 +80,11 @@ function removeStatusAction() {
   if (existing) existing.remove();
 }
 
-// Feil og delvise resultater vises med en Prøv igjen-knapp.
-function showSyncMessage(message) {
+// Meldingen blir stående. Bare ekte feil får Prøv igjen. Et delvis resultat
+// eller turer som prøves igjen senere, er ikke noe brukeren må gjøre noe med.
+function showSyncMessage(message, { retry }) {
   showStatus(message);
+  if (!retry) return;
   const action = document.createElement("button");
   action.type = "button";
   action.id = "status-action";
@@ -179,10 +180,11 @@ async function sendMessage(msg, timeoutMs = 10000) {
   ]);
 }
 
-function showProgress({ phase, current, total }) {
+// Fremdriften står i banneret. Knappen sier bare «Synkroniserer…».
+function showProgress(progress) {
+  const { phase, current, total } = progress;
   const pct = phase === "details" && total > 0 ? Math.round((current / total) * 100) : null;
-  showStatus(describeProgress({ phase, current, total }), pct);
-  syncBtn.textContent = describeProgressShort({ phase, current, total });
+  showStatus(describeProgress(progress), pct);
 }
 
 async function renderStored() {
@@ -202,6 +204,7 @@ async function syncAndRender(force) {
   const result = await startSync({
     force,
     maxDetails: POPUP_MAX_DETAILS,
+    role: "popup",
     onProgress: showProgress,
   });
   syncBtn.disabled = false;
@@ -222,7 +225,7 @@ async function syncAndRender(force) {
   }
   const message = describeSyncResult(result);
   if (message) {
-    showSyncMessage(message);
+    showSyncMessage(message, { retry: Boolean(result.error) });
   } else if (hasData) {
     hideStatus();
   } else {

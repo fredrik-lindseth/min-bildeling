@@ -36,6 +36,9 @@ export const DETAIL_REFRESH_MS = DAY;
 export const LOCK_LEASE_MS = 45 * 1000;
 export const LOCK_RENEW_MS = LOCK_LEASE_MS / 3;
 export const LOCK_CONFIRM_MS = 100;
+// En side som venter på låsen, ser etter så ofte. Den viser fremdriften fra
+// syncState i mellomtiden og tar over når låsen er ledig.
+export const LOCK_POLL_MS = 1000;
 // En detalj som feiler (404, 500 o.l.) legges i syncState.failed og prøves
 // igjen ved senere automatiske synker med økende mellomrom: én time, så fire,
 // seksten og 64 timer, deretter høyst én gang i uken. Synkroniser-knappen
@@ -133,10 +136,23 @@ export function mergeReservations(existing, details) {
   return [...byId.values()].sort((a, b) => startMs(b) - startMs(a));
 }
 
-async function acquireLock(storage, owner, now, sleep) {
+/**
+ * Kan `owner` ta låsen nå? Den er ledig når ingen har den, når leasen er ute,
+ * eller når den er vår. En lås fra popupen kan alltid tas: popupen lever
+ * bare til brukeren klikker utenfor, og det finnes høyst én om gangen, så en
+ * popup-lås er enten fra en popup som er lukket, eller fra en som et
+ * dashboard skal ta over fra. Ren funksjon.
+ */
+export function lockIsFree(lock, owner, nowMs) {
+  if (!lock || lock.owner === owner) return true;
+  if (lock.expiresAt <= nowMs) return true;
+  return lock.role === "popup";
+}
+
+async function acquireLock(storage, owner, role, now, sleep) {
   const { syncLock } = await storage.get(["syncLock"]);
-  if (syncLock && syncLock.owner !== owner && syncLock.expiresAt > now()) return false;
-  await storage.set({ syncLock: { owner, expiresAt: now() + LOCK_LEASE_MS } });
+  if (!lockIsFree(syncLock, owner, now())) return false;
+  await storage.set({ syncLock: { owner, role, expiresAt: now() + LOCK_LEASE_MS } });
   // storage.local har ingen compare-and-set. Les tilbake etter en kort pause, så
   // taper den av to samtidige sider som skrev først.
   await sleep(LOCK_CONFIRM_MS);
@@ -171,21 +187,30 @@ export async function runSync({
   getAuth,
   clientId,
   owner,
+  role = "page",
   force = false,
   full = false,
   maxDetails = Infinity,
   onProgress = () => {},
+  onLock = () => {},
   now = Date.now,
   sleep = defaultSleep,
   random = Math.random,
 }) {
   const startedAt = now();
-  const stored = await storage.get(["reservations", "lastSync", ...SYNC_STORAGE_KEYS]);
-  let reservations = Array.isArray(stored.reservations) ? stored.reservations : [];
-  const prev = stored.syncState || null;
-  const failed = { ...(prev?.failed || {}) };
-  const resumable =
-    prev != null && prev.phase !== "done" && Array.isArray(prev.pendingIds) && prev.pendingIds.length > 0;
+  const readStored = async () => {
+    const stored = await storage.get(["reservations", "lastSync", ...SYNC_STORAGE_KEYS]);
+    const prev = stored.syncState || null;
+    return {
+      stored,
+      reservations: Array.isArray(stored.reservations) ? stored.reservations : [],
+      prev,
+      failed: { ...(prev?.failed || {}) },
+      resumable:
+        prev != null && prev.phase !== "done" && Array.isArray(prev.pendingIds) && prev.pendingIds.length > 0,
+    };
+  };
+  let { stored, reservations, prev, failed, resumable } = await readStored();
   const servicePaused =
     prev?.phase === "paused" &&
     prev.reason === "SERVICE_UNAVAILABLE" &&
@@ -208,7 +233,12 @@ export async function runSync({
   const auth = await getAuth();
   if (!auth || !auth.token) return summary({ status: "ERROR", error: "NOT_LOGGED_IN" });
 
-  if (!(await acquireLock(storage, owner, now, sleep))) return summary({ status: "BUSY" });
+  if (!(await acquireLock(storage, owner, role, now, sleep))) return summary({ status: "BUSY" });
+  onLock(true);
+  // Mellom lesingen over og låsen kan siden vi tar over fra (popupen) ha
+  // lagret en batch til. Les lageret på nytt nå som låsen er vår, ellers
+  // skrives den batchen over med den gamle kopien og hentes en gang til.
+  ({ stored, reservations, prev, failed, resumable } = await readStored());
   let leaseRenewedAt = now();
 
   // Sjekk at låsen fortsatt er vår, og forny den. Kalles før hver skriving og
@@ -218,7 +248,7 @@ export async function runSync({
   const holdLease = async (extraMs = 0) => {
     const { syncLock } = await storage.get(["syncLock"]);
     if (syncLock && syncLock.owner !== owner) throw lockLost();
-    await storage.set({ syncLock: { owner, expiresAt: now() + extraMs + LOCK_LEASE_MS } });
+    await storage.set({ syncLock: { owner, role, expiresAt: now() + extraMs + LOCK_LEASE_MS } });
     leaseRenewedAt = now();
   };
 
@@ -279,7 +309,7 @@ export async function runSync({
     await storage.set({
       reservations,
       syncState: state(phase, extra),
-      syncLock: { owner, expiresAt: now() + LOCK_LEASE_MS },
+      syncLock: { owner, role, expiresAt: now() + LOCK_LEASE_MS },
     });
     leaseRenewedAt = now();
   };
@@ -311,6 +341,7 @@ export async function runSync({
     };
     await storage.set({ syncHistory: [entry, ...history].slice(0, HISTORY_LENGTH) });
     await releaseLock(storage, owner);
+    onLock(false);
     return {
       status,
       ...(error ? { error } : {}),
@@ -376,6 +407,9 @@ export async function runSync({
     // id-er med 5xx på rad, er det tjenesten og ikke reservasjonene, og da
     // stopper bryteren synken som ved 503.
     let itemServerErrorsInRow = 0;
+    // Med maxDetails (popupen) stopper denne synken før totalen. Siden sier
+    // da i banneret hvor langt den kommer, og at resten hentes i dashboardet.
+    const stopsAt = Math.min(total, done + maxDetails);
     while (pendingIds.length > 0 && fetched + failedThisRun < maxDetails) {
       const id = pendingIds[0];
       await polite();
@@ -406,7 +440,12 @@ export async function runSync({
       }
       pendingIds.shift();
       done += 1;
-      onProgress({ phase: "details", current: done, total });
+      onProgress({
+        phase: "details",
+        current: done,
+        total,
+        ...(stopsAt < total ? { stopsAt, limit: maxDetails } : {}),
+      });
       if (buffer.length >= DETAIL_BATCH_SIZE) await flush();
     }
 
@@ -432,4 +471,35 @@ export async function runSync({
     }
     return await finish("PAUSED", reason);
   }
+}
+
+/**
+ * Som runSync, men venter i stedet for å gi opp når en annen side synker.
+ * Mens den venter, meldes fremdriften fra syncState i storage som
+ * { phase, current, total, elsewhere: true }, slik den andre siden lagrer
+ * den. Blir låsen ledig (den andre er ferdig, er lukket så leasen gikk ut,
+ * eller var en popup), kjøres synken på nytt uten force: en uferdig synk
+ * fortsetter der den slapp, og en fersk lastSync gir CACHED.
+ * Resultatet har waited: true når siden ventet, så den vet at andre kan ha
+ * lagret nye turer.
+ */
+export async function runSyncWhenFree(opts) {
+  const { storage, owner, now = Date.now, sleep = defaultSleep, onProgress = () => {} } = opts;
+  let result = await runSync(opts);
+  let waited = false;
+  while (result.status === "BUSY") {
+    waited = true;
+    for (;;) {
+      const { syncLock, syncState } = await storage.get(["syncLock", "syncState"]);
+      if (lockIsFree(syncLock, owner, now())) break;
+      if (syncState?.phase === "details" && syncState.total > 0) {
+        onProgress({ phase: "details", current: syncState.done || 0, total: syncState.total, elsewhere: true });
+      } else {
+        onProgress({ phase: "elsewhere", elsewhere: true });
+      }
+      await sleep(LOCK_POLL_MS);
+    }
+    result = await runSync({ ...opts, force: false });
+  }
+  return waited ? { ...result, waited } : result;
 }
