@@ -1,6 +1,6 @@
 # dele.no-API-et, uoffisiell dokumentasjon
 
-Observert fra `app.dele.no` og brukt av Bildeleringen Stats.
+Observert fra `app.dele.no` og brukt av begge utvidelsene: stats leser reservasjonene, flex bruker søket. Grunnadressen er `https://app.dele.no/api`.
 
 ## Filer
 
@@ -19,6 +19,8 @@ const raw = JSON.parse(localStorage.getItem("persist:data"));
 const token = JSON.parse(raw.authentication);       // Bearer token
 const membershipId = JSON.parse(raw.selectedMembership).id;
 ```
+
+Tokenet sendes som den rå verdien i headeren `authorization`, slik app.dele.no selv gjør. 401 betyr at det er utløpt. Tokenet bor bare i den originens localStorage, så begge utvidelsene trenger en åpen app.dele.no-fane for å få tak i det.
 
 ## Endepunkter
 
@@ -44,24 +46,49 @@ Svarene har `Cache-Control: no-cache, no-store, max-age=0, must-revalidate` og v
 
 ## Viktige feltnavn
 
-| Felt                        | Type           | Beskrivelse                                                   |
-| --------------------------- | -------------- | ------------------------------------------------------------- |
-| `price.total`               | number         | Total kostnad i NOK                                           |
-| `price.lines[]`             | array          | Detaljert prisberegning (startavgift, timepris, km-pris osv.) |
-| `drivenKm`                  | integer        | Kjørte kilometer (0/null for noTrips)                         |
-| `car.model`                 | string         | Bilmodell («Toyota RAV4»)                                     |
-| `car.category`              | string         | Småbil / Minibil / Kombi / Stasjonsvogn / SUV / Varebil       |
-| `car.properties[].groupKey` | string         | `FUEL_TYPE` → name = Bensin / Diesel / Elektrisitet           |
-| `canceled`                  | datetime\|null | null = ikke avbestilt                                         |
-| `noTrips`                   | boolean        | Booket, men ikke kjørt (kan ha kostnad > 0)                   |
-| `notes`                     | string\|null   | Brukerens turnotater                                          |
-| `state`                     | string         | PAST / ACTIVE / UPCOMING                                      |
-| `location.name`             | string         | Hentestedets navn                                             |
-| `created`                   | datetime       | Opprettelsestidspunkt (gir hvor tidlig turen ble booket)      |
+Feltene i detaljsvaret heter ikke det man ville gjettet. Navnene i parentes finnes ikke.
+
+| Felt                        | Type           | Beskrivelse                                                         |
+| --------------------------- | -------------- | ------------------------------------------------------------------- |
+| `price.total`               | number         | Total kostnad i NOK (ikke `totalPrice`)                             |
+| `price.lines[]`             | array          | Prislinjer: startavgift, timepris, km-pris, gebyr                   |
+| `drivenKm`                  | integer\|null  | Kjørte kilometer, 0 eller null for noTrips (ikke `distance`)        |
+| `car.model`                 | string         | Bilmodell, f.eks. «Toyota RAV4» (ikke `vehicleName`)                |
+| `car.category`              | string         | Småbil / Minibil / Kombi / Stasjonsvogn / SUV / Varebil             |
+| `car.properties[].groupKey` | string         | `FUEL_TYPE` → `name` = Bensin / Diesel / Elektrisitet               |
+| `canceled`                  | datetime\|null | null = ikke avbestilt (ikke `status`)                               |
+| `noTrips`                   | boolean        | Booket, men ikke kjørt. Kan ha kostnad > 0 (gebyr)                  |
+| `notes`                     | string\|null   | Brukerens turnotater, grunnlaget for auto-kategorisering            |
+| `start`, `end`              | datetime       | ISO-strenger                                                        |
+| `state`                     | string         | PAST / ACTIVE / UPCOMING                                            |
+| `location.name`             | string         | Hentestedets navn                                                   |
+| `created`                   | datetime       | Opprettelsestidspunkt, gir hvor tidlig turen ble booket. Kan mangle |
+
+## GET /search
+
+Brukes av flex. Ikke med i `openapi.json`.
+
+```text
+?start=<lokal ISO>&end=<lokal ISO>&location=<URL-enkodet GeoJSON Point [lng,lat]>
+```
+
+- Svaret har **alle** biler i alle organisasjoner (rundt 356 i juli 2026), med `location.distance` i meter, men er ikke rent sortert på avstand. Avstandsfilteret gjøres klientside, så et nytt søk med større radius koster ikke et nytt kall.
+- Hver bil har `availability[]`: sammenhengende segmenter med `state` = `AVAILABLE`, `RESERVED` eller `UNAVAILABLE`. Bare `AVAILABLE` kan bookes. Segmentene er ikke klippet til søkevinduet og er snappet til hel time.
+- `carProperties[]` bruker `carPropertyGroup` og `carPropertyName` (f.eks. gruppen «Drivstoff»), ikke `groupKey` som reservasjonene.
+
+## GET /locations
+
+Stasjonene som GeoJSON (Point, LineString eller Polygon). Flex gjør dem om til ett punkt per stasjon.
+
+## Lenker til app.dele.no
+
+- `findcar?start=2026-07-10T23:00:00&end=…` virker med rå kolon. Med `encodeURIComponent` (`%3A`) viser appen «Invalid date», så tidsdelen skal ikke enkodes.
+- En `location`-parameter i lenken ignoreres, appen faller tilbake til sitt standardpunkt. Bare tiden følger med.
+- «Skjul opptatte biler» er ren klientfiltrering og kan ikke settes via lenken (sjekket i nettverksloggen).
 
 ## Organisasjoner (dele.no er en flerorg-plattform)
 
-dele.no hoster flere bilkollektiv. `GET /api/search` returnerer biler fra alle organisasjoner. Hver bil har `organizationId`, mens `organizationName` er `null` på bilen og navnet bare står i søkesvarets `messages[]`. Filtrer på `organizationId` for å få bare én organisasjon.
+dele.no hoster flere bilkollektiv. `GET /search` returnerer biler fra alle organisasjoner. Hver bil har `organizationId`, mens `organizationName` er `null` på bilen og navnet bare står i søkesvarets `messages[]`. Filtrer på `organizationId` for å få bare én organisasjon.
 
 | Organisasjon           | organizationId                         |
 | ---------------------- | -------------------------------------- |

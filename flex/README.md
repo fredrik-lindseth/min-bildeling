@@ -39,7 +39,7 @@ Ikonet er avledet av logoen til Dele AS, som er greit for privat sideloading. F�
 
 ## Utvikling
 
-Konvensjoner, arbeidsflyt og API-fakta står i [AGENTS.md](AGENTS.md). Tester: `node --test` fra `flex/`.
+Regler for utvikling står i [AGENTS.md](AGENTS.md), arkitektur og API-fakta i [docs/](../docs/). Tester: `node --test` fra `flex/`.
 
 ## Lisens
 

@@ -211,7 +211,7 @@ function toPayloadHit(h) {
   return {
     car: { model: h.model, number: h.carNumber, location: h.location.name, distanceM: h.location.distance },
     free: { start, end, hours: Math.round(h.blockHours) },
-    // Tider urørt, ingen URL-enkoding (kolon-gotcha, se flex/AGENTS.md).
+    // Tider urørt, ingen URL-enkoding (se docs/api/README.md).
     deepLink: `https://app.dele.no/findcar?start=${start}&end=${end}`,
   };
 }

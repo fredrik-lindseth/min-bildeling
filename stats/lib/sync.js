@@ -5,7 +5,7 @@
 // ikke i background. Firefox avslutter MV3-event-pagen på idle midt i en lang
 // synk, og da forsvant alt som lå i minnet. Et vanlig dokument blir ikke
 // suspendert. Alt som hentes lagres fortløpende, så en avbrutt synk fortsetter
-// der den slapp neste gang. Se AGENTS.md (API-regler) og docs/api-bruk.md.
+// der den slapp neste gang. Se docs/arkitektur.md og docs/api-bruk.md.
 
 import {
   ApiError,
