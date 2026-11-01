@@ -151,18 +151,24 @@ export function mileageStats(reservations) {
   };
 }
 
-// Lead time = millisekunder mellom created og start. Bøttene er definert som
-// halvåpne intervaller [min, max) i timer slik at en booking på akkurat 24 t
-// havner i "1 dag" (ikke "<24 t"), og 48 t i "2–3 dager" osv.
+// Lead time = millisekunder mellom created og start. En etikett «a–b dager»
+// gjelder hele dager, så dag b er med helt til dag b + 1 begynner. Bøttene er
+// halvåpne [min, max) i timer: 14 dager og 23 timer er «8–14 dager», 15 dager
+// er «15–30 dager».
+const HOURS_PER_DAY = 24;
 const LEAD_TIME_BUCKETS = [
-  { label: "<24 t",      minHours: 0,    maxHours: 24 },
-  { label: "1 dag",      minHours: 24,   maxHours: 48 },
-  { label: "2–3 dager",  minHours: 48,   maxHours: 96 },
-  { label: "4–7 dager",  minHours: 96,   maxHours: 192 },
-  { label: "8–14 dager", minHours: 192,  maxHours: 336 },
-  { label: "15–30 dager",minHours: 336,  maxHours: 720 },
-  { label: "30+ dager",  minHours: 720,  maxHours: Infinity },
-];
+  { label: "<24 t",       minDays: 0,  maxDays: 1 },
+  { label: "1 dag",       minDays: 1,  maxDays: 2 },
+  { label: "2–3 dager",   minDays: 2,  maxDays: 4 },
+  { label: "4–7 dager",   minDays: 4,  maxDays: 8 },
+  { label: "8–14 dager",  minDays: 8,  maxDays: 15 },
+  { label: "15–30 dager", minDays: 15, maxDays: 31 },
+  { label: "31+ dager",   minDays: 31, maxDays: Infinity },
+].map(({ label, minDays, maxDays }) => ({
+  label,
+  minHours: minDays * HOURS_PER_DAY,
+  maxHours: maxDays * HOURS_PER_DAY,
+}));
 
 function getStationName(r) {
   return r.location?.name || "Ukjent stasjon";
@@ -185,6 +191,8 @@ export function bookingPatterns(reservations) {
 
   const avgHours = cleaned.reduce((sum, h) => sum + h, 0) / cleaned.length;
   const medianHours = sorted[Math.floor(sorted.length / 2)];
+
+  const extremes = leadExtremes(valid, leadHours);
 
   const shortNoticeCount = cleaned.filter((h) => h < 24).length;
   const shortNoticeShare = shortNoticeCount / cleaned.length;
@@ -213,7 +221,28 @@ export function bookingPatterns(reservations) {
     uniqueStations: stationsRanked.length,
     distribution,
     stationsRanked,
+    extremes,
   };
+}
+
+// Lengste og korteste bookingtid, med turen de hører til. Rå bookingtid
+// sammenlignes, og visningen klampes til 0 som i histogrammet. Ved likt
+// vinner den første. Med under to bookinger er det ingen ytterpunkter å vise.
+function leadExtremes(valid, leadHours) {
+  if (valid.length < 2) return null;
+  let longest = 0;
+  let shortest = 0;
+  for (let i = 1; i < leadHours.length; i++) {
+    if (leadHours[i] > leadHours[longest]) longest = i;
+    if (leadHours[i] < leadHours[shortest]) shortest = i;
+  }
+  const describe = (i) => ({
+    leadHours: Math.max(0, leadHours[i]),
+    carModel: getCarName(valid[i]),
+    start: valid[i].start,
+    station: getStationName(valid[i]),
+  });
+  return { longest: describe(longest), shortest: describe(shortest) };
 }
 
 export function currentMonthStats(reservations) {

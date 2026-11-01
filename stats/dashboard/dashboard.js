@@ -577,6 +577,27 @@ function formatLeadDays(days) {
     : `${Math.round(days)} dager`;
 }
 
+// Ytterpunktene spenner fra minutter til måneder, så enheten følger tallet.
+// 0 betyr booket ved eller etter starttid.
+function formatLeadDuration(hours) {
+  if (hours == null || isNaN(hours)) return "–";
+  const minutes = Math.round(hours * 60);
+  if (minutes < 1) return "rett før avreise";
+  if (minutes < 60) return `${minutes} min`;
+  const wholeHours = Math.round(hours);
+  if (wholeHours < 24) return `${wholeHours} t`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "1 dag" : `${days} dager`;
+}
+
+const formatLongDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+
+function leadContext(extreme) {
+  // Stasjonsnavnet har ofte komma selv («Regnbuetorget, Bergen»), så bilen
+  // knyttes til stasjonen med «fra».
+  return `${formatLongDate.format(new Date(extreme.start))}, ${extreme.carModel} fra ${extreme.station}`;
+}
+
 function renderBookingPatterns(reservations) {
   const patterns = bookingPatterns(reservations);
 
@@ -599,6 +620,15 @@ function renderBookingPatterns(reservations) {
     `${Math.round(patterns.shortNoticeShare * 100)} %`
   );
   setText("booking-unique-stations", String(patterns.uniqueStations));
+
+  const { extremes } = patterns;
+  $("booking-extremes").hidden = !extremes;
+  if (extremes) {
+    setText("booking-longest", formatLeadDuration(extremes.longest.leadHours));
+    setText("booking-longest-context", leadContext(extremes.longest));
+    setText("booking-shortest", formatLeadDuration(extremes.shortest.leadHours));
+    setText("booking-shortest-context", leadContext(extremes.shortest));
+  }
 
   // Lead time histogram
   const distLabels = patterns.distribution.map((b) => b.label);
@@ -654,7 +684,7 @@ function renderBookingPatterns(reservations) {
   const methodDetail = $("booking-method-detail");
   if (methodDetail) {
     methodDetail.innerHTML = `
-      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer. Turer som ikke ble kjørt er med. Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke.</p>
+      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer, og ytterpunktet viser «rett før avreise». Turer som ikke ble kjørt er med. Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke.</p>
     `;
   }
 }
@@ -1419,7 +1449,11 @@ function renderTransportSummary(reservations, savedData, year) {
 
   $("transport-summary").hidden = false;
 
-  // Nøkkeltall
+  // Tallene gjelder valgt år, summert over transportmidlene. Uten året i
+  // etiketten ble «totalt» lest som alle år.
+  setText("transport-total-cost-label", `Transportkostnad ${year}`);
+  setText("transport-total-co2-label", `CO\u2082-utslipp ${year}`);
+  setText("transport-sharing-pct-label", `Bildelingens andel ${year}`);
   setText("transport-total-cost", formatNOK.format(summary.totals.cost));
   setText(
     "transport-total-co2",

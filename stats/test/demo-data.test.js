@@ -93,6 +93,11 @@ test("alle seksjoner har innhold og ytterpunktene synes", () => {
     assert.ok(bucket.count > 0, `tom bøtte ${bucket.label}`);
   }
   assert.ok(booking.uniqueStations >= 5);
+  const noteAt = (start) => r.find((x) => x.start === start && x.canceled == null).notes;
+  assert.equal(noteAt(booking.extremes.longest.start), "Sommerferie langs kysten");
+  assert.ok(booking.extremes.longest.leadHours >= 50 * 24, "lengste booking skiller seg ut");
+  assert.equal(noteAt(booking.extremes.shortest.start), "Hente pakke på posten");
+  assert.equal(booking.extremes.shortest.leadHours, 0);
 
   const usage = usagePatterns(r);
   assert.ok(usage.topCars.length >= 5);
