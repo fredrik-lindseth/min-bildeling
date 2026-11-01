@@ -17,22 +17,20 @@ Stats går ut på addons.mozilla.org (AMO) i denne rekkefølgen: unlisted, signe
 ./stats/scripts/package.sh     # gir stats/dist/bildeleringen-stats-v<versjon>.zip
 ```
 
-`package.sh` kjører kontrast- og stilsjekken først og byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en, og sletter zip-en ved funn. Vakten ser etter e-post, telefonnummer, koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene til AMO (`data_collection_permissions` og `strict_min_version` på minst 140) er feil, ikke advarsler. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
+`package.sh` kjører kontrast- og stilsjekken først og byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en, og sletter zip-en ved funn. Vakten ser etter e-post, telefonnummer, koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene til AMO (`data_collection_permissions` og en høy nok `strict_min_version`, grensen står i scriptet) er feil, ikke advarsler. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
 
 Pakken har med `LICENSE`, men ikke README, siden README viser skjermbilder som ligger utenfor pakken.
 
 ## 2. Send inn som unlisted
 
-Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/) og legg dem i miljøet, aldri i en fil i repoet:
+Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/) og legg dem i `~/.config/bildeleringen/amo.env` (chmod 600, aldri i repoet) som `AMO_JWT_ISSUER=...` og `AMO_JWT_SECRET=...`, én per linje. Scriptet leser filen selv når variablene ikke alt står i miljøet, `AMO_ENV` peker på en annen fil, og en fil som er lesbar for andre gir advarsel.
 
 ```bash
-export AMO_JWT_ISSUER='user:...'
-export AMO_JWT_SECRET='...'
 ./stats/scripts/amo-upload.sh          # tørrkjøring: pakker og sjekker nøklene
 ./stats/scripts/amo-upload.sh --yes    # laster opp, venter på signering, laster ned xpi-en
 ```
 
-Scriptet bruker curl, openssl og jq mot AMO-API-et v5. Det laster opp zip-en med `channel=unlisted`, venter til valideringen er ferdig, oppretter tillegget (eller en ny versjon) med lisens MIT og legger den signerte xpi-en i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi`. Tar signeringen mer enn ti minutter, lastes xpi-en ned fra [utviklersiden](https://addons.mozilla.org/developers/addons) i stedet. Det samme kan gjøres for hånd der: «Send inn et nytt tillegg», velg «På egenhånd» og last opp zip-en.
+Scriptet bruker curl, openssl, jq og node (bare innebygd crypto, ingen npm) mot AMO-API-et v5. Det laster opp zip-en med `channel=unlisted`, venter til valideringen er ferdig, oppretter tillegget (eller en ny versjon) med lisens MIT og legger den signerte xpi-en i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi`. Tar signeringen mer enn ti minutter, lastes xpi-en ned fra [utviklersiden](https://addons.mozilla.org/developers/addons) i stedet. Det samme kan gjøres for hånd der: «Send inn et nytt tillegg», velg «På egenhånd» og last opp zip-en.
 
 Notatet til reviewer står på engelsk i [amo-listing.md](amo-listing.md). Lim det inn under «Notes to Reviewer» på versjonen.
 

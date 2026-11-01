@@ -73,7 +73,8 @@ async function getAuth() {
         currentAuth = response;
         return response;
       }
-      console.log("[BG] getAuth: content script returned", response);
+      // Svaret kan inneholde membershipId, så bare feltnavnene logges.
+      console.log("[BG] getAuth: content script returned", response ? Object.keys(response) : response);
     } catch (e) {
       console.log("[BG] getAuth: content script not loaded:", e.message);
     }
@@ -118,7 +119,7 @@ async function getAuth() {
         currentAuth = result;
         return result;
       }
-      console.log("[BG] getAuth: injection result:", result);
+      console.log("[BG] getAuth: injection result:", result?.error ?? (result ? Object.keys(result) : result));
     } catch (e) {
       console.warn("[BG] getAuth: injection failed for tab", tab.id, e);
     }

@@ -1,15 +1,18 @@
 #!/bin/bash
 # Sender Bildeleringen Stats til addons.mozilla.org som unlisted, så
-# Mozilla signerer den. Bruker AMO-API-et v5 med curl, openssl og jq,
-# uten web-ext og npm.
+# Mozilla signerer den. Bruker AMO-API-et v5 med curl, openssl, jq og
+# node (bare innebygd crypto), uten web-ext og npm.
 #
 # Bruk: ./stats/scripts/amo-upload.sh [--yes]
 #
 # Nøklene hentes fra addons.mozilla.org/developers/addon/api/key/ og
-# leses bare fra miljøet, aldri fra en fil i repoet:
+# leses fra miljøet, aldri fra en fil i repoet:
 #   AMO_JWT_ISSUER   «JWT-utsteder» (user:12345:67)
 #   AMO_JWT_SECRET   «JWT-hemmelighet»
 #   AMO_API          valgfri, standard https://addons.mozilla.org
+#   AMO_ENV          valgfri, standard ~/.config/bildeleringen/amo.env
+# Står ikke nøklene i miljøet, leses AMO_ENV, med én NAVN=verdi per linje
+# uten export. Filen skal bare være lesbar for eieren (chmod 600).
 #
 # Uten --yes er det en tørrkjøring: pakken bygges og sjekkes, og finnes
 # nøklene, sjekkes de mot /api/v5/accounts/profile/. Ingenting lastes opp.
@@ -27,11 +30,26 @@ case "${1:-}" in
   *) echo "Bruk: $0 [--yes]" >&2; exit 2 ;;
 esac
 
-for verktoy in curl openssl jq; do
+for verktoy in curl openssl jq node; do
   command -v "$verktoy" >/dev/null || { echo "Stopper: $verktoy mangler" >&2; exit 1; }
 done
 
 STATS="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Nøkkelfilen leses bare når miljøet mangler nøklene. Innholdet skrives
+# aldri ut: set -a eksporterer det rett inn i miljøet.
+NOKKELFIL="${AMO_ENV:-$HOME/.config/bildeleringen/amo.env}"
+if { [ -z "${AMO_JWT_ISSUER:-}" ] || [ -z "${AMO_JWT_SECRET:-}" ]; } && [ -f "$NOKKELFIL" ]; then
+  if [ -n "$(find "$NOKKELFIL" -perm +077 2>/dev/null || find "$NOKKELFIL" -perm /077 2>/dev/null)" ]; then
+    echo "Advarsel: $NOKKELFIL kan leses av andre enn eieren, kjør chmod 600 på den" >&2
+  fi
+  set -a
+  # shellcheck disable=SC1090
+  . "$NOKKELFIL"
+  set +a
+  echo "Nøkler: lest fra $NOKKELFIL"
+fi
+
 API="${AMO_API:-https://addons.mozilla.org}/api/v5"
 GUID="$(jq -r '.browser_specific_settings.gecko.id' "$STATS/manifest.json")"
 VERSION="$(jq -r '.version' "$STATS/manifest.json")"
@@ -44,16 +62,22 @@ trap 'rm -rf "$TMP"' EXIT
 b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 
 # Ny JWT per kall: AMO godtar høyst fem minutter mellom iat og exp, og
-# polling kan ta lenger enn det. Hemmeligheten står i argv til openssl et
-# øyeblikk, som er greit på en enbrukermaskin.
+# polling kan ta lenger enn det. Signaturen lages i node, som leser
+# hemmeligheten fra miljøet, så den aldri står i argv og dermed i ps.
 jwt() {
   local iat header payload signatur
   iat="$(date +%s)"
   header="$(printf '{"alg":"HS256","typ":"JWT"}' | b64url)"
-  payload="$(jq -cn --arg iss "$AMO_JWT_ISSUER" --arg jti "$(openssl rand -hex 16)" \
+  payload="$(jq -cnj --arg iss "$AMO_JWT_ISSUER" --arg jti "$(openssl rand -hex 16)" \
     --argjson iat "$iat" '{iss: $iss, jti: $jti, iat: $iat, exp: ($iat + 240)}' | b64url)"
-  signatur="$(printf '%s.%s' "$header" "$payload" |
-    openssl dgst -sha256 -hmac "$AMO_JWT_SECRET" -binary | b64url)"
+  signatur="$(printf '%s.%s' "$header" "$payload" | node -e '
+    const { createHmac } = require("node:crypto");
+    let data = "";
+    process.stdin.on("data", (chunk) => { data += chunk; });
+    process.stdin.on("end", () => {
+      process.stdout.write(createHmac("sha256", process.env.AMO_JWT_SECRET).update(data).digest("base64url"));
+    });
+  ')"
   printf '%s.%s.%s' "$header" "$payload" "$signatur"
 }
 
@@ -78,7 +102,7 @@ if [ -z "${AMO_JWT_ISSUER:-}" ] || [ -z "${AMO_JWT_SECRET:-}" ]; then
   if [ "$YES" -eq 1 ]; then
     echo "Stopper: AMO_JWT_ISSUER og AMO_JWT_SECRET må være satt" >&2; exit 1
   fi
-  echo "Nøkler: AMO_JWT_ISSUER og AMO_JWT_SECRET er ikke satt, hopper over kontosjekken"
+  echo "Nøkler: AMO_JWT_ISSUER og AMO_JWT_SECRET er ikke satt (verken i miljøet eller i $NOKKELFIL), hopper over kontosjekken"
 else
   profil="$(amo GET /accounts/profile/)"
   [ "$(kode)" = 200 ] || { echo "Stopper: nøklene ble avvist (HTTP $(kode))" >&2; exit 1; }

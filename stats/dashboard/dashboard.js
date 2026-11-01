@@ -1382,7 +1382,7 @@ function renderClimate(reservations) {
       .sort(([, a], [, b]) => b.kg - a.kg)
       .map(([fuel, d]) => {
         const gPerKm = d.km > 0 ? Math.round((d.kg * 1000) / d.km) : 0;
-        return `<p>${fuel}: <code>${formatKm.format(d.km)} km \u00d7 ${gPerKm} g/km = ${formatKm.format(Math.round(d.kg))} kg CO\u2082</code></p>`;
+        return `<p>${escapeHtml(fuel)}: <code>${formatKm.format(d.km)} km \u00d7 ${gPerKm} g/km = ${formatKm.format(Math.round(d.kg))} kg CO\u2082</code></p>`;
       })
       .join("");
     methodDetail.innerHTML = `
