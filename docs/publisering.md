@@ -41,10 +41,9 @@ Mozilla gir to valg når du sender inn en versjon på [addons.mozilla.org/develo
 
 ### Før offentlig oppføring (listed) er greit
 
-Ikke publiser listed før disse er ryddet:
+Ikke publiser listed før dette er ryddet:
 
 - **Ikon.** Stats har eget ikon uten noe fra Dele-logoen, med SVG-kilder i `stats/icons/` og rendring via `stats/scripts/render-icons.sh`. Til listingen brukes `stats/icons/listing/icon-256.png`. Flex bruker fortsatt Dele-symbolet og trenger eget ikon før en listed utgivelse.
-- **Personlige nøkkelord.** `stats/lib/categories.js` har Fredriks egne keywords (hyttenavn, stedsnavn osv.). De må strippes/generaliseres før en offentlig utgivelse.
 
 ## 3. Signer og last ned (self-distribution)
 

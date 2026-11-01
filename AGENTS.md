@@ -65,8 +65,9 @@ Alt i `browser.storage.local`:
 | `lastSync` | Timestamp (ms) | background.js (sync) |
 | `tripCategories` | `{ reservationId: categoryKey }` | dashboard (bruker-input) |
 | `transportData` | `{ "2025": { taxi: {...}, buss: {...} } }` | dashboard (bruker-input) |
+| `userKeywords` | `{ categoryKey: ["ord", ...] }` | dashboard (egne nøkkelord, import) |
 
-Reservasjoner og lastSync er API-data. Rør dem ikke direkte. tripCategories og transportData er bruker-data. Slett aldri ved sync.
+Reservasjoner og lastSync er API-data. Rør dem ikke direkte. tripCategories, transportData og userKeywords er bruker-data. Slett aldri ved sync.
 
 ## API-regler
 
@@ -83,9 +84,11 @@ Endepunkter:
 
 ## Turkategorier
 
-`lib/categories.js` har `KEYWORD_MAP`: substring-match mot `notes` (lowercased, ingen ordgrenser). Rekkefølgen betyr noe: første kategori som matcher vinner, så `handletur` ligger før `hoytid` for at "juleshopping" havner riktig. Manuelt valg i UI (lagret i `tripCategories`) overstyrer alltid.
+`lib/categories.js` har `DEFAULT_KEYWORDS`, en landsdekkende standardliste (kjeder, yrker, høytider, vanlige ord). Brukerens egne ord ligger i storage under `userKeywords` og redigeres i kortet «Egne nøkkelord» i Turkategorier-seksjonen, med treff-tellere og JSON-eksport og -import. `mergeKeywords(DEFAULT_KEYWORDS, userKeywords)` fletter dem, og `suggestCategory(reservation, keywords)` og `autoSuggestAll(..., keywords)` tar den flettede listen som parameter, så modulen forblir ren.
 
-Kartet inneholder Fredriks personlige keywords (navn, stedsnavn, arbeidsgiver, hyttenavn osv.). Andre brukere må fjerne/erstatte før utvidelsen er nyttig for dem. Treffer ca. 82 % av notes med default-listen. Uten personlige nøkkelord faller det betydelig.
+Matchingen er substring mot `notes` (lowercased, ingen ordgrenser). Rekkefølgen betyr noe: første kategori som matcher vinner, så `handletur` ligger før `hoytid` for at "juleshopping" havner riktig. Flettingen beholder kategorirekkefølgen fra `DEFAULT_KEYWORDS`, legger brukerens ord først innen hver kategori og setter kategorier som bare brukeren har ord i (f.eks. `helgetur`) sist. Manuelt valg i UI (lagret i `tripCategories`) overstyrer alltid.
+
+Stedsnavn og ord som peker på én person eller familie skal aldri inn i `DEFAULT_KEYWORDS`. Koden er offentlig og havner i pakken. Slike ord legges inn som egne nøkkelord. Fredriks egen liste ligger utenfor repoet og importeres lokalt.
 
 ## Varemerke
 

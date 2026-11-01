@@ -24,6 +24,13 @@ import {
   saveCategory,
   categoryStats,
   autoSuggestAll,
+  DEFAULT_KEYWORDS,
+  mergeKeywords,
+  keywordHits,
+  normalizeUserKeywords,
+  parseKeywordInput,
+  loadUserKeywords,
+  saveUserKeywords,
 } from "../lib/categories.js";
 
 import { storage } from "../lib/browser-polyfill.js";
@@ -929,9 +936,11 @@ function renderOwnership(reservations) {
 async function renderCategories(reservations) {
   // 1. Load saved categories from storage
   const savedCategories = await loadCategories(storage);
+  const userKeywords = await loadUserKeywords(storage);
+  const keywords = mergeKeywords(DEFAULT_KEYWORDS, userKeywords);
 
   // 2. Auto-suggest for uncategorized trips
-  const suggestions = autoSuggestAll(reservations, savedCategories);
+  const suggestions = autoSuggestAll(reservations, savedCategories, keywords);
 
   // 3. Merge saved + suggestions for stats display
   const merged = { ...suggestions, ...savedCategories };
@@ -1007,17 +1016,126 @@ async function renderCategories(reservations) {
       listEl.appendChild(item);
     }
 
-    // Click handler for accepting suggestions
-    listEl.addEventListener("click", async (e) => {
+    // onclick, ikke addEventListener: renderCategories kjøres på nytt ved
+    // sync og lagring av nøkkelord, og lyttere ville ellers hopet seg opp.
+    listEl.onclick = async (e) => {
       const btn = e.target.closest(".suggestion-item__btn");
       if (!btn) return;
       await saveCategory(storage, btn.dataset.id, btn.dataset.cat);
       btn.textContent = "\u2713";
       btn.disabled = true;
-    });
+    };
   } else {
     $("uncategorized-section").hidden = true;
   }
+
+  // 8. Egne nøkkelord
+  renderKeywordCard(reservations, userKeywords, keywords);
+}
+
+// Rekkefølgen i skjemaet er den samme som suggestCategory() sjekker i, så
+// brukeren ser hvilken kategori som vinner når et notat treffer flere.
+function keywordCategoryOrder() {
+  const order = Object.keys(DEFAULT_KEYWORDS);
+  for (const key of Object.keys(CATEGORIES)) {
+    if (!order.includes(key)) order.push(key);
+  }
+  return order;
+}
+
+function setKeywordStatus(message) {
+  const status = $("keyword-status");
+  status.textContent = message;
+  setTimeout(() => {
+    if (status.textContent === message) status.textContent = "";
+  }, 4000);
+}
+
+function formatHitCount(n) {
+  return n === 1 ? "1 tur" : `${n} turer`;
+}
+
+function renderKeywordCard(reservations, userKeywords, keywords) {
+  const hits = keywordHits(reservations, keywords);
+  const pct = hits.total > 0 ? Math.round((hits.matched / hits.total) * 100) : 0;
+  setText(
+    "keyword-total",
+    hits.total > 0
+      ? `Treffer ${hits.matched} av ${hits.total} turnotater (${pct} %)`
+      : "Ingen turnotater \u00e5 kategorisere"
+  );
+
+  const fieldsEl = $("keyword-fields");
+  fieldsEl.innerHTML = "";
+  for (const key of keywordCategoryOrder()) {
+    const inputId = `keyword-${key}`;
+    const hintId = `keyword-${key}-hint`;
+    const defaults = DEFAULT_KEYWORDS[key] || [];
+    const row = document.createElement("div");
+    row.className = "keyword-row";
+    row.innerHTML = `
+      <label class="keyword-row__label" for="${inputId}">${escapeHtml(CATEGORIES[key].label)}</label>
+      <input type="text" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
+        aria-describedby="${hintId}">
+      <span class="keyword-row__hits" id="${hintId}">
+        ${formatHitCount(hits.perCategory[key] || 0)}${defaults.length > 0 ? `, ${defaults.length} standardord` : ""}
+      </span>
+    `;
+    row.querySelector("input").value = (userKeywords[key] || []).join(", ");
+    fieldsEl.appendChild(row);
+  }
+
+  $("keyword-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const next = {};
+    for (const key of keywordCategoryOrder()) {
+      const words = parseKeywordInput($(`keyword-${key}`).value);
+      // JSON-import kan gi ord med kantmellomrom («tur »), som ville gått
+      // tapt om de ble trimmet her. Behold dem når teksten er uendret.
+      const previous = userKeywords[key] || [];
+      next[key] = words.join(", ") === previous.map((w) => w.trim()).join(", ")
+        ? previous
+        : words;
+    }
+    await saveUserKeywords(storage, next);
+    await renderCategories(reservations);
+    setKeywordStatus("Lagret!");
+  };
+
+  $("keyword-export").onclick = () => {
+    const json = JSON.stringify(userKeywords, null, 2);
+    downloadBlob(new Blob([json], { type: "application/json" }), "bildeleringen-nokkelord.json");
+  };
+
+  $("keyword-import").onchange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      setKeywordStatus("Kunne ikke lese filen. Er det en JSON-fil?");
+      return;
+    }
+    const imported = normalizeUserKeywords(parsed?.userKeywords ?? parsed);
+    const count = Object.values(imported).reduce((sum, list) => sum + list.length, 0);
+    if (count === 0) {
+      setKeywordStatus("Fant ingen n\u00f8kkelord i filen.");
+      return;
+    }
+
+    // Importen legges til de eksisterende ordene, den erstatter dem ikke.
+    const fresh = await loadUserKeywords(storage);
+    const combined = {};
+    for (const key of keywordCategoryOrder()) {
+      combined[key] = [...(fresh[key] || []), ...(imported[key] || [])];
+    }
+    await saveUserKeywords(storage, combined);
+    await renderCategories(reservations);
+    setKeywordStatus(`Importerte ${count} n\u00f8kkelord.`);
+  };
 }
 
 // ---------- Rendering: Section 7 - Klimaregnskap ----------
