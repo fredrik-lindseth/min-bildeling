@@ -31,6 +31,8 @@ Fallgruver:
 
 Demomodus: legg `?demo=1` på `dashboard/dashboard.html`, `popup/popup.html` eller `summary/summary.html`. Sidene viser da rundt 180 oppdiktede turer fra `lib/demo-data.js` (fast seed, stasjoner i Bergen og Trondheim), skjuler Synkroniser, viser merket «Demodata» og skriver ingenting til storage. Demomodus bruker ingen utvidelses-API, så sidene kan åpnes over vanlig http med `cd stats && python3 -m http.server 8765`, for eksempel `http://127.0.0.1:8765/dashboard/dashboard.html?demo=1`. Det er grunnlaget for skjermbilder, og det en reviewer kan se uten dele.no-konto.
 
+Utviklerpanelet: legg `?dev=1` på dashboardet i utvidelsen. Panelet viser antall lagrede reservasjoner, storage-bruk, kall mot dele.no for de tre siste synkene og den første lagrede reservasjonen som JSON, og har eksport, import og «Nullstill alt». Det leser ekte storage og er derfor av i demomodus.
+
 ## Teknologi
 
 Vanilla JS, HTML og CSS uten byggesteg eller npm, med [Chart.js](https://www.chartjs.org/) for grafer og [html2canvas](https://html2canvas.hertzen.com/) for PNG-eksport. WebExtension API (Manifest V3) for Firefox og Chrome.
@@ -43,7 +45,6 @@ Filene ligger i `stats/`.
 manifest.json              # Manifest V3
 background.js              # Innlogging og lesing av lagrede data
 content.js                 # Leser auth fra dele.no localStorage
-debug.html, debug.js       # Eksport av lagrede data for feilsøking
 popup/                     # Rask oversikt
 dashboard/                 # Dashboard med grafer
 summary/                   # Årsoppsummering

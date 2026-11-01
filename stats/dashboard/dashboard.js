@@ -1981,6 +1981,26 @@ function initDevTools() {
   });
 
   $("dev-reset-btn").addEventListener("click", handleDevReset);
+  $("dev-sample-btn").addEventListener("click", toggleDevSample);
+}
+
+// Viser den første lagrede reservasjonen som JSON, for å se feltene API-et
+// faktisk sender uten å eksportere hele lageret.
+async function toggleDevSample() {
+  const btn = $("dev-sample-btn");
+  const pre = $("dev-sample");
+  if (!pre.hidden) {
+    pre.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    return;
+  }
+  const { reservations } = await storage.get(["reservations"]);
+  const list = Array.isArray(reservations) ? reservations : [];
+  pre.textContent = list.length > 0
+    ? JSON.stringify(list[0], null, 2)
+    : "Ingen reservasjoner i storage.";
+  pre.hidden = false;
+  btn.setAttribute("aria-expanded", "true");
 }
 
 initDevTools();
