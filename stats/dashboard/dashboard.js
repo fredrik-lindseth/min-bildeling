@@ -1449,7 +1449,11 @@ function renderTransportSummary(reservations, savedData, year) {
 
   $("transport-summary").hidden = false;
 
-  // Nøkkeltall
+  // Tallene gjelder valgt år, summert over transportmidlene. Uten året i
+  // etiketten ble «totalt» lest som alle år.
+  setText("transport-total-cost-label", `Transportkostnad ${year}`);
+  setText("transport-total-co2-label", `CO\u2082-utslipp ${year}`);
+  setText("transport-sharing-pct-label", `Bildelingens andel ${year}`);
   setText("transport-total-cost", formatNOK.format(summary.totals.cost));
   setText(
     "transport-total-co2",
