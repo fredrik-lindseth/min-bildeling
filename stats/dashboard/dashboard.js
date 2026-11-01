@@ -990,7 +990,7 @@ function renderOwnership(reservations) {
     const bd = result.breakdownOwnership;
     ownershipMethodDetail.innerHTML = `
       <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
-      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
+      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering i ${escapeHtml(result.parkingCity)} ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
       <p>Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
       ${sourcesHtml(OWNERSHIP_METHOD.sources)}
     `;

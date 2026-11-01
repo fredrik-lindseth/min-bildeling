@@ -23,17 +23,15 @@ const CO2_PER_KM = {
 // Used only in co2Comparison() for reference. Not shown prominently in UI.
 const PRIVATE_CAR_AVG_CO2 = 110;
 
-// Methodology note for UI display
-// References:
-//   TØI 1895/2022 "Bildeling i Bergen - erfaringer og effekter" (Nenseth & Ellis)
-//   TØI "Bildelingens miljøkonsekvenser" (Julsrud)
-//   Miljødirektoratet / SSB
+// Methodology note for UI display. Factors and the comparison are national,
+// so they hold for every Bilparaplyen member. TØI 1895/2022 «Bildeling i
+// Bergen» is background in docs/research, but no number here comes from it,
+// so it is not listed as a source.
 export const CO2_METHOD = {
   note: "Utslippet per tur regnes fra bilens drivstoff og kategori. " +
     "Elbil teller 0 g/km, siden bare direkte utslipp er med.",
   comparison: `Spart utslipp er regnet mot snittet for norske privatbiler, ${PRIVATE_CAR_AVG_CO2} g/km.`,
   sources: [
-    "TØI 1895/2022: Bildeling i Bergen (Nenseth & Ellis, 2022)",
     "TØI: Bildelingens miljøkonsekvenser (Julsrud)",
     "Miljødirektoratet / SSB: Utslippsfaktorer norsk bilpark",
   ],

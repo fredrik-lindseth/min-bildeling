@@ -68,19 +68,7 @@ GitHub er kanonisk for releases og issues, så README lenker dit med absolutt UR
 
 Scriptet krever ren arbeidskopi på `main` og stopper hvis taggen `v<versjon>` finnes alt. Det kjører `package.sh`, lager en annotert tagg, pusher `main` og taggen til alle remotene og lager GitHub-releasen med zip-en som vedlegg og notatfilen som tekst. `--title` setter tittelen (standard `v<versjon>`). Uten `--yes` kjøres bare sjekkene og pakkingen, og scriptet viser kommandoene det ville kjørt.
 
-### Slette de gamle taggene
-
-Versjonen starter på 1.0.0 igjen, og taggene v0.1.0, v1.0.0 og v1.1.0 fra før AMO må bort, ellers stopper `release.sh` på v1.0.0. Historikken beholdes. Kjør fra repo-roten:
-
-```bash
-for t in v0.1.0 v1.0.0 v1.1.0; do
-  gh release delete "$t" --repo fredrik-lindseth/bildeleringen-stats --yes
-  for r in $(git remote); do git push --delete "$r" "$t"; done
-  git tag -d "$t"
-done
-```
-
-`gh release delete` gir feil for en tagg uten release, og `git push --delete` for en tagg remoten ikke har. Begge kan overses.
+Versjonsrekken startet på nytt på 1.0.0 før AMO, og ingen eldre tagger finnes.
 
 ## Sjekk mot AMO-reglene
 

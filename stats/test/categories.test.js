@@ -60,6 +60,7 @@ const CORPUS = [
   ["Fly til Tromsø", "flyplass"],
   ["Hente barna i barnehagen", "skyss"],
   ["Skyss til fotballkamp", "skyss"],
+  ["Søppelsekker", "transport"],
   ["Julebord", "hoytid"],
   ["Julaften hos familien", "hoytid"],
   ["17. mai-frokost", "hoytid"],
