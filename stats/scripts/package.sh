@@ -31,6 +31,8 @@ zip -r "$OUTDIR/$ZIPNAME" \
   LICENSE \
   README.md \
   -x "*.DS_Store" \
+  -x "icons/listing/*" \
+  -x "icons/*.svg" \
   -x "*debug*"
 rm -f LICENSE README.md
 

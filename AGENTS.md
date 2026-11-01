@@ -89,4 +89,6 @@ Kartet inneholder Fredriks personlige keywords (navn, stedsnavn, arbeidsgiver, h
 
 ## Varemerke
 
-Ikonene i `icons/` er basert på Dele AS sitt offisielle logo. For privat sideloading er det greit. For Chrome Web Store / AMO-publisering: lag eget Dele-inspirert symbol (samme lilla, `#51289D`, er fritt fram).
+Stats-ikonet er eget (bil med stolpediagram) og har ingenting fra Dele-logoen, så det kan publiseres. Kildene er `stats/icons/icon.svg` (lys verktøylinje) og `icon-dark.svg` (mørk). I manifestets `theme_icons` beskriver nøklene temaets tekstfarge, ikke ikonet: `"dark"` vises på lyst tema og `"light"` på mørkt, så `"light"` peker på `icon-dark-*.png`. `render-icons.sh` feiler hvis koblingen snus. PNG-ene rendres med `stats/scripts/render-icons.sh` (krever `rsvg-convert`), aldri for hånd. Motivet er tegnet på et 16-rutenett med kanter på hele enheter så 16 px blir skarpt; hold det slik ved endringer. `icons/listing/icon-256.png` er til AMO-listingen og holdes utenfor zip-en.
+
+`flex/icons/` er fortsatt Dele sitt symbol: greit for privat sideloading, men må byttes før flex publiseres. Lilla `#51289D` er fritt fram.
