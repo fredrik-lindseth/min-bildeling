@@ -28,7 +28,6 @@ Fallgruver:
 - `list_pages` viser bare tittelen, ikke URL-en. Fanene bytter rekkefølge ved ny installasjon.
 - MCP-en nekter å navigere til `moz-extension://` og `about:debugging`. Server en kopi av siden over http med et stubbet `browser`-API, eller be Fredrik klikke.
 - WebDriver avviser `window.confirm`, `alert` og `prompt`: `confirm("test")` gir `false` uten at noen dialog vises. Bruk `<dialog>` for bekreftelser, så kan de testes.
-- Synken i stats må testes uten DevTools koblet til tillegget, ellers avslutter ikke Firefox event-pagen, og feilen synes ikke (se [arkitektur.md](arkitektur.md)).
 
 ## Teknologi
 

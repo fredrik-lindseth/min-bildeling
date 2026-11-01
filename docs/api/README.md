@@ -72,7 +72,7 @@ Brukes av flex. Ikke med i `openapi.json`.
 ?start=<lokal ISO>&end=<lokal ISO>&location=<URL-enkodet GeoJSON Point [lng,lat]>
 ```
 
-- Svaret har **alle** biler i alle organisasjoner (rundt 356), med `location.distance` i meter, men er ikke rent sortert på avstand. Avstandsfilteret gjøres klientside, så et nytt søk med større radius koster ikke et nytt kall.
+- Svaret har **alle** biler i alle organisasjoner (rundt 356 i juli 2026), med `location.distance` i meter, men er ikke rent sortert på avstand. Avstandsfilteret gjøres klientside, så et nytt søk med større radius koster ikke et nytt kall.
 - Hver bil har `availability[]`: sammenhengende segmenter med `state` = `AVAILABLE`, `RESERVED` eller `UNAVAILABLE`. Bare `AVAILABLE` kan bookes. Segmentene er ikke klippet til søkevinduet og er snappet til hel time.
 - `carProperties[]` bruker `carPropertyGroup` og `carPropertyName` (f.eks. gruppen «Drivstoff»), ikke `groupKey` som reservasjonene.
 

@@ -10,7 +10,7 @@ Hvordan utvidelsene henger sammen inni: lagring, synk, filtrering og varsler. Fe
 2. Popupen eller dashbordet starter synken via `lib/sync-page.js`, som kjører motoren i `lib/sync.js` i selve siden.
 3. Reservasjonene lagres i `browser.storage.local`. Sidene regner ut statistikken ved visning med de rene funksjonene i `lib/stats.js`, `lib/co2.js` og `lib/ownership-cost.js`.
 
-Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rundt 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så synken må testes uten DevTools. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`, `GET_AUTH_STATUS`) og lesing av lagrede data (`GET_DATA`, `DEBUG_DUMP`).
+Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rundt 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så feilen synes ikke der. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`, `GET_AUTH_STATUS`) og lesing av lagrede data (`GET_DATA`, `DEBUG_DUMP`).
 
 ### Innlogging
 
@@ -79,7 +79,7 @@ Matchingen er substring mot `notes` (små bokstaver, ingen ordgrenser). Første 
 - `lib/relay.js`: vasker relay-adressen (https, eller http mot localhost) og lager match-mønsteret for tillatelsen.
 - `lib/format.js`: `parseLocalISO` og `toLocalISO`, naiv lokal ISO uten tidssone.
 - `lib/storage.js`: lagrede steder (`DEFAULT_PLACES` er tom fordi koden er offentlig), overvåkninger og varselinnstillinger.
-- `finder.html/js/css`: søket, med «Overvåk dette søket». `watches.html/js`: overvåkninger og innstillinger, også `options_ui`. `popup/`: inngang til begge.
+- `finder.html/js/css`: søket, med «Overvåk dette søket». Mangler innloggingen, åpner finderen app.dele.no i en fane uten fokus og poller til tokenet er lest før søket kjøres på nytt. Fanen må ikke ta fokus, ellers mister brukeren søkesiden. `watches.html/js`: overvåkninger og innstillinger, også `options_ui`. `popup/`: inngang til begge.
 
 ### Storage-nøkler
 
