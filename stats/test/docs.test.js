@@ -1,6 +1,6 @@
 // docs/api-bruk.md er skrevet for utviklerne hos Dele og lover konkrete tall.
 // Denne testen binder hvert tall til konstanten i koden, så dokumentet ikke
-// kan skli fra det utvidelsen faktisk gjør. Feiler den, ret dokumentet eller
+// kan skli fra det utvidelsen faktisk gjør. Feiler den, rett dokumentet eller
 // koden, ikke testen.
 
 import { test } from "node:test";
