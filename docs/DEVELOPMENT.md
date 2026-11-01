@@ -94,4 +94,4 @@ Stats-ikonet er eget (bil med stolpediagram) og har ingenting fra Dele-logoen, s
 
 ## Release
 
-`./stats/scripts/package.sh` kjører kontrastsjekken (`stats/scripts/kontrast.sh`) og lager så `stats/dist/bildeleringen-stats-v<versjon>.zip`. Feiler et fargepar, blir det ingen pakke. Selve utgivelsen gjøres med `./stats/scripts/release.sh`, se [publisering.md](publisering.md).
+`./stats/scripts/package.sh` kjører kontrastsjekken (`stats/scripts/kontrast.sh`) og stilsjekken (`stats/scripts/sjekk-stil.sh`: farger bare i `lib/tokens.css`, ingen skygger, `border-radius` bare som `var(--radius)` eller 0, ingen `!important`) og lager så `stats/dist/bildeleringen-stats-v<versjon>.zip`. Feiler et fargepar eller en stilregel, blir det ingen pakke. Selve utgivelsen gjøres med `./stats/scripts/release.sh`, se [publisering.md](publisering.md).

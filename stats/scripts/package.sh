@@ -25,6 +25,15 @@ if ! ./scripts/kontrast.sh; then
 fi
 echo ""
 
+# Stilreglene fra docs/design.md: farger bare i lib/tokens.css, ingen
+# skygger, ett hjørne og ingen !important.
+if ! ./scripts/sjekk-stil.sh; then
+  echo "" >&2
+  echo "Stilsjekken feilet. Rett bruddene over og pakk på nytt." >&2
+  exit 1
+fi
+echo ""
+
 # Files to include in the release
 cp ../LICENSE ../README.md .
 zip -r "$OUTDIR/$ZIPNAME" \
