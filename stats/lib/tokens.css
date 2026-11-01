@@ -1,7 +1,6 @@
 /* Felles tokens for dashboard, popup og årsoppsummering. Eneste sted i stats/
    med fargeverdier. Hver farge står én gang med light-dark(), og
-   color-scheme avgjør hvilken som gjelder: lys/mørk etter systemet, eller
-   bare mørk der en side setter color-scheme: dark (årsoppsummeringen).
+   color-scheme avgjør hvilken som gjelder: lys eller mørk etter systemet.
    Parene måles av scripts/kontrast.sh. Se docs/design.md. */
 
 :root {
@@ -52,7 +51,6 @@
   --text-base: 15px;
   --text-md: 18px;
   --text-lg: 24px;
-  --text-xl: 32px;
   --text-hero: 44px;
   --measure: 68ch;
 

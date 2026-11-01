@@ -27,13 +27,13 @@ Ett tokensett i en ny fil, `stats/lib/tokens.css`, lenket inn før sidens egen C
 }
 ```
 
-`color-scheme: light dark` følger `prefers-color-scheme`, så regelen om mørk modus er oppfylt uten en egen media-blokk. Årsoppsummeringen setter bare `:root { color-scheme: dark; }` i `summary.css` og får de samme tokenene i mørk variant. Da finnes det ett tokensystem, ikke tre.
+`color-scheme: light dark` følger `prefers-color-scheme`, så regelen om mørk modus er oppfylt uten en egen media-blokk. Årsoppsummeringen bruker de samme tokenene og følger modusen som resten (se Layout). Da finnes det ett tokensystem, ikke tre.
 
 Konsekvensene, slik del 2 løste dem:
 
 - `light-dark()` krever minst Firefox 120. `strict_min_version` er likevel 140, siden AMO krever det for `data_collection_permissions`. I Chromium kom støtten i Chrome 123, og skal utvidelsen lastes der, settes `minimum_chrome_version` til minst 123.
 - `getComputedStyle().getPropertyValue("--color-x")` gir tilbake selve `light-dark(...)`-teksten, som Chart.js ikke forstår. `chart-helpers.js` må løse fargen gjennom et skjult måleelement: sett `style.color = "var(--color-x)"` og les `getComputedStyle(el).color`, som da er en ferdig `rgb()`.
-- Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Verifisert i Firefox i begge moduser: fargene kommer riktig ut. html2canvas plasserer derimot ordene der DOM-en målte dem, men tegner dem med en canvas-font uten tabellsifre, og med `devicePixelRatio` som ikke er et helt tall forsvinner mellomrommene mellom ord. Kopien som tegnes til bilde får derfor klassen `export` med vanlige sifre og en `letter-spacing` på 0,01 px, som får html2canvas til å tegne tegn for tegn på DOM-posisjonene. Skulle `light-dark()` likevel svikte et sted, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk pluss en `:root.scheme-dark`-blokk med de samme verdiene for årsoppsummeringen.
+- Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Verifisert i Firefox i begge moduser: fargene kommer riktig ut. html2canvas plasserer derimot ordene der DOM-en målte dem, men tegner dem med en canvas-font uten tabellsifre, og med `devicePixelRatio` som ikke er et helt tall forsvinner mellomrommene mellom ord. Kopien som tegnes til bilde får derfor klassen `export` med vanlige sifre og en `letter-spacing` på 0,01 px, som får html2canvas til å tegne tegn for tegn på DOM-posisjonene. Skulle `light-dark()` likevel svikte et sted, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk.
 - Kontrastscriptet (se Sjekker som håndhever reglene) må kunne lese `light-dark(a, b)` og sjekke a mot a og b mot b.
 
 ### Token-settet
@@ -135,7 +135,6 @@ Lyshet alene er likevel ikke nok til å bære en serie, så fargen bærer aldri 
 | `--text-base` | 15 px                             | brødtekst, nav, knapper, nøkkeltall-lister                    |
 | `--text-md`   | 18 px                             | forklarende setning under hovedtall, sidetittel, regnestykket |
 | `--text-lg`   | 24 px                             | seksjonsoverskrift                                            |
-| `--text-xl`   | 32 px                             | hovedtall i popup                                             |
 | `--text-hero` | 44 px (34 px under 720 px bredde) | hovedtallet i Kostnader og Bilregnestykket                    |
 
 Bare to vekter: 400 og 600. Tall i lister og regnestykker står i 600. Hovedtall har `letter-spacing: -0.01em` og `line-height: 1.1`, alt annet har normal sperring og `line-height: 1.5`. Ingen store bokstaver, ingen sperrede etiketter, ingen små overskrifter over overskrifter. Alt i sentence case. Brødtekst holdes under 68 tegn bredde (`--measure`).
@@ -175,7 +174,7 @@ Bildeling, per år             − 14 200 kr
 ──────────────────────────────────────────
 Forskjell                     ca. 38 000 kr
 Hva «egen bil» betyr, i én setning.
-Slik beregner vi
+Slik beregnes det
 ```
 
 Kostnader-hovedtallet står uten «ca.» fordi det er summen av faktiske beløp (`price.total`). «ca.» står bare foran estimater: Bilregnestykket, egen bil-kostnaden og CO₂-tallene.
@@ -186,9 +185,9 @@ Støtteseksjonene (Bruksmønster, Bookingmønster, Kilometer, Trender, Turkatego
 
 Under 720 px bredde stables diagram og nøkkeltall. Nav scroller horisontalt.
 
-Popup (350 px): brødtekst i `--text-sm`, fordi 15 px gir for få tegn per linje i 350 px. Tittel i surface-header, så månedens beløp som hovedtall i 32 px med én setning under («denne måneden, 6 turer. Forrige måned 920 kr.»), så de øvrige tallene som `<dl>`, så sparkline, så en fot med tidsstempel på egen linje og to like brede knapper: «Synkroniser» (sekundær) og «Åpne dashboard» (primær).
+Popup (350 px): brødtekst i `--text-sm`, fordi 15 px gir for få tegn per linje i 350 px. Firefox gir popupen høyst 600 px før den får rullefelt, så luften er strammere enn i dashboardet: 12 px rundt innholdet, 4 px i nøkkeltall-listen, diagram på 88 px og knapper på 36 px. Med demodata er den 406 px høy uten synkbanner og 533 px med et banner på tre linjer, sist synkronisert og begge knappene. Tittel i surface-header, så månedens beløp som hovedtall i `--text-lg` (24 px) med én setning under («denne måneden, 6 turer. Forrige måned 920 kr.»), så de øvrige tallene som `<dl>`, så sparkline, så en fot med tidsstempel på egen linje og to like brede knapper: «Synkroniser» (sekundær) og «Åpne dashboard» (primær).
 
-Årsoppsummeringen: alltid mørk, en påstand per slide, sentrert. Spart-slidene bruker `--color-accent` i stedet for grønt.
+Årsoppsummeringen: en påstand per slide, sentrert. Spart-slidene bruker `--color-accent` i stedet for grønt. Den følger lys eller mørk modus som dashboardet. Den var alltid mørk, som en «Wrapped»-visning, men det er nettopp kopien «Mot en generisk dashboard-prompt» advarer mot, og den byttet modus midt i flyten for den som åpnet den fra et lyst dashboard. Tokenene holder kontrastkravene i begge moduser, så det kostet ingenting å la den følge brukerens valg. Hver slide er nøyaktig én skjermhøyde (`100dvh`) med `scroll-snap-type: y mandatory` på dokumentet. Mellomrom, Shift+mellomrom, PageDown, PageUp og piltastene går én slide om gangen, uten animasjon ved redusert bevegelse. I årsvelgeren, på lenker og på «Slik beregnes det» virker tastene som vanlig. Metodesliden kan bli høyere enn skjermen når den åpnes.
 
 ## Komponenter
 
@@ -196,9 +195,9 @@ Popup (350 px): brødtekst i `--text-sm`, fordi 15 px gir for få tegn per linje
 - Primær: accent-bakgrunn, on-accent tekst. Bare én per flate: «Synkroniser» i dashboardet, «Åpne dashboard» i popupen.
 - Sekundær: surface-bakgrunn, 1 px border-strong, tekstfarge. Hover: sunken.
 - Fare: som sekundær, men tekst og kant i danger.
-- Stille (lenkeknapp): ingen kant, aksentfarget tekst med understrek. Brukes til «Last ned bilde» og «Slik beregner vi».
+- Stille (lenkeknapp): ingen kant, aksentfarget tekst med understrek. Brukes til «Last ned bilde» og «Slik beregnes det».
 - Deaktivert: disabled-bg, disabled-text, border i `--color-border`. Ingen `opacity`.
-- Fokus: `outline: 2px solid var(--color-accent); outline-offset: 2px` på `:focus-visible`, på alle knapper, lenker og skjemafelt.
+- Fokus: `outline: 2px solid var(--color-accent); outline-offset: 2px` på `:focus-visible`, på alle knapper, lenker og skjemafelt. Nav-lenkene har ringen innenfor (`outline-offset: -2px`), fordi navigasjonen ruller vannrett og klipper alt utenfor linjen. Tastaturfokus er målt i dashboard, popup, årsoppsummering, bekreftelsesdialogen og nøkkelordkortet i begge moduser: rekkefølgen følger siden ovenfra, og ingen fokusert kontroll står uten ring eller under den faste navigasjonen.
 
 Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last ned bilde», og ikonet går ut.
 
@@ -206,16 +205,16 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 
 **Paneler.** Surface, 1 px border, 2 px hjørner. Ingen hover-effekt, ingen løft, ingen skygge. Diagramtittelen står i panelet som `h3` i 15 px vekt 600.
 
-**«Slik beregner vi».** Stille knapp med `aria-expanded`. Innholdet åpnes under i tekst-secondary med maks 68 tegn bredde, kildene som vanlige lenker. Pilen `▸` i knappeteksten går ut, `aria-expanded` og innholdet som dukker opp er nok.
+**«Slik beregnes det».** Stille knapp med `aria-expanded`. Innholdet åpnes under i tekst-secondary med maks 68 tegn bredde, kildene som vanlige lenker. Pilen `▸` i knappeteksten går ut, `aria-expanded` og innholdet som dukker opp er nok.
 
-**Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary og forsvinner ikke av seg selv.
+**Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary. Den forsvinner ikke på tid, for en melding med tidsgrense rekker ikke alle å lese, men fjernes så snart et felt i skjemaet endres, siden den da ikke lenger stemmer.
 
 **Egne nøkkelord** (Turkategorier). Et panel bygd på `<details>`/`<summary>`, lukket som standard.
 
 - Summary-linjen er en `h3`-lik tittel i 15 px vekt 600 med totalen («24 ord i 6 kategorier») i tekst-secondary etter. Nettleserens egen markør beholdes, så det trengs ingen tegnet pil og ingen `::-webkit-details-marker`-regel. Fokus følger fokusregelen over, uten egen radius.
-- Hjelpeteksten står under i `--text-sm` og tekst-secondary, maks 68 tegn bredde.
+- Hjelpeteksten står under i `--text-sm` og tekst-secondary, maks 68 tegn bredde. Den sier at ord i notatet som begynner med et stoppord (`STOP_WORDS` i `categories.js`, i dag juli, konkurs, diskurs og kursiv), hoppes over, også for egne nøkkelord. Lista settes inn fra koden, så teksten ikke kan gå ut av takt med den. Egne nøkkelord går ikke forbi stoppordene: de finnes for at «jul» ikke skal treffe «juli», og det gjelder like mye et ord brukeren skriver selv.
 - Hver kategori er en rad i et rutenett: etikett, tekstfelt (skjemafeltregelen, men venstrejustert fordi det er tekst) og antall treff i tekst-secondary høyrejustert, med 1 px linje mellom radene. Under 480 px stables raden.
-- Knapperaden har «Lagre» som sekundærknapp og «Eksporter JSON» og «Importer JSON» som stille knapper, siden primærknappen er brukt på «Synkroniser». Importknappen er en `<label>` rundt et visuelt skjult filfelt og får fokusringen via `:focus-within`.
+- Knapperaden har «Lagre» som sekundærknapp og «Eksporter JSON» og «Importer JSON» som stille knapper, siden primærknappen er brukt på «Synkroniser». Importknappen er en `<label>` rundt et visuelt skjult filfelt og får fokusringen via `:has(:focus-visible)`, så ringen bare vises ved tastatur.
 - Statusmeldingen («Lagret», «Importerte 24 ord», feil ved ugyldig fil) står etter knappene med `role="status"` i tekst-secondary, og feil i danger.
 
 `--radius-sm` og hover-regelen `.keyword-card:hover` går ut.
@@ -225,10 +224,13 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 Synk er informasjon, ikke en advarsel. Banneret over innholdet er et panel i surface med 1 px border, en tekstlinje og en fremdriftslinje på 4 px: spor i sunken, fyll i accent, bredden er faktisk andel (`aria-valuenow` på et `role="progressbar"`). Teksten er konkret og følger fasen fra bakgrunnsscriptet:
 
 - «Henter turlisten …»
-- «Henter detaljer for 240 av 412 turer. Ferdige turer vises med en gang.»
-- «Lagrer …»
+- «Henter detaljer for 240 av 412 turer …»
+- I popupen, som henter 25 om gangen: «Henter detaljer for 18 av 662 turer. Popupen henter 25 om gangen, resten hentes når du åpner dashboardet.»
+- Når et annet vindu synker: «Et annet vindu henter detaljer for 240 av 412 turer …»
 
-Synk-knappen er deaktivert under henting og sier det samme kort: «Synkroniserer 240 av 412». Ikonet går ut, det spinner ikke. Banneret har `role="status"` så skjermlesere får fasebytter uten å avbrytes. Når synken er ferdig forsvinner banneret, og headeren viser «412 turer, sist synkronisert i dag kl. 09.14».
+Fremdriften står ett sted, i banneret med linjen. Synk-knappen er deaktivert under henting og sier bare «Synkroniserer…», så samme teller ikke står to ganger. Ikonet går ut, det spinner ikke. Banneret har `role="status"` så skjermlesere får fasebytter uten å avbrytes. Når synken er ferdig forsvinner banneret, og headeren er én setning: «176 turer i 2024–2026 for 102 147 kr, sist synkronisert 1. nov. kl. 09:14».
+
+Synker en annen side, venter siden stille og viser fremdriften fra `syncState`, og fortsetter selv når låsen blir ledig. Dashboardet tar alltid over fra popupen. Det er aldri en feil at et annet vindu synker, så det får verken advarsel eller «Prøv igjen». «Prøv igjen» står bare ved ekte feil. Et delvis resultat («Hentet 25 av 662. Resten hentes når du åpner dashboardet.») og turer som prøves igjen senere, står som vanlig melding uten knapp.
 
 Feil bruker warning-bg og warning-text uten kant, `role="alert"`, og sier hva som skjedde og hva du gjør: «Fant ingen innlogging. Åpne app.dele.no, logg inn og trykk Synkroniser igjen.» Rate-limit: «Dele svarer sakte. Prøver igjen om 8 sekunder.» Ingen unnskyldninger, ingen «Oops».
 
@@ -236,9 +238,11 @@ Feil bruker warning-bg og warning-text uten kant, `role="alert"`, og sier hva so
 
 Tom tilstand (ingen data, ikke innlogget) er tekst, ikke illustrasjon: én linje i tekstfarge som sier hva som er, og én i secondary som sier hva du gjør. «Ingen turer lagret ennå. Logg inn på app.dele.no i en annen fane og trykk Synkroniser. Første henting tar et par minutter, og alt lagres bare i nettleseren.»
 
-Under første synk vises seksjonene så snart de første turene er lagret. Tall som ennå mangler grunnlag, står som «Beregnes …» i tertiary i stedet for en strek. Diagrampaneler uten data får to eller tre statiske skjelettstriper i sunken. Ingen shimmer og ingen pulsering.
+Under første synk står en forklaring («Henter turene dine fra Dele. Første gang tar det et par minutter …») til de første turene er lagret. Da vises seksjonene, og de fylles inn etter hvert. Synken henter nyeste tur først, så allerede første opptegning har grunnlag for tallene og diagrammene i hver seksjon som vises.
 
-Inline tom tilstand i en seksjon («Ikke nok data for trendanalyse») sier hvor mye data som trengs: «Trender vises når du har turer fra minst to år.»
+«Beregnes …» på tall og skjelettstriper i diagrampaneler ble planlagt, men valgt bort. Med nyeste først finnes ikke tilstanden de skulle dekke: et tall eller et diagram uten grunnlag under synken har heller ikke grunnlag etterpå, og da er en strek eller en tom tilstand det riktige svaret. «Beregnes …» ville sagt at noe kommer som ikke kommer. Banneret med fremdriften sier at mer er på vei.
+
+Inline tom tilstand i en seksjon sier hvor mye data som trengs, for eksempel «Trender vises når du har turer fra minst tre måneder.» Et panel som bare gir mening med mer data, skjules i stedet for å stå tomt: «År mot år» og «Sesongsammenligning» vises først med turer fra to år.
 
 ## Diagrammer
 
@@ -263,7 +267,7 @@ Tre sjekker i `stats/scripts/`, og `package.sh` kjører alle: byggevakten `sjekk
 
 ## Bevegelse
 
-Ingen bevegelse som ikke svarer på noe brukeren gjør. Ingen hover-løft på kort, ingen inntoning per seksjon, ingen spinnende ikon, ingen diagramanimasjon. Det som får bevege seg: åpning av «Slik beregner vi» (høyde, 150 ms) og myk scroll ved klikk i nav. Begge legges inne i `@media (prefers-reduced-motion: no-preference)`, så redusert bevegelse gir null bevegelse uten `!important`.
+Ingen bevegelse som ikke svarer på noe brukeren gjør. Ingen hover-løft på kort, ingen inntoning per seksjon, ingen spinnende ikon, ingen diagramanimasjon. Det som får bevege seg: åpning av «Slik beregnes det» (høyde, 150 ms) og myk scroll ved klikk i nav. Begge legges inne i `@media (prefers-reduced-motion: no-preference)`, så redusert bevegelse gir null bevegelse uten `!important`.
 
 ## Hva som slettes
 
