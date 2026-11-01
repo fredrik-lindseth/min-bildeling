@@ -264,6 +264,8 @@ Månedstallene står. Turene hentes nyest først, så siste måned er på plass 
 
 Tom tilstand (ingen data, ikke innlogget) er tekst, ikke illustrasjon: én linje i tekstfarge som sier hva som er, og én i secondary som sier hva du gjør. «Ingen turer lagret ennå. Logg inn på app.dele.no i en annen fane og trykk Synkroniser. Første henting tar et par minutter, og alt lagres bare i nettleseren.»
 
+Ved første oppstart venter dashbordet med synken og spør først: «Har du en sikkerhetskopi? Importer den først, så slipper du å hente alt på nytt.» Under står to sekundærknapper, Importer og «Start synk», siden primærknappen er Synkroniser. Svaret på importen står i banneret etter synken.
+
 Under første synk står en forklaring («Henter turene dine fra Dele. Første gang tar det et par minutter …») til de første turene er lagret. Da vises seksjonene, og de fylles inn etter hvert. Synken henter nyeste tur først, så allerede første opptegning har grunnlag for tallene og diagrammene i hver seksjon som vises.
 
 «Beregnes …» på tall og skjelettstriper i diagrampaneler ble planlagt, men valgt bort. Med nyeste først finnes ikke tilstanden de skulle dekke: et tall eller et diagram uten grunnlag under synken har heller ikke grunnlag etterpå, og da er en strek eller en tom tilstand det riktige svaret. «Beregnes …» ville sagt at noe kommer som ikke kommer. Banneret med fremdriften sier at mer er på vei.

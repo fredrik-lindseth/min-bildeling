@@ -7,6 +7,7 @@ import {
   createBackup,
   parseBackup,
   mergeBackup,
+  describeImport,
   normalizeTransportData,
   isStoredReservation,
 } from "../lib/backup.js";
@@ -228,6 +229,73 @@ test("mergeBackup tar lastSync fra filen når lageret er tomt", () => {
   const { next } = mergeBackup({}, incoming({ reservations: [trip("a")], lastSync: 1000 }));
   assert.equal(next.lastSync, 1000);
   assert.equal(next.reservations.length, 1);
+});
+
+test("mergeBackup tar importerte turer ut av køen til en synk som pågår", () => {
+  const syncState = {
+    phase: "details",
+    initial: true,
+    pendingIds: ["c", "d", "e", "a"],
+    failed: { d: { status: 500, attempts: 1 }, x: { status: 404, attempts: 1 } },
+    total: 6,
+    done: 2,
+    fetchedSoFar: 2,
+  };
+  // a er lagret og venter på oppdatering. Filens versjon erstatter den ikke, så a står.
+  const current = { reservations: [trip("a"), trip("b")], syncState };
+  const { next, counts } = mergeBackup(current, incoming({ reservations: [trip("a"), trip("c"), trip("d")] }));
+  assert.equal(counts.reservationsAdded, 2);
+  assert.deepEqual(next.syncState.pendingIds, ["e", "a"]);
+  assert.deepEqual(Object.keys(next.syncState.failed), ["x"]);
+  assert.equal(next.syncState.done, 4);
+  assert.equal(next.syncState.total, 6);
+  assert.equal(next.syncState.fetchedSoFar, 2);
+  assert.equal(next.syncState.phase, "details");
+  assert.deepEqual(current.syncState.pendingIds, ["c", "d", "e", "a"]);
+});
+
+test("mergeBackup rører ikke syncState når køen ikke endres", () => {
+  const syncState = { phase: "done", pendingIds: [], failed: {}, total: 2, done: 2 };
+  const { next } = mergeBackup({ reservations: [], syncState }, incoming({ reservations: [trip("a")] }));
+  assert.ok(!("syncState" in next));
+  const userOnly = mergeBackup({ syncState: { pendingIds: ["a"] } }, incoming({ tripCategories: { a: "jobb" } }));
+  assert.ok(!("syncState" in userOnly.next));
+});
+
+test("mergeBackup teller år med nye transporttall", () => {
+  const { counts } = mergeBackup(
+    { transportData: { 2025: { taxi: { trips: 3 } } } },
+    incoming({ transportData: { 2025: { taxi: { trips: 3 }, buss: { trips: 1 } }, 2024: { fly: { trips: 2 }, tog: { trips: 1 } }, 2023: {} } }),
+  );
+  assert.equal(counts.transportAdded, 3);
+  assert.equal(counts.transportYears, 2);
+});
+
+test("describeImport sier hva som faktisk ble lagt til", () => {
+  const none = mergeBackup({}, incoming({})).counts;
+  assert.equal(
+    describeImport({ ...none, reservationsAdded: 662, categoriesAdded: 120, keywordsAdded: 30, transportYears: 2 }),
+    "Importerte 662 turer, 120 kategorivalg, 30 nøkkelord og transporttall for 2 år.",
+  );
+  assert.equal(describeImport({ ...none, reservationsAdded: 1 }), "Importerte 1 tur.");
+  assert.equal(
+    describeImport({ ...none, categoriesReplaced: 1, transportYears: 1 }),
+    "Importerte 1 kategorivalg og transporttall for 1 år.",
+  );
+  assert.equal(describeImport(none), "Ingenting nytt. Alt i filen var lagret fra før.");
+  assert.equal(
+    describeImport({ ...none, categoriesKept: 2 }),
+    "Ingenting nytt. 2 verdier var ulike i filen, og de lagrede ble beholdt.",
+  );
+  assert.equal(
+    describeImport({ ...none, keywordsAdded: 1, transportKept: 1 }),
+    "Importerte 1 nøkkelord. 1 verdi var ulik i filen, og den lagrede ble beholdt.",
+  );
+});
+
+test("en tom installasjon som importerer alt, får ikke «Ingenting nytt»", () => {
+  const { counts } = mergeBackup({}, incoming({ reservations: [trip("a"), trip("b")], tripCategories: { a: "jobb" } }));
+  assert.equal(describeImport(counts), "Importerte 2 turer og 1 kategorivalg.");
 });
 
 test("mergeBackup endrer ikke det den får inn", () => {

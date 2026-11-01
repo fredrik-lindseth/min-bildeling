@@ -149,9 +149,9 @@ export function lockIsFree(lock, owner, nowMs) {
   return lock.role === "popup";
 }
 
-async function acquireLock(storage, owner, role, now, sleep) {
+async function acquireLock(storage, owner, role, now, sleep, canTake = (lock) => lockIsFree(lock, owner, now())) {
   const { syncLock } = await storage.get(["syncLock"]);
-  if (!lockIsFree(syncLock, owner, now())) return false;
+  if (!canTake(syncLock)) return false;
   await storage.set({ syncLock: { owner, role, expiresAt: now() + LOCK_LEASE_MS } });
   // storage.local har ingen compare-and-set. Les tilbake etter en kort pause, så
   // taper den av to samtidige sider som skrev først.
@@ -168,6 +168,47 @@ function lockLost() {
 export async function releaseLock(storage, owner) {
   const { syncLock } = await storage.get(["syncLock"]);
   if (syncLock?.owner === owner) await storage.set({ syncLock: null });
+}
+
+/**
+ * Kjør task med synklåsen, for skriving til reservations og syncState utenfor
+ * synken (import av sikkerhetskopi). Låsen tas med samme regel som synken: en
+ * popup-lås tas over med en gang, og en annen sides lås ventes på. takeFrom er
+ * eieren til synken i samme side, som også kan tas over, ellers ville siden
+ * ventet på seg selv. Synken som mister låsen, stopper før neste kall eller
+ * skriving, venter i runSyncWhenFree og leser lageret på nytt når låsen er
+ * sluppet.
+ *
+ * task får commit(items), som sjekker at låsen fortsatt er vår og skriver alt
+ * i ett storage.set. Låsen slippes etterpå, også ved feil.
+ * onWait({ syncLock, syncState }) kalles mens en annen side holder låsen.
+ */
+export async function withSyncLock({
+  storage,
+  owner,
+  role,
+  takeFrom = null,
+  task,
+  onWait = () => {},
+  now = Date.now,
+  sleep = defaultSleep,
+}) {
+  const canTake = (lock) => lockIsFree(lock, owner, now()) || (takeFrom != null && lock.owner === takeFrom);
+  while (!(await acquireLock(storage, owner, role, now, sleep, canTake))) {
+    const { syncLock, syncState } = await storage.get(["syncLock", "syncState"]);
+    if (!canTake(syncLock)) onWait({ syncLock, syncState });
+    await sleep(LOCK_POLL_MS);
+  }
+  const commit = async (items) => {
+    const { syncLock } = await storage.get(["syncLock"]);
+    if (syncLock?.owner !== owner) throw lockLost();
+    await storage.set(items);
+  };
+  try {
+    return await task({ commit });
+  } finally {
+    await releaseLock(storage, owner);
+  }
 }
 
 /**
@@ -245,10 +286,12 @@ export async function runSync({
   // Sjekk at låsen fortsatt er vår, og forny den. Kalles før hver skriving og
   // før hvert kall når en tredjedel av leasen er brukt. storage.local har ingen
   // compare-and-set, men har en annen side tatt over etter et svar som brukte
-  // hele leasen, stopper vi her i stedet for å synke parallelt.
+  // hele leasen, stopper vi her i stedet for å synke parallelt. En tom lås er
+  // også tapt: en import kan ha tatt den, skrevet og sluppet den igjen mens vi
+  // ventet på et svar, og da er turene vi har i minnet utdaterte.
   const holdLease = async (extraMs = 0) => {
     const { syncLock } = await storage.get(["syncLock"]);
-    if (syncLock && syncLock.owner !== owner) throw lockLost();
+    if (syncLock?.owner !== owner) throw lockLost();
     await storage.set({ syncLock: { owner, role, expiresAt: now() + extraMs + LOCK_LEASE_MS } });
     leaseRenewedAt = now();
   };
@@ -260,7 +303,7 @@ export async function runSync({
   const polite = async () => {
     if (requestsMade++ > 0) await sleep(pause);
     const { syncLock } = await storage.get(["syncLock"]);
-    if (syncLock && syncLock.owner !== owner) throw lockLost();
+    if (syncLock?.owner !== owner) throw lockLost();
     if (now() - leaseRenewedAt >= LOCK_RENEW_MS) await holdLease();
   };
 
@@ -302,7 +345,7 @@ export async function runSync({
 
   const flush = async (phase = "details", extra = {}) => {
     const { syncLock } = await storage.get(["syncLock"]);
-    if (syncLock && syncLock.owner !== owner) throw lockLost();
+    if (syncLock?.owner !== owner) throw lockLost();
     if (buffer.length > 0) {
       reservations = mergeReservations(reservations, buffer);
       buffer = [];
@@ -496,7 +539,9 @@ export async function runSyncWhenFree(opts) {
     for (;;) {
       const { syncLock, syncState } = await storage.get(["syncLock", "syncState"]);
       if (lockIsFree(syncLock, owner, now())) break;
-      if (syncState?.phase === "details" && syncState.total > 0) {
+      if (syncLock.role === "import") {
+        onProgress({ phase: "import" });
+      } else if (syncState?.phase === "details" && syncState.total > 0) {
         onProgress({ phase: "details", current: syncState.done || 0, total: syncState.total, elsewhere: true });
       } else {
         onProgress({ phase: "elsewhere", elsewhere: true });

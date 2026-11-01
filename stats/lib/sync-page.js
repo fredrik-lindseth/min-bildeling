@@ -11,7 +11,8 @@ export {
   describeProgress,
 } from "./sync-messages.js";
 
-const owner =
+// Eksporteres for importen, som tar over synken i samme side (lib/backup-import.js).
+export const owner =
   typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `side-${Date.now()}-${Math.random()}`;

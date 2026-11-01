@@ -51,6 +51,7 @@ import { storage as extensionStorage } from "../lib/browser-polyfill.js";
 import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
 import {
   startSync,
+  owner as syncOwner,
   isAuthError,
   describeSyncResult,
   describeProgress,
@@ -60,7 +61,8 @@ import { stateForSyncError } from "../lib/auth-state.js";
 import { showAuthBanner } from "../lib/auth-banner.js";
 
 import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
-import { createBackup, parseBackup, mergeBackup } from "../lib/backup.js";
+import { createBackup, parseBackup, describeImport } from "../lib/backup.js";
+import { importBackup, BACKUP_STORAGE_KEYS } from "../lib/backup-import.js";
 
 import {
   TRANSPORT_MODES,
@@ -185,6 +187,7 @@ const progressBar = $("progress-bar");
 const progressFill = $("progress-fill");
 const emptyState = $("empty-state");
 const firstRun = $("first-run");
+const restoreOffer = $("restore-offer");
 const mainContent = $("main-content");
 const syncBtn = $("sync-btn");
 const headerMetaEl = $("header-meta");
@@ -301,6 +304,7 @@ function showMain() {
   mainContent.hidden = false;
   emptyState.hidden = true;
   firstRun.hidden = true;
+  restoreOffer.hidden = true;
   // Under synk står banneret med fremdriften over tallene som fylles inn.
   if (!syncing) hideStatus();
   scrollToHashOnce();
@@ -1806,7 +1810,10 @@ function onSyncProgress(progress) {
 // Synker (force: uansett tid siden sist) og tegner opp på nytt. Feil og delvise
 // resultater blir stående i statusfeltet. showEmpty() kalles bare når synken
 // gikk bra og det likevel ikke finnes data.
-async function syncAndRender(force) {
+// notice er en melding som står når synken ikke har noe å si selv, for
+// eksempel hva importen fra tilbudet ved første oppstart la inn.
+async function syncAndRender(force, { notice = null } = {}) {
+  restoreOffer.hidden = true;
   syncBtn.disabled = true;
   syncBtn.textContent = "Synkroniserer…";
   if (force) showStatus("Synkroniserer…");
@@ -1848,9 +1855,47 @@ async function syncAndRender(force) {
     showSyncMessage(message, { retry: Boolean(result.error) });
   } else if (!hasData) {
     showEmpty();
+  } else if (notice) {
+    showStatus(notice);
   } else {
     hideStatus();
   }
+}
+
+// Første oppstart: en ny installasjon har kanskje en sikkerhetskopi med alle
+// turene. Importeres den før synken starter, henter synken bare det som er nytt
+// siden kopien ble laget, ikke hele historikken. Lageret regnes som tomt også
+// når popupen alt har hentet sine første turer av førstegangssynken.
+async function isFirstStart() {
+  const { reservations, lastSync, syncState } = await storage.get(["reservations", "lastSync", "syncState"]);
+  if (Number.isFinite(lastSync)) return false;
+  const stored = Array.isArray(reservations) ? reservations.length : 0;
+  return stored === 0 || (syncState?.initial === true && !historyProgress(syncState).complete);
+}
+
+function offerRestore() {
+  hideStatus();
+  emptyState.hidden = true;
+  restoreOffer.hidden = false;
+  $("restore-skip").focus();
+}
+
+function setRestoreStatus(message, { error = false } = {}) {
+  const status = $("restore-status");
+  status.textContent = message;
+  status.classList.toggle("form-status--error", error);
+}
+
+function initRestoreOffer() {
+  $("restore-skip").addEventListener("click", () => syncAndRender(false));
+  $("restore-import").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const message = await handleBackupImport(file, setRestoreStatus);
+    // Avbrutt eller feil: tilbudet står med meldingen, så brukeren kan velge igjen.
+    if (message) await syncAndRender(false, { notice: message });
+  });
 }
 
 // ---------- Init ----------
@@ -1867,6 +1912,10 @@ async function init() {
   }
   showStatus("Laster…");
   const hasData = await loadStored();
+  if (await isFirstStart()) {
+    offerRestore();
+    return;
+  }
   if (!hasData) showStatus("Synkroniserer…");
   // Uten force synker den bare når det er over en time siden sist, eller når
   // en tidligere synk ble avbrutt.
@@ -2239,8 +2288,6 @@ initDevTools();
 
 // ---------- Sikkerhetskopi ----------
 
-const BACKUP_KEYS = ["tripCategories", "transportData", "userKeywords", "reservations", "lastSync"];
-
 function setBackupStatus(message, { error = false } = {}) {
   const status = $("backup-status");
   status.textContent = message;
@@ -2248,16 +2295,21 @@ function setBackupStatus(message, { error = false } = {}) {
 }
 
 // I demomodus ligger turene i minnet, ikke i lageret, før noe er importert.
-async function readBackupSource() {
-  const data = await storage.get(BACKUP_KEYS);
-  if (demo && !Array.isArray(data.reservations)) data.reservations = allReservations;
-  return data;
-}
+const backupStorage = {
+  async get(keys) {
+    const data = await storage.get(keys);
+    if (demo && keys.includes("reservations") && !Array.isArray(data.reservations)) {
+      data.reservations = allReservations;
+    }
+    return data;
+  },
+  set: (items) => storage.set(items),
+};
 
 async function handleBackupExport() {
   try {
     const includeReservations = $("backup-include-trips").checked;
-    const backup = createBackup(await readBackupSource(), { includeReservations });
+    const backup = createBackup(await backupStorage.get(BACKUP_STORAGE_KEYS), { includeReservations });
     const today = new Date().toISOString().slice(0, 10);
     downloadBlob(
       new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }),
@@ -2323,62 +2375,44 @@ function confirmBackupImport(backup, skipped, exportedAt) {
   });
 }
 
-// En synk holder turene i minnet og skriver dem tilbake, så importerte turer
-// kunne blitt borte. syncLock leses bare, den skrives aldri herfra.
-async function syncIsRunning() {
-  if (syncing) return true;
-  const { syncLock } = await storage.get(["syncLock"]);
-  return Boolean(syncLock && syncLock.expiresAt > Date.now());
-}
-
-function describeImport(counts, skippedTrips) {
-  const parts = [];
-  if (counts.reservationsAdded > 0) parts.push(formatTrips(counts.reservationsAdded));
-  const categories = counts.categoriesAdded + counts.categoriesReplaced;
-  if (categories > 0) parts.push(formatCount(categories, "kategorivalg", "kategorivalg"));
-  if (counts.keywordsAdded > 0) parts.push(formatCount(counts.keywordsAdded, "nøkkelord", "nøkkelord"));
-  const transport = counts.transportAdded + counts.transportReplaced;
-  if (transport > 0) parts.push(formatCount(transport, "transportrad", "transportrader"));
-
-  let message = parts.length > 0
-    ? `Importerte ${parts.join(", ").replace(/, ([^,]*)$/, " og $1")}.`
-    : "Alt i filen var lagret fra før.";
-  const kept = counts.categoriesKept + counts.transportKept;
-  if (kept > 0) message += ` ${kept} sto alt med en annen verdi og ble beholdt.`;
-  if (skippedTrips) message += " Turene ble ikke importert fordi en synk pågår. Prøv igjen etterpå.";
-  return message;
-}
-
-async function handleBackupImport(file) {
+/**
+ * Les, bekreft og importer en fil. Turene skrives under synklåsen
+ * (lib/backup-import.js): en synk i denne siden eller popupen stopper til
+ * importen er ferdig og fortsetter så med det som mangler. Synker en annen
+ * fane, venter importen på den.
+ * Returns meldingen om hva som ble importert, eller null.
+ */
+async function handleBackupImport(file, setStatus = setBackupStatus) {
   let parsed;
   try {
     parsed = JSON.parse(await file.text());
   } catch {
-    setBackupStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
-    return;
+    setStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
+    return null;
   }
   const result = parseBackup(parsed);
   if (result.error) {
-    setBackupStatus(result.error, { error: true });
-    return;
+    setStatus(result.error, { error: true });
+    return null;
   }
 
   const choice = await confirmBackupImport(result.backup, result.skipped, parsed?.exportedAt);
   if (!choice) {
-    setBackupStatus("Import avbrutt.");
-    return;
+    setStatus("Import avbrutt.");
+    return null;
   }
 
   try {
-    const incoming = { ...result.backup };
-    let skippedTrips = false;
-    if (incoming.reservations && await syncIsRunning()) {
-      incoming.reservations = null;
-      skippedTrips = true;
-    }
-    const { next, counts } = mergeBackup(await readBackupSource(), incoming, choice);
-    await storage.set(next);
-    setBackupStatus(describeImport(counts, skippedTrips));
+    const { next, counts } = await importBackup({
+      storage: backupStorage,
+      backup: result.backup,
+      overwrite: choice.overwrite,
+      owner: `${syncOwner}-import`,
+      takeFrom: syncOwner,
+      onWait: () => setStatus("Venter til synken i et annet vindu er ferdig. Turene importeres etterpå."),
+    });
+    const message = describeImport(counts);
+    setStatus(message);
 
     if (demo) {
       await renderAll(next.reservations ?? allReservations, null);
@@ -2386,9 +2420,11 @@ async function handleBackupImport(file) {
       await renderAll(allReservations, renderedLastSync);
     }
     if (isDevMode() && !demo) refreshDevInfo();
+    return message;
   } catch (err) {
     console.error("Backup import failed:", err);
-    setBackupStatus("Importen feilet. Ingenting er endret.", { error: true });
+    setStatus("Importen feilet. Ingenting er endret.", { error: true });
+    return null;
   }
 }
 
@@ -2403,6 +2439,7 @@ function initBackup() {
 }
 
 initBackup();
+initRestoreOffer();
 
 // Start
 init();

@@ -18,7 +18,9 @@ import {
   DETAIL_RETRY_BASE_MS,
   NOT_FOUND_MAX_ATTEMPTS,
   detailRetryDelayMs,
+  withSyncLock,
 } from "../lib/sync.js";
+import { importBackup } from "../lib/backup-import.js";
 import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
 import {
   describeProgress,
@@ -941,4 +943,228 @@ test("releaseLock sletter bare låsen når siden eier den", async () => {
 
   await releaseLock(storage, "side-b");
   assert.equal(storage.data.syncLock, null);
+});
+
+// ---------- Import av sikkerhetskopi under synk ----------
+
+// Turene slik en sikkerhetskopi fra en annen installasjon har dem: detaljsvar
+// hentet lenge etter slutt, altså fryst, så synken skal aldri hente dem igjen.
+function backupOf(reservations, { lastSync = NOW - 2 * DAY, tripCategories = {} } = {}) {
+  return {
+    tripCategories,
+    transportData: {},
+    userKeywords: {},
+    lastSync,
+    reservations: reservations.map((r) => ({
+      ...r,
+      state: "PAST",
+      canceled: null,
+      noTrips: false,
+      drivenKm: 12,
+      price: { total: 100, lines: [] },
+      car: { model: "Testbil" },
+      detailFetchedAt: Date.parse(r.end) + SETTLE_WINDOW_MS + DAY,
+    })),
+  };
+}
+
+// Lager som sjekker etter hver skriving at køen og turene henger sammen: ingen
+// id står både i reservations og pendingIds (i en førstegangssynk finnes ingen
+// lagrede turer som venter på oppdatering), og ingen tur er lagret to ganger.
+function checkedStorage() {
+  const storage = makeStorage();
+  const set = storage.set.bind(storage);
+  storage.set = async (items) => {
+    await set(items);
+    const ids = (storage.data.reservations || []).map((r) => String(r.id));
+    assert.equal(new Set(ids).size, ids.length, "en tur er lagret to ganger");
+    const stored = new Set(ids);
+    const both = (storage.data.syncState?.pendingIds || []).filter((id) => stored.has(String(id)));
+    assert.deepEqual(both, [], "lagrede turer står fortsatt i køen");
+  };
+  return storage;
+}
+
+// Id-ene i detaljkallene, i rekkefølge.
+function detailIds(api) {
+  return api.calls.filter((c) => !c.url.includes("/historic")).map((c) => c.url.split("/").pop());
+}
+
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test("import midt i en batch tar over synken i samme side, og ingen importert tur hentes", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = checkedStorage();
+  const progress = [];
+  const sync = runSyncWhenFree({ ...world.opts("side-a"), storage, onProgress: (p) => progress.push(p) });
+  // 25 detaljer: én batch på 20 er lagret, fem ligger i minnet.
+  while (world.api.count("detail") < 25) await settle();
+  const before = world.api.count("detail");
+
+  const { counts } = await importBackup({
+    ...world.opts("side-a-import"),
+    storage,
+    backup: backupOf(all),
+    takeFrom: "side-a",
+  });
+  const atImport = world.api.count("detail");
+  const result = await sync;
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(result.waited, true);
+  assert.equal(storage.data.reservations.length, 60);
+  // De 20 lagrede sto, resten kom fra filen.
+  assert.equal(counts.reservationsAdded, 40);
+  // Høyst kallet som var i gang da importen tok låsen, og ingen detaljer etterpå.
+  assert.ok(atImport <= before + 1, `kall under importen: ${atImport - before}`);
+  assert.equal(world.api.count("detail"), atImport);
+  assert.ok(progress.some((p) => p.phase === "import"));
+  assert.equal(storage.data.syncLock, null);
+});
+
+test("import som er ferdig mens synken venter på et svar, stopper synken likevel", async () => {
+  // I nettleseren kan hele importen, med låsen tatt og sluppet igjen, skje
+  // mens synken venter på ett detaljkall. Etterpå er låsen null, og synken
+  // må ikke lese det som at låsen fortsatt er dens og skrive turene fra minnet.
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  const gatedId = all[5].id;
+  const opts = world.opts("side-a");
+  const fetch = async (url, init) => {
+    if (url.endsWith(`/reservations/${gatedId}`)) await gate;
+    return opts.fetch(url, init);
+  };
+  const storage = checkedStorage();
+  const sync = runSyncWhenFree({ ...opts, fetch, storage });
+  while (!world.api.calls.length || detailIds(world.api).length < 5) await settle();
+  // Synken står nå og venter på svaret for tur nummer seks.
+  await settle();
+
+  await importBackup({ ...world.opts("side-a-import"), storage, backup: backupOf(all), takeFrom: "side-a" });
+  assert.equal(storage.data.syncLock, null);
+  release();
+  const result = await sync;
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 60);
+  assert.equal(storage.data.syncState.pendingIds.length, 0);
+  // Ingen kall etter det som var i gang da importen kom.
+  assert.ok(world.api.count("detail") <= 6, `detaljkall: ${world.api.count("detail")}`);
+});
+
+test("import av en del av historikken: synken henter bare det som mangler", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = checkedStorage();
+  const sync = runSyncWhenFree({ ...world.opts("side-a"), storage });
+  while (world.api.count("detail") < 10) await settle();
+
+  // Filen har de 40 eldste. De 20 nyeste mangler i den.
+  const older = all.slice(20);
+  await importBackup({
+    ...world.opts("side-a-import"),
+    storage,
+    backup: backupOf(older),
+    takeFrom: "side-a",
+  });
+  const result = await sync;
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 60);
+  const imported = new Set(older.map((r) => r.id));
+  assert.deepEqual(detailIds(world.api).filter((id) => imported.has(id)), [], "importerte turer ble hentet");
+  // De 20 nyeste hentes. Det som lå i minnet da låsen ble tatt (under én
+  // batch), og kallet som var i gang, hentes en gang til.
+  assert.ok(world.api.count("detail") <= 20 + 10 + 1, `detaljkall: ${world.api.count("detail")}`);
+  assert.equal(storage.data.syncState.pendingIds.length, 0);
+});
+
+test("import tar over fra popupen, som etterpå fortsetter med det som mangler", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = checkedStorage();
+  const popup = runSyncWhenFree({ ...world.opts("popup"), storage, role: "popup", maxDetails: POPUP_MAX_DETAILS });
+  while (world.api.count("detail") < 5) await settle();
+
+  // Dashboardet synker ikke selv. Importen tar popupens lås uten å vente.
+  const waits = [];
+  const older = all.slice(30);
+  await importBackup({
+    ...world.opts("dash-import"),
+    storage,
+    backup: backupOf(older),
+    takeFrom: "dash",
+    onWait: (w) => waits.push(w),
+  });
+  const result = await popup;
+
+  assert.deepEqual(waits, []);
+  assert.equal(result.waited, true);
+  const imported = new Set(older.map((r) => r.id));
+  assert.deepEqual(detailIds(world.api).filter((id) => imported.has(id)), []);
+  // Popupen henter sine 25 blant de 30 som mangler, og 30 kom fra filen.
+  assert.ok(storage.data.reservations.length >= 30 + POPUP_MAX_DETAILS);
+});
+
+test("import venter på en synk i en annen dashboard-fane og skriver etterpå", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 300 });
+  const storage = checkedStorage();
+  const other = runSyncWhenFree({ ...world.opts("fane-b"), storage });
+  while (world.api.count("detail") < 10) await settle();
+
+  const waits = [];
+  const imported = importBackup({
+    ...world.opts("fane-a-import"),
+    storage,
+    backup: backupOf(all.slice(50), { tripCategories: { [all[0].id]: "jobb" } }),
+    takeFrom: "fane-a",
+    onWait: (w) => waits.push(w),
+  });
+  const resultB = await other;
+  const { counts } = await imported;
+
+  // Fane b mistet aldri låsen og hentet alt selv.
+  assert.equal(resultB.status, "SYNCED");
+  assert.equal(resultB.waited, undefined);
+  assert.equal(world.api.count("detail"), 60);
+  assert.ok(waits.length > 0);
+  assert.equal(waits[0].syncLock.owner, "fane-b");
+  // Turene var hentet da importen slapp til, så bare kategorien er ny.
+  assert.equal(counts.reservationsAdded, 0);
+  assert.equal(counts.categoriesAdded, 1);
+  assert.equal(storage.data.reservations.length, 60);
+  assert.equal(storage.data.syncLock, null);
+});
+
+test("withSyncLock slipper låsen også når oppgaven feiler, og skriver ikke uten den", async () => {
+  const storage = makeStorage();
+  const h = harness(storage, makeApi([]));
+  await assert.rejects(
+    withSyncLock({ ...h.opts, owner: "imp", role: "import", task: async () => { throw new Error("feil"); } }),
+    /feil/,
+  );
+  assert.equal(storage.data.syncLock, null);
+
+  await assert.rejects(
+    withSyncLock({
+      ...h.opts,
+      owner: "imp",
+      role: "import",
+      task: async ({ commit }) => {
+        // En annen side har tatt låsen. commit skal nekte å skrive.
+        storage.data.syncLock = { owner: "side-b", role: "page", expiresAt: NOW + LOCK_LEASE_MS };
+        await commit({ reservations: [] });
+      },
+    }),
+    (e) => e.code === "LOCK_LOST",
+  );
+  assert.ok(!("reservations" in storage.data));
+});
+
+test("en synk som venter på en import, sier det i banneret", () => {
+  assert.equal(describeProgress({ phase: "import" }), "Importerer sikkerhetskopien…");
 });

@@ -51,6 +51,19 @@
       <p class="empty-state__sub">Første gang tar det et par minutter. Tallene fylles inn etter hvert som turene kommer, og alt lagres bare i denne nettleseren.</p>
     </div>
 
+    <!-- Tomt lager: sikkerhetskopien tilbys før førstegangssynken starter -->
+    <div id="restore-offer" class="empty-state" hidden>
+      <p class="empty-state__text">Har du en sikkerhetskopi? Importer den først, så slipper du å hente alt på nytt.</p>
+      <div class="form-actions">
+        <label class="btn keyword-import">
+          Importer
+          <input type="file" id="restore-import" accept="application/json,.json" class="visually-hidden">
+        </label>
+        <button type="button" id="restore-skip" class="btn">Start synk</button>
+        <span id="restore-status" class="form-status" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
     <!-- Empty state -->
     <div id="empty-state" class="empty-state" hidden>
       <p class="empty-state__text">Ingen turer lagret ennå.</p>

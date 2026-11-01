@@ -70,6 +70,8 @@ function withProgress(result, message) {
 // Fremdriften står bare i banneret. Synk-knappen er deaktivert og sier
 // «Synkroniserer…» uten tall, så samme teller ikke vises to ganger.
 export function describeProgress({ phase, current, total, limit, elsewhere }) {
+  // En import holder låsen et øyeblikk. Synken venter og fortsetter etterpå.
+  if (phase === "import") return "Importerer sikkerhetskopien…";
   if (elsewhere) {
     return phase === "details" && total > 0
       ? `Et annet vindu henter detaljer for ${current} av ${total} turer…`

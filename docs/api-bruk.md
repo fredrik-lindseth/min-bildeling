@@ -23,6 +23,8 @@ Kall skjer bare når medlemmet selv har utvidelsen åpen:
 - når dashbordet eller popupen åpnes og en synkronisering ble avbrutt, uansett hvor lenge siden, så den fortsetter der den slapp, eller
 - når medlemmet trykker Synkroniser eller Prøv igjen.
 
+Første gang dashbordet åpnes i en ny installasjon, starter det ikke synkroniseringen før medlemmet har valgt mellom å importere en sikkerhetskopi og å starte synkroniseringen. En sikkerhetskopi fra en tidligere installasjon har med reservasjonene og detaljene, så da hentes bare det som er nytt siden kopien ble laget. Importeres kopien mens en synkronisering pågår, tas de importerte reservasjonene ut av køen, og synkroniseringen fortsetter med resten.
+
 Det finnes ingen bakgrunnspolling, ingen alarmer og ingen synkronisering når nettleseren står i ro. Én synkronisering kjører om gangen, også med flere vinduer åpne. Vinduet som synkroniserer, holder en lås i det lokale lageret som gjelder i 45 sekunder og fornyes hvert 15. sekund. Lukkes vinduet, går låsen ut av seg selv. Har et vindu mistet låsen, for eksempel etter et svar som tok over 45 sekunder, stopper det før neste kall.
 
 Popupen henter høyst 25 detaljer om gangen, siden den lukkes så fort medlemmet klikker utenfor. Hver ny åpning eller hvert trykk på Synkroniser i popupen henter 25 til. Resten hentes når dashbordet er åpent.

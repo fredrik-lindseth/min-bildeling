@@ -166,8 +166,13 @@ function parseParts(raw) {
  * Turene flettes alltid på id, og de lagrede beholdes, siden de kan være
  * hentet senere enn filen ble laget.
  *
+ * Står en synk midt i køen (current.syncState med pendingIds), tas de
+ * importerte id-ene ut av køen og av failed, så synken ikke henter detaljer som
+ * nettopp kom fra filen. De telles som ferdige, så fremdriften stemmer.
+ *
  * Returns { next, counts }. next har reservations og lastSync bare når filen
- * har turer, så lageret ellers ikke skrives for dem.
+ * har turer, og syncState bare når køen ble endret, så lageret ellers ikke
+ * skrives for dem.
  */
 export function mergeBackup(current, incoming, { overwrite = false } = {}) {
   const counts = {
@@ -178,6 +183,7 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     transportAdded: 0,
     transportReplaced: 0,
     transportKept: 0,
+    transportYears: 0,
     reservationsAdded: 0,
     reservationsKept: 0,
   };
@@ -208,20 +214,24 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
   const transportData = structuredClone(current.transportData ?? {});
   for (const [year, modes] of Object.entries(incoming.transportData)) {
     transportData[year] ??= {};
+    let changed = false;
     for (const [mode, entry] of Object.entries(modes)) {
       const existing = transportData[year][mode];
       if (!existing || !hasNumbers(existing)) {
         transportData[year][mode] = { ...entry };
         counts.transportAdded++;
+        changed = true;
       } else if (sameEntry(existing, entry)) {
         continue;
       } else if (overwrite) {
         transportData[year][mode] = { ...entry };
         counts.transportReplaced++;
+        changed = true;
       } else {
         counts.transportKept++;
       }
     }
+    if (changed) counts.transportYears++;
   }
 
   const next = { tripCategories, userKeywords, transportData };
@@ -237,9 +247,64 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     // Uten den ville alle importerte turer blitt hentet på nytt.
     const times = [current.lastSync, incoming.lastSync].filter(Number.isFinite);
     next.lastSync = times.length > 0 ? Math.max(...times) : null;
+
+    const syncState = withoutImported(current.syncState, added);
+    if (syncState) next.syncState = syncState;
   }
 
   return { next, counts };
+}
+
+// Køen til en synk som står midt i, uten id-ene som nettopp ble importert.
+// Lagrede turer som venter på oppdatering, står: importen erstatter dem ikke.
+function withoutImported(syncState, added) {
+  if (!isPlainObject(syncState) || added.length === 0) return null;
+  const ids = new Set(added.map((r) => String(r.id)));
+  const pendingIds = Array.isArray(syncState.pendingIds) ? syncState.pendingIds : [];
+  const remaining = pendingIds.filter((id) => !ids.has(String(id)));
+  const failed = { ...(syncState.failed ?? {}) };
+  let failedRemoved = 0;
+  for (const id of Object.keys(failed)) {
+    if (ids.has(id)) {
+      delete failed[id];
+      failedRemoved++;
+    }
+  }
+  const removed = pendingIds.length - remaining.length;
+  if (removed === 0 && failedRemoved === 0) return null;
+  return {
+    ...syncState,
+    pendingIds: remaining,
+    failed,
+    done: Math.min((syncState.done || 0) + removed, syncState.total || 0),
+  };
+}
+
+/**
+ * Norsk tekst for hva en import faktisk la til eller endret, ut fra counts
+ * fra mergeBackup(). «Ingenting nytt» står bare når ingenting ble endret.
+ */
+export function describeImport(counts) {
+  const parts = [];
+  if (counts.reservationsAdded > 0) parts.push(count(counts.reservationsAdded, "tur", "turer"));
+  const categories = counts.categoriesAdded + counts.categoriesReplaced;
+  if (categories > 0) parts.push(count(categories, "kategorivalg", "kategorivalg"));
+  if (counts.keywordsAdded > 0) parts.push(count(counts.keywordsAdded, "nøkkelord", "nøkkelord"));
+  if (counts.transportYears > 0) parts.push(`transporttall for ${count(counts.transportYears, "år", "år")}`);
+
+  const kept = counts.categoriesKept + counts.transportKept;
+  const keptText = kept === 1
+    ? "1 verdi var ulik i filen, og den lagrede ble beholdt."
+    : `${kept} verdier var ulike i filen, og de lagrede ble beholdt.`;
+  if (parts.length === 0) {
+    return kept > 0 ? `Ingenting nytt. ${keptText}` : "Ingenting nytt. Alt i filen var lagret fra før.";
+  }
+  const message = `Importerte ${parts.join(", ").replace(/, ([^,]*)$/, " og $1")}.`;
+  return kept > 0 ? `${message} ${keptText}` : message;
+}
+
+function count(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 // Et skjema der feltene er tømt, lagres som { taxi: {} } og regnes som tomt.
