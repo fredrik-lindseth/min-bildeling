@@ -7,6 +7,8 @@
   --sum-green-dim: rgba(111, 208, 146, 0.15);
   --sum-picker-bg: rgba(255, 255, 255, 0.1);
   --sum-picker-border: rgba(255, 255, 255, 0.15);
+  --sum-demo-bg: #4a3410;
+  --sum-demo-text: #f6d88f;
 }
 
 /* Årsoppsummeringen er alltid mørk, så den trenger ingen lys variant */
@@ -134,4 +136,18 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   body { scroll-snap-type: none; }
+}
+
+/* Demomodus (?demo=1): merket skiller skjermbilder fra ekte tall */
+.demo-badge {
+  position: fixed;
+  top: 20px;
+  left: 16px;
+  z-index: 10;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--sum-demo-bg);
+  color: var(--sum-demo-text);
+  font-size: 13px;
+  font-weight: 600;
 }

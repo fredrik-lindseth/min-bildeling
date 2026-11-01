@@ -2,8 +2,11 @@ import { filterDriven, costStats, usagePatterns, mileageStats, monthlyCosts } fr
 import { estimateOwnershipCost, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 import { co2Comparison, CO2_METHOD } from "../lib/co2.js";
 import { formatNOK } from "../lib/formatters.js";
+import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
 
-const browserAPI = typeof browser !== "undefined" ? browser : chrome;
+const browserAPI = globalThis.browser ?? globalThis.chrome;
+// ?demo=1: syntetiske data uten utvidelses-API.
+const demo = isDemoMode(window.location.search) ? createDemoSession() : null;
 const formatKm = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
 
 function trips(n) {
@@ -18,7 +21,8 @@ function categoryPhrase(category) {
 const MONTH_NAMES = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
 
 async function init() {
-  const data = await browserAPI.runtime.sendMessage({ type: "GET_DATA" });
+  if (demo) document.body.prepend(createDemoBadge(document));
+  const data = demo ?? await browserAPI.runtime.sendMessage({ type: "GET_DATA" });
   if (!data?.reservations?.length) {
     document.querySelector(".summary").innerHTML = '<section class="slide"><p>Ingen turer lagret ennå. Trykk Synkroniser i utvidelsen først.</p></section>';
     return;

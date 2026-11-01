@@ -52,6 +52,9 @@
   --color-danger: #c84a3a;
   --color-danger-hover: #b03d2e;
   --color-danger-bg: rgba(200, 74, 58, 0.08);
+  /* Demomerket: mørk rav på lys rav, kontrast over 7:1 */
+  --color-demo-bg: #fbe3b4;
+  --color-demo-text: #5c3a00;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -119,6 +122,8 @@
     --color-danger: #e36a5b;
     --color-danger-hover: #f07c6e;
     --color-danger-bg: rgba(227, 106, 91, 0.12);
+    --color-demo-bg: #4a3410;
+    --color-demo-text: #f6d88f;
 
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--color-border);
     --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--color-border);
@@ -1277,4 +1282,18 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
   }
   html { scroll-behavior: auto; }
+}
+
+/* Demomodus (?demo=1): merket skiller skjermbilder fra ekte tall */
+.demo-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-demo-bg);
+  color: var(--color-demo-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  margin-left: 6px;
 }
