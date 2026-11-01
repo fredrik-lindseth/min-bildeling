@@ -440,6 +440,20 @@ a:focus-visible,
   text-align: right;
 }
 
+/* Kontekstlinje under tallet, på egen linje i samme rad. */
+.figures > div:has(.figures__caption) {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.figures dd.figures__caption {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+  color: var(--color-text-secondary);
+}
+
 .figures--wide {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   column-gap: var(--space-5);

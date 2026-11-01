@@ -146,12 +146,27 @@
             <h3 class="panel__title">N&aring;r booker du?</h3>
             <div class="chart-frame"><canvas id="lead-time-chart"></canvas></div>
           </div>
-          <dl class="figures">
-            <div><dt>Booket i forveien, snitt</dt><dd id="booking-avg-lead">&ndash;</dd></div>
-            <div><dt>Booket i forveien, median</dt><dd id="booking-median-lead">&ndash;</dd></div>
-            <div><dt>Booket samme d&oslash;gn</dt><dd id="booking-short-notice">&ndash;</dd></div>
-            <div><dt>Ulike stasjoner</dt><dd id="booking-unique-stations">&ndash;</dd></div>
-          </dl>
+          <div>
+            <dl class="figures">
+              <div><dt>Booket i forveien, snitt</dt><dd id="booking-avg-lead">&ndash;</dd></div>
+              <div><dt>Booket i forveien, median</dt><dd id="booking-median-lead">&ndash;</dd></div>
+              <div><dt>Booket samme d&oslash;gn</dt><dd id="booking-short-notice">&ndash;</dd></div>
+              <div><dt>Ulike stasjoner</dt><dd id="booking-unique-stations">&ndash;</dd></div>
+            </dl>
+            <div id="booking-extremes">
+              <h3 class="list-title">Ytterpunkter</h3>
+              <dl class="figures">
+                <div>
+                  <dt>Lengst i forveien</dt><dd id="booking-longest">&ndash;</dd>
+                  <dd class="figures__caption" id="booking-longest-context"></dd>
+                </div>
+                <div>
+                  <dt>Mest spontan</dt><dd id="booking-shortest">&ndash;</dd>
+                  <dd class="figures__caption" id="booking-shortest-context"></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
         </div>
 
         <div class="panel">

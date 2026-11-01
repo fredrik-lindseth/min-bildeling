@@ -192,6 +192,8 @@ export function bookingPatterns(reservations) {
   const avgHours = cleaned.reduce((sum, h) => sum + h, 0) / cleaned.length;
   const medianHours = sorted[Math.floor(sorted.length / 2)];
 
+  const extremes = leadExtremes(valid, leadHours);
+
   const shortNoticeCount = cleaned.filter((h) => h < 24).length;
   const shortNoticeShare = shortNoticeCount / cleaned.length;
 
@@ -219,7 +221,28 @@ export function bookingPatterns(reservations) {
     uniqueStations: stationsRanked.length,
     distribution,
     stationsRanked,
+    extremes,
   };
+}
+
+// Lengste og korteste bookingtid, med turen de hører til. Rå bookingtid
+// sammenlignes, og visningen klampes til 0 som i histogrammet. Ved likt
+// vinner den første. Med under to bookinger er det ingen ytterpunkter å vise.
+function leadExtremes(valid, leadHours) {
+  if (valid.length < 2) return null;
+  let longest = 0;
+  let shortest = 0;
+  for (let i = 1; i < leadHours.length; i++) {
+    if (leadHours[i] > leadHours[longest]) longest = i;
+    if (leadHours[i] < leadHours[shortest]) shortest = i;
+  }
+  const describe = (i) => ({
+    leadHours: Math.max(0, leadHours[i]),
+    carModel: getCarName(valid[i]),
+    start: valid[i].start,
+    station: getStationName(valid[i]),
+  });
+  return { longest: describe(longest), shortest: describe(shortest) };
 }
 
 export function currentMonthStats(reservations) {
