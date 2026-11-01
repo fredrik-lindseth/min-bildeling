@@ -159,7 +159,10 @@ function parseParts(raw) {
  *
  * Uten overwrite vinner det som er lagret her: kategorier og transporttall
  * legges bare til der de mangler, og nøkkelordene legges etter de lagrede.
- * Med overwrite vinner filen for det den har med, men ingenting slettes.
+ * Med overwrite vinner filen for det den har med: kategorivalg og transporttall
+ * i filen erstatter de lagrede, og nøkkelordene i filen erstatter hele den
+ * lagrede listen for samme kategori, så ord som bare står her, forsvinner.
+ * Kategorier og år filen ikke har med, står.
  * Turene flettes alltid på id, og de lagrede beholdes, siden de kan være
  * hentet senere enn filen ble laget.
  *

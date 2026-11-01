@@ -174,7 +174,7 @@ test("mergeBackup legger til uten å overskrive det som er lagret", () => {
   assert.ok(!("lastSync" in next));
 });
 
-test("mergeBackup med overwrite lar filen vinne, men sletter ingenting", () => {
+test("mergeBackup med overwrite lar filen vinne og erstatter nøkkellisten for samme kategori", () => {
   const current = {
     tripCategories: { a: "jobb", c: "annet" },
     userKeywords: { jobb: ["kontor"], helse: ["lege"] },
@@ -186,6 +186,7 @@ test("mergeBackup med overwrite lar filen vinne, men sletter ingenting", () => {
     transportData: { 2025: { taxi: { trips: 9 } } },
   }), { overwrite: true });
   assert.deepEqual(next.tripCategories, { a: "helse", c: "annet" });
+  // «kontor» forsvinner: listen for jobb erstattes. helse er ikke i filen og står.
   assert.deepEqual(next.userKeywords, { jobb: ["møte"], helse: ["lege"] });
   assert.deepEqual(next.transportData, { 2025: { taxi: { trips: 9 }, fly: { trips: 1 } } });
   assert.equal(counts.categoriesReplaced, 1);
