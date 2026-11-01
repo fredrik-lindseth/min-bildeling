@@ -620,7 +620,7 @@ function renderBookingPatterns(reservations) {
   const methodDetail = $("booking-method-detail");
   if (methodDetail) {
     methodDetail.innerHTML = `
-      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer. Turer som ikke ble kjørt er med, avbestilte og eldre bookinger uten bookingtidspunkt er ikke.</p>
+      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer. Turer som ikke ble kjørt er med. Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke.</p>
     `;
   }
 }
