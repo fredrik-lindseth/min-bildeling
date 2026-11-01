@@ -208,7 +208,7 @@ export const TRANSPORT_METHOD = {
   note:
     "CO₂-faktorer, bare utslipp fra eksos: " +
     "Taxi 0 g/km etter nullutslippskravet for drosjer (gamle Hordaland fra 1. april 2024, " +
-    `Trøndelag fra 1. juli 2025), før det ~${TAXI_CO2_BEFORE_REQUIREMENT} g/km (drosjene i Hordaland 2018), ` +
+    `Trøndelag fra 1. juli 2025), før det ~${TAXI_CO2_BEFORE_REQUIREMENT} g/km (drosjene i Hordaland 2018, brukt også for Trøndelag), ` +
     "Leiebil ~130 g/km (norsk bilparksnitt), " +
     "Egen bil: bensin ~130, diesel ~120, elbil 0 g/km (Miljødirektoratet), " +
     "Buss ~59 g/km per passasjer (SSB, buss 2019, elbuss og bane gir mindre), " +
