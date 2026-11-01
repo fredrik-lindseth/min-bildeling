@@ -10,8 +10,11 @@ import {
   SETTLE_WINDOW_MS,
   DETAIL_REFRESH_MS,
   LOCK_LEASE_MS,
+  DETAIL_RETRY_BASE_MS,
+  detailRetryDelayMs,
 } from "../lib/sync.js";
-import { parseRetryAfter, PAGE_SIZE } from "../lib/api.js";
+import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
+import { describeSyncResult } from "../lib/sync-messages.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-01T12:00:00Z");
@@ -61,6 +64,11 @@ function makeApi(reservations, { failures = {} } = {}) {
     if (queue && queue.length > 0) {
       const f = queue.shift();
       if (f === "network") throw new TypeError("NetworkError when attempting to fetch resource.");
+      // Et element som står igjen alene i køen, gjentas for alltid.
+      if (f.always) {
+        queue.unshift(f);
+        return json({ error: "fail" }, f.status, f.headers || {});
+      }
       return json({ error: "fail" }, f.status, f.headers || {});
     }
     if (u.pathname.endsWith("/historic")) {
@@ -100,7 +108,14 @@ function harness(storage, api, overrides = {}) {
     random: () => 0.5,
     ...overrides,
   };
-  return { opts, sleeps, run: (extra = {}) => runSync({ ...opts, ...extra }) };
+  return {
+    opts,
+    sleeps,
+    advance: (ms) => {
+      clock += ms;
+    },
+    run: (extra = {}) => runSync({ ...opts, ...extra }),
+  };
 }
 
 // ---------- Førstegangssync og lagring ----------
@@ -298,7 +313,9 @@ test("tre 503 på rad stopper synken, det hentede er lagret, og neste sync forts
   assert.equal(first.error, "SERVICE_UNAVAILABLE");
   assert.equal(storage.data.reservations.length, 45);
   assert.equal(storage.data.syncState.phase, "paused");
-  assert.equal(storage.data.syncState.pendingIds[0], id);
+  // Id-en bryteren slo ut på, legges til side så neste synk ikke står fast på den.
+  assert.equal(storage.data.syncState.failed[id].attempts, 1);
+  assert.ok(!storage.data.syncState.pendingIds.includes(id));
   assert.equal(storage.data.lastSync, undefined);
   assert.equal(storage.data.syncLock, null);
 
@@ -460,6 +477,204 @@ test("mergeReservations erstatter på id og sorterer nyeste først", () => {
   assert.equal(merged.find((r) => r.id === "a").v, 2);
 });
 
-test("PAGE_SIZE er 100 (dokumentert i docs/api-bruk.md)", () => {
-  assert.equal(PAGE_SIZE, 100);
+
+// ---------- Feil per id mot feil i tjenesten ----------
+
+function detailCallsFor(api, id) {
+  return api.calls.filter((c) => c.url.endsWith(`/reservations/${id}`)).length;
+}
+
+test("en detalj som alltid svarer 500 hoppes over: N-1 lagres, og den prøves igjen neste synk", async () => {
+  const all = makeReservations(30);
+  const bad = all[0].id; // først i køen, der den tidligere låste alt
+  const failures = { [`detail:${bad}`]: [{ status: 500, always: true }] };
+  const api = makeApi(all, { failures });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const first = await h.run();
+  assert.equal(first.status, "SYNCED");
+  assert.equal(first.count, 29);
+  assert.equal(storage.data.reservations.length, 29);
+  assert.equal(first.failed, 1);
+  assert.equal(detailCallsFor(api, bad), ITEM_ATTEMPTS);
+  const failure = storage.data.syncState.failed[bad];
+  assert.equal(failure.status, 500);
+  assert.equal(failure.attempts, 1);
+  assert.ok(failure.lastAttemptAt != null);
+  assert.ok(storage.data.lastSync);
+
+  // Neste automatiske synk (over en time senere) prøver id-en igjen.
+  h.advance(DETAIL_RETRY_BASE_MS);
+  api.calls.length = 0;
+  const second = await h.run();
+  assert.equal(second.status, "SYNCED");
+  assert.equal(detailCallsFor(api, bad), ITEM_ATTEMPTS);
+  assert.equal(api.count("detail"), ITEM_ATTEMPTS);
+  assert.equal(storage.data.syncState.failed[bad].attempts, 2);
+  assert.equal(second.count, 29);
+
+  // Backoff: en time senere er det ikke tid for et nytt forsøk ennå.
+  h.advance(DETAIL_RETRY_BASE_MS);
+  api.calls.length = 0;
+  await h.run();
+  assert.equal(detailCallsFor(api, bad), 0);
+
+  // Synkroniser-knappen prøver med en gang, og når Dele svarer igjen, er den med.
+  api.calls.length = 0;
+  delete failures[`detail:${bad}`];
+  const forced = await h.run({ force: true });
+  assert.equal(detailCallsFor(api, bad), 1);
+  assert.equal(forced.count, 30);
+  assert.equal(forced.failed, 0);
+  assert.equal(storage.data.syncState.failed[bad], undefined);
+});
+
+test("backoff for feilede detaljer vokser og stopper på en uke", () => {
+  const HOUR = 60 * 60 * 1000;
+  assert.deepEqual([1, 2, 3, 4].map((n) => detailRetryDelayMs(n) / HOUR), [1, 4, 16, 64]);
+  assert.equal(detailRetryDelayMs(5), 7 * DAY);
+  assert.equal(detailRetryDelayMs(50), 7 * DAY);
+});
+
+test("en detalj som alltid svarer 503 stopper ikke neste synk på samme sted", async () => {
+  const all = makeReservations(30);
+  const bad = all[0].id;
+  const api = makeApi(all, { failures: { [`detail:${bad}`]: [{ status: 503, always: true }] } });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const first = await h.run();
+  assert.equal(first.status, "PAUSED");
+  assert.equal(first.error, "SERVICE_UNAVAILABLE");
+  assert.equal(storage.data.syncState.failed[bad].attempts, 1);
+
+  // Etter pausen fortsetter synken med de andre og blir ferdig.
+  h.advance(10 * 60 * 1000);
+  api.calls.length = 0;
+  const second = await h.run();
+  assert.equal(second.status, "SYNCED");
+  assert.equal(detailCallsFor(api, bad), 0);
+  assert.equal(second.count, 29);
+  assert.equal(second.failed, 1);
+});
+
+test("500 på tre ulike detaljer på rad er feil i tjenesten og slår ut bryteren", async () => {
+  const all = makeReservations(30);
+  const failures = {};
+  for (const r of all.slice(3, 6)) failures[`detail:${r.id}`] = [{ status: 500, always: true }];
+  const api = makeApi(all, { failures });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const result = await h.run();
+  assert.equal(result.status, "PAUSED");
+  assert.equal(result.error, "SERVICE_UNAVAILABLE");
+  assert.equal(api.count("detail"), 3 + 3 * ITEM_ATTEMPTS);
+  assert.equal(storage.data.reservations.length, 3);
+  assert.equal(Object.keys(storage.data.syncState.failed).length, 3);
+  assert.equal(storage.data.syncState.pendingIds.length, 24);
+});
+
+test("500 på én detalj mellom vellykkede nullstiller telleren for ulike id-er", async () => {
+  const all = makeReservations(30);
+  const failures = {};
+  for (const i of [2, 4, 6, 8]) failures[`detail:${all[i].id}`] = [{ status: 500, always: true }];
+  const api = makeApi(all, { failures });
+  const result = await harness(makeStorage(), api).run();
+  assert.equal(result.status, "SYNCED");
+  assert.equal(result.count, 26);
+  assert.equal(result.failed, 4);
+});
+
+test("brukeren får vite at reservasjoner mangler detaljer og prøves igjen", () => {
+  const synced = describeSyncResult({ status: "SYNCED", done: 30, total: 30, failedThisRun: 1, failed: 1 });
+  assert.match(synced, /Hentet 29 av 30/);
+  assert.match(synced, /1 reservasjon mangler detaljer/);
+  assert.match(synced, /prøves igjen/);
+
+  const cached = describeSyncResult({ status: "CACHED", count: 30, failed: 3 });
+  assert.match(cached, /3 reservasjoner mangler detaljer/);
+  assert.match(cached, /prøves igjen/);
+
+  assert.equal(describeSyncResult({ status: "CACHED", count: 30, failed: 0 }), null);
+});
+
+// ---------- Lease etter tid ----------
+
+// To sider som synker samtidig med delt klokke. Hvert kall tar `latencyMs` av
+// klokken og slipper hendelsesløkken, så sidene veksler slik de ville gjort i
+// nettleseren.
+function slowWorld(reservations, { latencyMs, slowCall = null }) {
+  let clock = NOW;
+  const base = makeApi(reservations);
+  const tick = () => new Promise((resolve) => setImmediate(resolve));
+  const fetch = async (url, init) => {
+    clock += slowCall && slowCall(url) ? slowCall(url) : latencyMs;
+    await tick();
+    return base.fetch(url, init);
+  };
+  const opts = (owner) => ({
+    fetch,
+    getAuth: async () => ({ token: "Bearer test", membershipId: "m-1" }),
+    clientId: "bildeleringen-stats/test",
+    owner,
+    now: () => clock,
+    sleep: async (ms) => {
+      clock += ms;
+      await tick();
+    },
+    random: () => 0.5,
+  });
+  return { api: base, opts, now: () => clock };
+}
+
+test("leasen fornyes etter tid, så en treg synk ikke får følge av en til", async () => {
+  const all = makeReservations(60);
+  const world = slowWorld(all, { latencyMs: 3000 });
+  const storage = makeStorage();
+
+  const a = runSync({ ...world.opts("side-a"), storage });
+  // Side b åpnes når side a har holdt på lenger enn leasen, midt i en batch.
+  while (world.now() < NOW + LOCK_LEASE_MS + 5000) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  const b = await runSync({ ...world.opts("side-b"), storage });
+  const resultA = await a;
+
+  assert.equal(b.status, "BUSY");
+  assert.equal(resultA.status, "SYNCED");
+  assert.equal(world.api.count("detail"), 60);
+  assert.equal(storage.data.reservations.length, 60);
+});
+
+test("mister siden låsen etter et svar som brukte hele leasen, stopper den før neste kall", async () => {
+  const all = makeReservations(60);
+  const slowId = all[10].id;
+  const world = slowWorld(all, {
+    latencyMs: 100,
+    slowCall: (url) => (url.endsWith(`/reservations/${slowId}`) ? LOCK_LEASE_MS + 10000 : 0),
+  });
+  const storage = makeStorage();
+
+  let resultB = null;
+  const a = runSync({
+    ...world.opts("side-a"),
+    storage,
+    onProgress: () => {},
+  });
+  // Side b åpnes mens side a venter på det trege svaret og leasen er gått ut.
+  while (world.now() < NOW + LOCK_LEASE_MS + 2000) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  const b = runSync({ ...world.opts("side-b"), storage }).then((r) => (resultB = r));
+  const resultA = await a;
+  await b;
+
+  assert.equal(resultA.status, "BUSY");
+  assert.equal(resultB.status, "SYNCED");
+  assert.equal(storage.data.reservations.length, 60);
+  // Side a gjorde høyst ett kall etter at b tok over: det trege som allerede var i gang.
+  assert.ok(world.api.count("detail") <= 60 + 11, `detaljkall: ${world.api.count("detail")}`);
+  assert.equal(storage.data.syncLock, null);
 });

@@ -2,9 +2,12 @@
 // så alt kan testes i node uten nettleser. Synkmotoren i sync.js bruker den.
 //
 // Snillhetsreglene (se docs/api-bruk.md):
-// - 429 og 5xx eller nettverksfeil regnes som forbigående. Vi venter så
+// - 429, 502, 503, 504 og nettverksfeil gjelder hele tjenesten. Vi venter så
 //   lenge Retry-After ber om, ellers eksponentiell backoff med jitter.
-// - Bryter: tre forbigående feil på rad, på tvers av kall, stopper synken.
+// - Bryter: tre slike feil på rad stopper synken (SERVICE_UNAVAILABLE).
+// - 500 på et detaljkall gjelder som regel bare den ene reservasjonen. Den
+//   prøves én gang til, så gir kallet opp med HTTP_ERROR og synken går videre.
+//   Uten dette låste én reservasjon med fast 500 hele synken for godt.
 // - 401 avbryter med en gang (AUTH_EXPIRED).
 // - Alle kall bærer X-Client så Dele kan kjenne oss igjen i loggene.
 
@@ -16,6 +19,9 @@ export const BACKOFF_MAX_MS = 30000;
 // Ber serveren om lengre pause enn dette, gir vi opp denne synken framfor å
 // holde en fane åpen og vente.
 export const MAX_RETRY_AFTER_MS = 120000;
+
+// Hvor mange forsøk et detaljkall får når serveren svarer 500.
+export const ITEM_ATTEMPTS = 2;
 
 const TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504]);
 
@@ -62,7 +68,14 @@ export function emptyCounters() {
 export function createClient({ fetch, token, clientId, sleep, now, random, counters, onWait }) {
   let consecutiveFailures = 0;
 
-  async function getJson(url, kind) {
+  /**
+   * @param {string} url
+   * @param {"list"|"detail"} kind
+   * @param {object} [opts]
+   * @param {boolean} [opts.itemScoped]  500 gjelder bare dette ene elementet
+   */
+  async function getJson(url, kind, { itemScoped = false } = {}) {
+    let itemFailures = 0;
     for (;;) {
       counters[kind] += 1;
       let res = null;
@@ -86,6 +99,16 @@ export function createClient({ fetch, token, clientId, sleep, now, random, count
 
       if (res && res.status === 401) throw new ApiError("AUTH_EXPIRED", "Innloggingen er utløpt", 401);
 
+      if (itemScoped && res && res.status === 500) {
+        itemFailures += 1;
+        if (itemFailures >= ITEM_ATTEMPTS) throw new ApiError("HTTP_ERROR", "API-feil 500", 500);
+        const wait = backoffMs(itemFailures, random);
+        counters.retries += 1;
+        if (onWait) await onWait({ ms: wait, reason: 500 });
+        await sleep(wait);
+        continue;
+      }
+
       const transient = networkError || TRANSIENT_STATUSES.has(res.status);
       if (!transient) {
         consecutiveFailures = 0;
@@ -105,7 +128,7 @@ export function createClient({ fetch, token, clientId, sleep, now, random, count
       }
       const wait = retryAfter ?? backoffMs(consecutiveFailures, random);
       counters.retries += 1;
-      if (onWait) onWait({ ms: wait, reason: status ?? "network" });
+      if (onWait) await onWait({ ms: wait, reason: status ?? "network" });
       await sleep(wait);
     }
   }
@@ -139,6 +162,6 @@ export async function fetchListPage(client, membershipId, page) {
 }
 
 export async function fetchReservationDetail(client, id) {
-  const { data } = await client.getJson(detailUrl(id), "detail");
+  const { data } = await client.getJson(detailUrl(id), "detail", { itemScoped: true });
   return data;
 }

@@ -8,6 +8,8 @@
 // der den slapp neste gang. Se AGENTS.md (API-regler) og docs/api-bruk.md.
 
 import {
+  ApiError,
+  BREAKER_THRESHOLD,
   createClient,
   emptyCounters,
   fetchListPage,
@@ -28,11 +30,22 @@ export const PAUSE_INCREMENTAL_MS = 100;
 // dager etter slutt. Deretter regnes den som fryst og hentes aldri igjen.
 export const SETTLE_WINDOW_MS = 7 * DAY;
 export const DETAIL_REFRESH_MS = DAY;
-// Lås mellom sider: en side som dør, slipper låsen når leasen går ut.
+// Lås mellom sider: en side som dør, slipper låsen når leasen går ut. Leasen
+// fornyes etter tid, før et kall når mer enn en tredjedel av den er brukt, så
+// trege svar ikke lar den gå ut mens siden fortsatt synker.
 export const LOCK_LEASE_MS = 45 * 1000;
+export const LOCK_RENEW_MS = LOCK_LEASE_MS / 3;
 export const LOCK_CONFIRM_MS = 100;
-// En detalj som feiler (404 o.l.) prøves ved de neste synkene, maks så mange ganger.
-export const MAX_DETAIL_ATTEMPTS = 3;
+// En detalj som feiler (404, 500 o.l.) legges i syncState.failed og prøves
+// igjen ved senere automatiske synker med økende mellomrom: én time, så fire,
+// seksten og 64 timer, deretter høyst én gang i uken. Synkroniser-knappen
+// prøver dem med en gang.
+export const DETAIL_RETRY_BASE_MS = HOUR;
+export const DETAIL_RETRY_FACTOR = 4;
+export const DETAIL_RETRY_MAX_MS = 7 * DAY;
+// Popupen lukkes så fort brukeren klikker utenfor. Den henter derfor bare så
+// mange detaljer per synk, resten tar dashbordet.
+export const POPUP_MAX_DETAILS = 25;
 export const HISTORY_LENGTH = 3;
 // Etter at bryteren har slått ut, starter ikke en automatisk synk igjen før
 // denne pausen er over. Brukeren kan alltid trykke Synkroniser selv.
@@ -63,14 +76,27 @@ export function needsDetail(r, nowMs, fallbackFetchedAt = null) {
   return nowMs - fetchedAt >= DETAIL_REFRESH_MS;
 }
 
+// Id-er som har feilet, styres av retryDue(), ikke av fryst-regelen.
 export function selectRefreshIds(reservations, nowMs, fallbackFetchedAt, failed = {}) {
   return reservations
-    .filter((r) => !isGivenUp(failed[r.id]) && needsDetail(r, nowMs, fallbackFetchedAt))
+    .filter((r) => failed[r.id] == null && needsDetail(r, nowMs, fallbackFetchedAt))
     .map((r) => r.id);
 }
 
-function isGivenUp(failure) {
-  return failure != null && failure.attempts >= MAX_DETAIL_ATTEMPTS;
+export function detailRetryDelayMs(attempts) {
+  const n = Math.max(1, attempts || 1);
+  return Math.min(DETAIL_RETRY_MAX_MS, DETAIL_RETRY_BASE_MS * DETAIL_RETRY_FACTOR ** (n - 1));
+}
+
+export function retryDue(failure, nowMs, force = false) {
+  if (force || failure.lastAttemptAt == null) return true;
+  return nowMs - failure.lastAttemptAt >= detailRetryDelayMs(failure.attempts);
+}
+
+function dueRetryIds(failed, nowMs, force) {
+  return Object.entries(failed)
+    .filter(([, f]) => retryDue(f, nowMs, force))
+    .map(([id]) => id);
 }
 
 function startMs(r) {
@@ -95,6 +121,10 @@ async function acquireLock(storage, owner, now, sleep) {
   return check.syncLock?.owner === owner;
 }
 
+function lockLost() {
+  return new ApiError("LOCK_LOST", "En annen side har overtatt synkroniseringen");
+}
+
 async function releaseLock(storage, owner) {
   const { syncLock } = await storage.get(["syncLock"]);
   if (syncLock?.owner === owner) await storage.set({ syncLock: null });
@@ -105,6 +135,7 @@ async function releaseLock(storage, owner) {
  *
  * @returns {Promise<object>} { status, error?, count, fetched, failed, pending, total, done, calls, durationMs }
  *   status: SYNCED | PARTIAL | PAUSED | CACHED | BUSY | ERROR
+ *   failed: antall reservasjoner som mangler detaljer og prøves igjen senere
  *   error:  NOT_LOGGED_IN | AUTH_EXPIRED | SERVICE_UNAVAILABLE | annen melding
  */
 export async function runSync({
@@ -151,6 +182,18 @@ export async function runSync({
   if (!auth || !auth.token) return summary({ status: "ERROR", error: "NOT_LOGGED_IN" });
 
   if (!(await acquireLock(storage, owner, now, sleep))) return summary({ status: "BUSY" });
+  let leaseRenewedAt = now();
+
+  // Sjekk at låsen fortsatt er vår, og forny den. Kalles før hver skriving og
+  // før hvert kall når en tredjedel av leasen er brukt. storage.local har ingen
+  // compare-and-set, men har en annen side tatt over etter et svar som brukte
+  // hele leasen, stopper vi her i stedet for å synke parallelt.
+  const holdLease = async (extraMs = 0) => {
+    const { syncLock } = await storage.get(["syncLock"]);
+    if (syncLock && syncLock.owner !== owner) throw lockLost();
+    await storage.set({ syncLock: { owner, expiresAt: now() + extraMs + LOCK_LEASE_MS } });
+    leaseRenewedAt = now();
+  };
 
   const calls = emptyCounters();
   const initial = resumable ? Boolean(prev.initial) : reservations.length === 0;
@@ -158,6 +201,9 @@ export async function runSync({
   let requestsMade = 0;
   const polite = async () => {
     if (requestsMade++ > 0) await sleep(pause);
+    const { syncLock } = await storage.get(["syncLock"]);
+    if (syncLock && syncLock.owner !== owner) throw lockLost();
+    if (now() - leaseRenewedAt >= LOCK_RENEW_MS) await holdLease();
   };
 
   const client = createClient({
@@ -169,8 +215,7 @@ export async function runSync({
     random,
     counters: calls,
     // Forleng låsen over ventetiden, ellers kan en annen side ta over mens vi venter.
-    onWait: ({ ms }) =>
-      storage.set({ syncLock: { owner, expiresAt: now() + ms + LOCK_LEASE_MS } }),
+    onWait: ({ ms }) => holdLease(ms),
   });
 
   let pendingIds = [];
@@ -194,6 +239,8 @@ export async function runSync({
   });
 
   const flush = async (phase = "details", extra = {}) => {
+    const { syncLock } = await storage.get(["syncLock"]);
+    if (syncLock && syncLock.owner !== owner) throw lockLost();
     if (buffer.length > 0) {
       reservations = mergeReservations(reservations, buffer);
       buffer = [];
@@ -203,11 +250,24 @@ export async function runSync({
       syncState: state(phase, extra),
       syncLock: { owner, expiresAt: now() + LOCK_LEASE_MS },
     });
+    leaseRenewedAt = now();
+  };
+
+  const markFailed = (id, status) => {
+    failed[id] = {
+      status: status ?? null,
+      attempts: (failed[id]?.attempts || 0) + 1,
+      lastAttemptAt: now(),
+    };
+    calls.failed += 1;
+    failedThisRun += 1;
   };
 
   const finish = async (status, error = null) => {
     const finishedAt = now();
-    const history = Array.isArray(stored.syncHistory) ? stored.syncHistory : [];
+    // Les historikken på nytt: en annen side kan ha skrevet sin siden vi startet.
+    const fresh = await storage.get(["syncHistory"]);
+    const history = Array.isArray(fresh.syncHistory) ? fresh.syncHistory : [];
     const entry = {
       startedAt,
       finishedAt,
@@ -238,8 +298,12 @@ export async function runSync({
   try {
     if (resumable) {
       pendingIds = prev.pendingIds.slice();
-      total = prev.total || pendingIds.length;
+      const queued = new Set(pendingIds);
+      for (const id of dueRetryIds(failed, startedAt, force)) {
+        if (!queued.has(id)) pendingIds.push(id);
+      }
       done = prev.done || 0;
+      total = Math.max(prev.total || 0, done + pendingIds.length);
     } else {
       onProgress({ phase: "list", current: 0, total: null });
       const knownIds = new Set([...reservations.map((r) => r.id), ...Object.keys(failed)]);
@@ -264,9 +328,7 @@ export async function runSync({
       }
 
       const refreshIds = selectRefreshIds(reservations, startedAt, stored.lastSync ?? null, failed);
-      const retryIds = Object.entries(failed)
-        .filter(([, f]) => !isGivenUp(f))
-        .map(([id]) => id);
+      const retryIds = dueRetryIds(failed, startedAt, force);
       pendingIds = [...new Set([...newIds, ...refreshIds, ...retryIds])];
       total = pendingIds.length;
       done = 0;
@@ -274,6 +336,10 @@ export async function runSync({
 
     await flush();
 
+    // Feil per id (404, 500 på én detalj) hopper over id-en. Feiler flere ulike
+    // id-er med 5xx på rad, er det tjenesten og ikke reservasjonene, og da
+    // stopper bryteren synken som ved 503.
+    let itemServerErrorsInRow = 0;
     while (pendingIds.length > 0 && fetched + failedThisRun < maxDetails) {
       const id = pendingIds[0];
       await polite();
@@ -282,11 +348,25 @@ export async function runSync({
         buffer.push({ ...detail, detailFetchedAt: now() });
         delete failed[id];
         fetched += 1;
+        itemServerErrorsInRow = 0;
       } catch (e) {
+        if (e.code === "SERVICE_UNAVAILABLE" && e.status >= 500) {
+          // Bryteren slo ut på denne id-en. Legg den til side med backoff, så
+          // en reservasjon som alltid svarer 503 ikke stopper neste synk på
+          // samme sted. 429 og nettverksfeil gjelder ikke id-en og lar den stå.
+          markFailed(id, e.status);
+          pendingIds.shift();
+          done += 1;
+          throw e;
+        }
         if (e.code !== "NOT_FOUND" && e.code !== "HTTP_ERROR") throw e;
-        failed[id] = { status: e.status, attempts: (failed[id]?.attempts || 0) + 1 };
-        calls.failed += 1;
-        failedThisRun += 1;
+        markFailed(id, e.status);
+        itemServerErrorsInRow = e.status >= 500 ? itemServerErrorsInRow + 1 : 0;
+        if (itemServerErrorsInRow >= BREAKER_THRESHOLD) {
+          pendingIds.shift();
+          done += 1;
+          throw new ApiError("SERVICE_UNAVAILABLE", "Flere reservasjoner på rad feilet", e.status);
+        }
       }
       pendingIds.shift();
       done += 1;
@@ -303,6 +383,10 @@ export async function runSync({
     await storage.set({ lastSync: now() });
     return await finish("SYNCED");
   } catch (e) {
+    if (e.code === "LOCK_LOST") {
+      // Den andre siden eier syncState nå. Ikke skriv over den.
+      return await finish("BUSY");
+    }
     const code = e.code === "AUTH_EXPIRED" || e.code === "SERVICE_UNAVAILABLE" ? e.code : null;
     const reason = code || e.message || String(e);
     try {
