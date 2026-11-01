@@ -37,6 +37,14 @@ zip -r "$OUTDIR/$ZIPNAME" \
 rm -f LICENSE README.md
 
 echo ""
+if ! ./scripts/sjekk-pakke.sh "$OUTDIR/$ZIPNAME"; then
+  rm -f "$OUTDIR/$ZIPNAME"
+  echo "" >&2
+  echo "Pakken er slettet. Rett funnene over og pakk på nytt." >&2
+  exit 1
+fi
+
+echo ""
 echo "Created: $OUTDIR/$ZIPNAME"
 echo "Size: $(du -h "$OUTDIR/$ZIPNAME" | cut -f1)"
 echo ""
