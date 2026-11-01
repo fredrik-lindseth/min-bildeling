@@ -571,22 +571,64 @@ a:focus-visible,
   padding-left: var(--space-4);
 }
 
-/* ---- Forslag til kategori ---- */
-.suggestion-list > div {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-block: var(--space-2);
-  border-bottom: var(--line);
+/* ---- Sjekk forslag ---- */
+.trip-check__help {
+  max-width: var(--measure);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
-.suggestion-item__notes {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.trip-check__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.trip-check__filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.trip-check__filter .field {
+  width: auto;
+}
+
+.trip-list {
+  margin-top: var(--space-3);
+  padding: 0;
+  list-style: none;
+  border-top: var(--line);
+}
+
+.trip-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 170px 190px;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding-block: var(--space-2);
+  border-bottom: var(--line);
+  font-size: var(--text-sm);
+}
+
+.trip-row__date,
+.trip-row__source {
   color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-row__notes {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trip-row__notes--empty {
+  color: var(--color-text-tertiary);
 }
 
 /* ---- Skjemafelt ---- */
@@ -789,6 +831,17 @@ a:focus-visible,
 
   .nav__inner {
     gap: var(--space-4);
+  }
+}
+
+@media (max-width: 720px) {
+  .trip-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .trip-row__notes {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 }
 
