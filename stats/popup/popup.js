@@ -1,8 +1,7 @@
 import { currentMonthStats, monthlyCosts, usagePatterns } from "../lib/stats.js";
 import { createMonthBars } from "../lib/chart-helpers.js";
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
-import { estimateOwnershipCost, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
-import { renderMethodPanel } from "../lib/method-panel.js";
+import { estimateOwnershipCost } from "../lib/ownership-cost.js";
 import {
   startSync,
   isAuthError,
@@ -290,15 +289,10 @@ function openDashboard(hash = "") {
 
 dashboardLink.addEventListener("click", () => openDashboard());
 
-// «Slik beregnes det» for sparetallet åpnes her, med samme panel som
-// bilregnestykket i dashboardet.
-const savingsMethod = document.getElementById("savings-method");
-const savingsMethodDetail = document.getElementById("savings-method-detail");
-renderMethodPanel(savingsMethodDetail, OWNERSHIP_METHOD, { idPrefix: "spart-metode" });
-savingsMethod.addEventListener("click", () => {
-  const open = savingsMethodDetail.hidden;
-  savingsMethodDetail.hidden = !open;
-  savingsMethod.setAttribute("aria-expanded", String(open));
+// Metoden og kildene for sparetallet står i bilregnestykket i dashboardet.
+document.getElementById("savings-method").addEventListener("click", (e) => {
+  e.preventDefault();
+  openDashboard("#bilregnestykket");
 });
 
 // Initialize

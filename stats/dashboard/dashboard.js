@@ -1421,39 +1421,50 @@ function buildTransportForm(year, savedData) {
     row.appendChild(label);
 
     for (const field of definition.fields) {
+      // Etiketten står synlig over feltet, så et utfylt felt fortsatt sier
+      // hva tallet er. Placeholder forsvinner når noe er skrevet inn.
+      const wrapper = document.createElement("div");
+      wrapper.className = "transport-field";
+      const fieldId = `transport-${mode}-${field.key}`;
+      const fieldLabel = document.createElement("label");
+      fieldLabel.className = "transport-field__label";
+      fieldLabel.htmlFor = fieldId;
+      fieldLabel.textContent = field.label;
+      wrapper.appendChild(fieldLabel);
+
+      let control;
       if (field.type === "select") {
-        const select = document.createElement("select");
-        select.name = `${mode}_${field.key}`;
-        select.className = "field";
-        select.setAttribute("aria-label", `${definition.label}, ${field.label.toLowerCase()}`);
+        control = document.createElement("select");
         for (const opt of field.options) {
           const option = document.createElement("option");
           option.value = opt.value;
           option.textContent = opt.label;
           if (modeData[field.key] === opt.value) option.selected = true;
-          select.appendChild(option);
+          control.appendChild(option);
         }
-        row.appendChild(select);
       } else {
-        const input = document.createElement("input");
+        control = document.createElement("input");
         // type="text" + inputmode lar oss godta "4 740" og andre format.
         // Tall-input parses og normaliseres ved save og blur.
-        input.type = "text";
-        input.className = "field";
-        input.setAttribute("aria-label", `${definition.label}, ${field.label.toLowerCase()}`);
-        input.inputMode = "numeric";
-        input.autocomplete = "off";
-        input.name = `${mode}_${field.key}`;
-        input.placeholder = field.label;
+        control.type = "text";
+        control.inputMode = "numeric";
+        control.autocomplete = "off";
         if (modeData[field.key] != null && modeData[field.key] !== 0) {
-          input.value = formatNumberDisplay(modeData[field.key]);
+          control.value = formatNumberDisplay(modeData[field.key]);
         }
-        input.addEventListener("blur", () => {
-          const parsed = parseNumberInput(input.value);
-          input.value = parsed > 0 ? formatNumberDisplay(parsed) : "";
+        control.addEventListener("blur", () => {
+          const parsed = parseNumberInput(control.value);
+          control.value = parsed > 0 ? formatNumberDisplay(parsed) : "";
         });
-        row.appendChild(input);
       }
+      control.id = fieldId;
+      control.name = `${mode}_${field.key}`;
+      control.className = "field";
+      // Skjermleseren får transportmiddelet med, siden etiketten alene
+      // («Totalt km») går igjen i flere rader.
+      control.setAttribute("aria-label", `${definition.label}, ${field.label.toLowerCase()}`);
+      wrapper.appendChild(control);
+      row.appendChild(wrapper);
     }
 
     container.appendChild(row);

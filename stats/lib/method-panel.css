@@ -1,8 +1,8 @@
 /* «Slik beregnes det», bygd av method-panel.js. Lenkes inn etter tokens.css
-   i dashboard, popup og årsoppsummering, så panelet ser likt ut overalt.
+   i dashboard og årsoppsummering, så panelet ser likt ut begge steder.
    Innledning, tabell med Hva, Verdi og Kilde, fotnoter og kildeliste, se
-   docs/design.md. Tabellen holder også i popupens 350 px: kildekolonnen er
-   bare et tall, og etiketten brytes framfor verdien. */
+   docs/design.md. Kildekolonnen er bare et tall, og etiketten brytes framfor
+   verdien, så tabellen holder også i smale kolonner. */
 
 .method-panel {
   max-width: var(--measure);

@@ -262,7 +262,11 @@ export const TRANSPORT_METHOD = {
       url: "https://lovdata.no/dokument/LF/forskrift/2021-05-27-1753",
       date: "2026-11-01", dateLabel: "lest",
     },
-    miljodir: { name: "Miljødirektoratet: Utslippsfaktorer" },
+    miljodir: {
+      name: "Miljødirektoratet: Utslippsfaktorer i klimagassregnskap for Norge",
+      url: "https://www.miljodirektoratet.no/ansvarsomrader/klima/klimagasser-utslippstall-regnskap/utslippsfaktorer-klimagassregnskap/",
+      date: "2026-11-01", dateLabel: "lest",
+    },
     ssb: {
       name: "SSB: Mer utslipp for hver kilometer reist, figur 1",
       url: "https://www.ssb.no/natur-og-miljo/forurensning-og-klima/artikler/mer-utslipp-for-hver-kilometer-reist",

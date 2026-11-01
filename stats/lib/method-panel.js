@@ -74,7 +74,8 @@ export function methodModel(method) {
         number: i + 1,
         name: s.name,
         url: s.url ?? null,
-        date: date && s.dateLabel ? `${s.dateLabel} ${date}` : date,
+        // En kilde uten kjent dato sier det, framfor å stå som om den var ny.
+        date: date ? (s.dateLabel ? `${s.dateLabel} ${date}` : date) : "udatert",
       };
     }),
   };

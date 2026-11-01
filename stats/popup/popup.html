@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bildeleringen Stats</title>
   <link rel="stylesheet" href="../lib/tokens.css">
-  <link rel="stylesheet" href="../lib/method-panel.css">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -32,8 +31,7 @@
         <div><dt>Mest brukte bil</dt><dd id="most-used-car">–</dd></div>
         <div><dt>Spart i år</dt><dd id="yearly-savings">–</dd></div>
       </dl>
-      <button type="button" class="method-toggle" id="savings-method" aria-expanded="false" aria-controls="savings-method-detail">Slik beregnes det</button>
-      <div class="method-detail" id="savings-method-detail" hidden></div>
+      <a class="method-link" id="savings-method" href="#">Slik beregnes det</a>
 
       <div class="months">
         <h2 class="months__label" id="months-label">Siste 6 måneder, kr</h2>

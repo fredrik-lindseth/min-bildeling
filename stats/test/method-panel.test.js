@@ -123,6 +123,9 @@ test("modellen nummererer kildene og gir like merknader samme bokstav", () => {
     notes: ["Generelt."],
     sources: { a: { name: "Kilde A", url: "https://a.example", date: "2021-03" }, b: { name: "Kilde B", date: "2026-11-01", dateLabel: "lest" } },
   });
+  // En kilde uten dato sier det, framfor å stå som om den var ny.
+  const undated = methodModel({ intro: "x.", factors: [{ label: "X", value: 1, unit: "kr", source: "u" }], sources: { u: { name: "Uten dato" } } });
+  assert.equal(undated.sources[0].date, "udatert");
   assert.deepEqual(model.rows.map((r) => [r.value, r.noteMark, r.sources]), [
     ["1,5 kr", "a", [1]],
     ["95–170 g/km", "a", [2, 1]],

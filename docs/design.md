@@ -210,9 +210,9 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 - én innledende setning om hva som regnes,
 - en tabell med kolonnene Hva, Verdi og Kilde: én faktor per rad, verdien i 600 og tekstfarge, kilden som et fotnotenummer som lenker til kildelisten,
 - korte merknader under tabellen, med bokstav når de hører til en rad («bare utslipp fra eksos», «Hordaland-tallet brukes også for Trøndelag») og uten når de gjelder hele metoden,
-- kildelisten, nummerert, med lenke og dato.
+- kildelisten, nummerert, med lenke og dato. En kilde uten kjent dato står som «udatert».
 
-Metodene er rene data ved siden av regnestykket (`CO2_METHOD`, `TRANSPORT_METHOD`, `OWNERSHIP_METHOD`, `BOOKING_METHOD`), og verdiene i tabellen er de samme konstantene som regnestykket bruker. `test/method-panel.test.js` binder dem. Tabellen holder også i popupens 350 px, fordi kildekolonnen bare er et tall og etiketten brytes framfor verdien.
+Metodene er rene data ved siden av regnestykket (`CO2_METHOD`, `TRANSPORT_METHOD`, `OWNERSHIP_METHOD`, `BOOKING_METHOD`), og verdiene i tabellen er de samme konstantene som regnestykket bruker. `test/method-panel.test.js` binder dem. Kildekolonnen er bare et tall, og etiketten brytes framfor verdien, så tabellen holder også i smale kolonner. Popupen viser ikke panelet: Firefox gir den høyst 600 px, og tabellen for bilregnestykket er lengre, så «Slik beregnes det» ved «Spart i år» åpner bilregnestykket i dashboardet.
 
 **Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary. Den forsvinner ikke på tid, for en melding med tidsgrense rekker ikke alle å lese, men fjernes så snart et felt i skjemaet endres, siden den da ikke lenger stemmer.
 
