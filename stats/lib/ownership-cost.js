@@ -172,11 +172,11 @@ export const OWNERSHIP_METHOD = {
     "Parkering er boligsoneparkering for bil 1 der bilkollektivet ditt holder til: " +
     `${kr(PARKING.bergen.perMonth)} i måneden i Bergen sone 1–8 (Bildeleringen) og ` +
     `${kr(PARKING.trondheim.perMonth)} i måneden i Trondheim (Trondheim Bilkollektiv). ` +
-    "Med egen plass blir det 0 kr. Renter på kjøpesummen, " +
+    "Kjenner vi ikke bilkollektivet, regnes Bergen. Med egen plass blir det 0 kr. Renter på kjøpesummen, " +
     "bompenger og ferje er ikke med, så det reelle tallet er som regel høyere. " +
     `Volvo EX40 er regnet på samme måte ut fra veiledende pris ${kr(VOLVO_EX40_PRICE)} for P5 Core. ` +
-    "Bildeling er det du faktisk har betalt. For året som pågår er de faste " +
-    "kostnadene tatt for den delen av året som er gått, så de møter bildelingen hittil.",
+    "Bildeling er det du faktisk har betalt. «Spart i år» tar de faste " +
+    "kostnadene for den delen av året som er gått, så de møter bildelingen hittil.",
   sources: [
     {
       text: "OFV: Kostnader ved bilhold – eksempler på beregning 2026 (16.06.2026)",

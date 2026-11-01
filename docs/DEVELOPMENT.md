@@ -88,8 +88,8 @@ icons/
 | Parkering             | Bergen eller Trondheim kommune, etter organisasjonen    |
 | Volvo EX40            | Finn-pris 10.09.2026, OFV                               |
 | CO₂ bildeling         | Miljødirektoratet (per biltype)                         |
-| CO₂ buss              | SSB, dieselbuss 2019 (~59 g/passasjer-km)               |
-| CO₂ taxi              | 0 g/km, nullutslippskrav i Vestland og Trøndelag        |
+| CO₂ buss              | SSB, buss 2019 (~59 g/passasjer-km)                     |
+| CO₂ taxi              | 0 g/km i eksos, nullutslippskrav Vestland og Trøndelag  |
 | CO₂ fly               | Avinor (~150 g/passasjer-km)                            |
 | Substitusjonseffekter | TØI 1895/2022                                           |
 

@@ -1,16 +1,19 @@
 /**
  * Transport calculator module.
  *
- * CO₂ factors per transport mode (g/km, passenger). Taxi and bus apply to
- * every Bilparaplyen member, not just Bergen:
- *   - Taxi: zero-emission taxis are required in all of Vestland (incl. Bergen)
- *     since 01.04.2024 (FOR-2020-03-03-2549) and in all of Trøndelag since
- *     01.07.2025 (FOR-2021-05-27-1753). Exempt: wheelchair taxis with more
- *     than seven seats. Lovdata, read 01.11.2026.
- *   - Bus: SSB national figure for diesel buses, 59.4 g/pkm in 2019, the last
- *     year before the pandemic skewed occupancy (SSB, «Mer utslipp for hver
- *     kilometer reist», table 1, 13.12.2021). Electric buses, light rail and
- *     trams pull the real number down, so this is an upper estimate.
+ * CO₂ factors per transport mode (g/km, passenger), tailpipe only. Taxi and
+ * bus apply to every Bilparaplyen member, not just Bergen:
+ *   - Taxi: taxis for up to nine people must be zero-emission in the former
+ *     Hordaland municipalities since 01.04.2024 and in the rest of Vestland
+ *     since 01.04.2026 (FOR-2020-03-03-2549 §§ 1, 2 and 6), and in all of
+ *     Trøndelag since 01.07.2025 (FOR-2021-05-27-1753 § 2; wheelchair taxis
+ *     with more than seven seats are exempt). Lovdata, read 01.11.2026.
+ *     Years before the requirement took effect are undercounted at 0.
+ *   - Bus: SSB national figure for buses excl. coaches, 59 g/pkm in 2019, the
+ *     last year before the pandemic skewed occupancy (SSB, «Mer utslipp for
+ *     hver kilometer reist», figure/table 1, 13.12.2021). Electric buses,
+ *     light rail and trams pull the real number down, so this is an upper
+ *     estimate.
  *   - Fly: Avinor/Miljødirektoratet.
  */
 
@@ -170,17 +173,18 @@ export function transportSummary(transportData, sharingStats) {
 
 export const TRANSPORT_METHOD = {
   note:
-    "CO₂-faktorer: Taxi 0 g/km (nullutslippskrav for drosjer i Vestland og Trøndelag), " +
+    "CO₂-faktorer, bare utslipp fra eksos: " +
+    "Taxi 0 g/km (nullutslippskrav for drosjer i Vestland og Trøndelag), " +
     "Leiebil ~130 g/km (norsk bilparksnitt), " +
     "Egen bil: bensin ~130, diesel ~120, elbil 0 g/km (Miljødirektoratet), " +
-    "Buss ~59 g/km per passasjer (SSB, dieselbuss 2019, elbuss og bane gir mindre), " +
+    "Buss ~59 g/km per passasjer (SSB, buss 2019, elbuss og bane gir mindre), " +
     "Fly ~150 g/km per passasjer (Avinor/Miljødirektoratet), " +
     "Sykkel/gange = 0.",
   sources: [
     "Miljødirektoratet: Utslippsfaktorer",
-    "Lovdata: miljøkrav til drosjenæringa i Vestland (FOR-2020-03-03-2549, fra 01.04.2024)",
-    "Lovdata: miljøkrav til drosjer i Trøndelag (FOR-2021-05-27-1753, fra 01.07.2025)",
-    "SSB: Mer utslipp for hver kilometer reist, tabell 1 (13.12.2021)",
+    "Lovdata: miljøkrav til drosjenæringa i Vestland (FOR-2020-03-03-2549, gamle Hordaland fra 01.04.2024, resten av fylket fra 01.04.2026)",
+    "Lovdata: miljøkrav til drosjer i Trøndelag (FOR-2021-05-27-1753, krav innen 01.07.2025)",
+    "SSB: Mer utslipp for hver kilometer reist, figur 1 (13.12.2021)",
     "Avinor: Innenriks luftfart utslipp",
   ],
 };

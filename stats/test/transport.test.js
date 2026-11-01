@@ -11,6 +11,8 @@ test("taxi teller 0 g/km, med nullutslippskravet i begge fylkene som kilde", () 
   const sources = TRANSPORT_METHOD.sources.join("\n");
   assert.match(sources, /Vestland.*2024/);
   assert.match(sources, /Trøndelag.*2025/);
+  // Bare eksos er med, så teksten skal si det framfor å love nullutslipp.
+  assert.match(TRANSPORT_METHOD.note, /eksos/);
   const s = transportSummary({ taxi: { trips: 4, totalKm: 40, totalCost: 1200 } }, null);
   assert.equal(s.modes.taxi.co2Kg, 0);
 });
