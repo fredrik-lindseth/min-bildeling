@@ -19,6 +19,17 @@ Hver utvidelse pakkes med sitt eget script (kjøres fra repo-roten):
 
 `flex/` får sitt eget `package.sh` (speil av stats sitt) når den er klar å shippe. Versjonen leses fra `manifest.json`, så bump `"version"` der før du bygger.
 
+### Release på GitHub
+
+GitHub er kanonisk for alt offentlig: releases, issues og kildekoden. Speilet er privat og får bare `main` og taggene. Derfor lenker README med absolutt GitHub-URL til releases og issues, mens lenker til filer i repoet er relative (`docs/...`, `LICENSE`, `flex/README.md`). Relative fillenker virker på begge plattformene. En relativ lenke til releases-siden virker derimot bare på GitHub, fordi andre git-tjenester bygger sti-URL-ene annerledes.
+
+```bash
+./stats/scripts/release.sh notater.md          # tørrkjøring
+./stats/scripts/release.sh --yes notater.md    # tagg, push og publiser
+```
+
+Scriptet krever ren arbeidskopi på `main`, leser versjonen fra `stats/manifest.json` og stopper hvis taggen `v<versjon>` finnes alt. Det kjører `package.sh`, lager en annotert tagg, pusher `main` og taggen til alle remotene som er satt opp, og lager GitHub-releasen med zip-en som vedlegg og notatfilen som tekst. `--title` setter tittelen på releasen (standard `v<versjon>`). Uten `--yes` kjører bare sjekkene og pakkingen, og scriptet viser kommandoene det ville kjørt.
+
 ## 2. Velg distribusjonsmåte
 
 Mozilla gir to valg når du sender inn en versjon på [addons.mozilla.org/developers](https://addons.mozilla.org/developers/):

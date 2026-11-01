@@ -86,4 +86,4 @@ docs/
 ./stats/scripts/package.sh
 ```
 
-Lager `stats/dist/bildeleringen-stats-v<versjon>.zip`.
+Lager `stats/dist/bildeleringen-stats-v<versjon>.zip`. Selve utgivelsen gjøres med `./stats/scripts/release.sh`, se [publisering.md](publisering.md), avsnittet «Release på GitHub».
