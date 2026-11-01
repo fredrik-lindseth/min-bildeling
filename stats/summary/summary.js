@@ -117,7 +117,16 @@ function renderMethod() {
   const list = add("ul", "");
   for (const source of [...OWNERSHIP_METHOD.sources, ...CO2_METHOD.sources]) {
     const li = document.createElement("li");
-    li.textContent = source;
+    if (source.url) {
+      const a = document.createElement("a");
+      a.href = source.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = source.text;
+      li.appendChild(a);
+    } else {
+      li.textContent = source.text ?? source;
+    }
     list.appendChild(li);
   }
 }

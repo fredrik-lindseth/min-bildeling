@@ -62,8 +62,15 @@ test("Volvo EX40 interpoleres mellom OFVs 400 000- og 550 000-eksempel", () => {
 
 test("«Slik beregner vi» daterer hver kilde og navngir Bergen-forutsetningen", () => {
   for (const source of OWNERSHIP_METHOD.sources) {
-    assert.match(source, /\d{4}/, `kilden mangler år: ${source}`);
+    assert.match(source.text, /\d{4}/, `kilden mangler år: ${source.text}`);
+    if (source.url) assert.match(source.url, /^https:\/\//, source.text);
   }
   assert.match(OWNERSHIP_METHOD.note, /Bergen/);
   assert.doesNotMatch(OWNERSHIP_METHOD.note, /EX C40/);
+});
+
+test("teksten bruker tallene fra beregningen", () => {
+  const nb = (n) => new Intl.NumberFormat("nb-NO").format(n);
+  assert.ok(OWNERSHIP_METHOD.note.includes(`${nb(VOLVO_EX40.price)} kr`));
+  assert.ok(OWNERSHIP_METHOD.note.includes(`${nb(VOLVO_EX40.costs.parking / 12)} kr i måneden`));
 });

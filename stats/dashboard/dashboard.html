@@ -156,11 +156,11 @@
             <div id="booking-extremes">
               <h3 class="list-title">Ytterpunkter</h3>
               <dl class="figures">
-                <div>
+                <div class="figures__row--captioned">
                   <dt>Lengst i forveien</dt><dd id="booking-longest">&ndash;</dd>
                   <dd class="figures__caption" id="booking-longest-context"></dd>
                 </div>
-                <div>
+                <div class="figures__row--captioned">
                   <dt>Mest spontan</dt><dd id="booking-shortest">&ndash;</dd>
                   <dd class="figures__caption" id="booking-shortest-context"></dd>
                 </div>
@@ -347,7 +347,7 @@
         </summary>
         <p class="keyword-card__help">
           Skill ordene med komma. Et ord treffer starten av et ord i notatet, så «lege» treffer «legevakt».
-          Med * først treffer det også inne i et ord: «*besøk» treffer «bursdagsbesøk».
+          Med * først treffer det også sist i et ord: «*besøk» treffer «bursdagsbesøket».
           Første kategori ovenfra med treff vinner.
         </p>
         <form id="keyword-form" class="keyword-form">
@@ -506,17 +506,17 @@
         </div>
       </div>
     </section>
-
-    <dialog id="dev-confirm" class="dialog" aria-labelledby="dev-confirm-text">
-      <form method="dialog">
-        <p id="dev-confirm-text"></p>
-        <div class="form-actions">
-          <button type="submit" value="cancel" id="dev-confirm-cancel" class="btn" autofocus>Avbryt</button>
-          <button type="submit" value="confirm" id="dev-confirm-ok" class="btn btn--danger"></button>
-        </div>
-      </form>
-    </dialog>
   </aside>
+
+  <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-dialog-text">
+    <form method="dialog">
+      <p id="confirm-dialog-text"></p>
+      <div class="form-actions">
+        <button type="submit" value="cancel" id="confirm-dialog-cancel" class="btn" autofocus>Avbryt</button>
+        <button type="submit" value="confirm" id="confirm-dialog-ok" class="btn"></button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="../vendor/html2canvas.min.js"></script>
   <script src="../vendor/chart.min.js"></script>

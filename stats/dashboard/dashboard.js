@@ -911,7 +911,7 @@ function renderOwnership(reservations) {
   const breakdownLabels = [
     "Verditap",
     "Forsikring",
-    "Årsavgift",
+    "Trafikkforsikringsavgift",
     "Vedlikehold",
     "Parkering",
     "Drivstoff",
@@ -970,7 +970,7 @@ function renderOwnership(reservations) {
     const bd = result.breakdownOwnership;
     ownershipMethodDetail.innerHTML = `
       <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
-      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + årsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
+      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
       <p>Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
       ${sourcesHtml(OWNERSHIP_METHOD.sources)}
     `;
@@ -1103,6 +1103,12 @@ function renderTripCheck(reservations, savedCategories, keywords) {
   acceptBtn.textContent = `Godta alle forslag (${pending.length})`;
   acceptBtn.disabled = pending.length === 0;
   acceptBtn.onclick = async () => {
+    const confirmed = await confirmDialog(
+      `Godta ${formatCount(pending.length, "forslag", "forslag")}? Valgene kan endres etterpå, én og én.`,
+      "Godta alle",
+      { danger: false },
+    );
+    if (!confirmed) return;
     const accepted = Object.fromEntries(pending.map((r) => [r.id, matches.get(r.id).category]));
     await saveCategories(storage, accepted);
     await renderCategories(reservations);
@@ -1691,8 +1697,14 @@ function escapeHtml(str) {
   return el.innerHTML;
 }
 
+// En kilde er en tekst eller { text, url }. Lenken åpnes i ny fane, så
+// dashbordet blir stående.
 function sourcesHtml(sources) {
-  const items = sources.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+  const items = sources.map((s) => {
+    const text = escapeHtml(typeof s === "string" ? s : s.text);
+    if (!s.url) return `<li>${text}</li>`;
+    return `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${text}</a></li>`;
+  }).join("");
   return `<p>Kilder:</p><ul>${items}</ul>`;
 }
 
@@ -2030,16 +2042,18 @@ async function handleDevExport() {
 
 // Bekreftelse i et eget <dialog> framfor window.confirm(), som WebDriver avviser
 // stille i den fjernstyrte nettleseren. Esc og Avbryt gir false, og fokus
-// starter på Avbryt.
-function confirmDialog(message, confirmLabel) {
-  const dialog = $("dev-confirm");
-  $("dev-confirm-text").textContent = message;
-  $("dev-confirm-ok").textContent = confirmLabel;
+// starter på Avbryt. Dialogen står utenfor utviklerpanelet, som kan være skjult.
+function confirmDialog(message, confirmLabel, { danger = true } = {}) {
+  const dialog = $("confirm-dialog");
+  $("confirm-dialog-text").textContent = message;
+  const ok = $("confirm-dialog-ok");
+  ok.textContent = confirmLabel;
+  ok.classList.toggle("btn--danger", danger);
   dialog.returnValue = "";
   return new Promise((resolve) => {
     dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"), { once: true });
     dialog.showModal();
-    $("dev-confirm-cancel").focus();
+    $("confirm-dialog-cancel").focus();
   });
 }
 

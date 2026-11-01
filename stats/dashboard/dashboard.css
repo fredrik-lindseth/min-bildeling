@@ -441,7 +441,7 @@ a:focus-visible,
 }
 
 /* Kontekstlinje under tallet, på egen linje i samme rad. */
-.figures > div:has(.figures__caption) {
+.figures > .figures__row--captioned {
   flex-wrap: wrap;
   row-gap: 0;
 }

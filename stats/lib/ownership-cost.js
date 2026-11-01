@@ -48,7 +48,8 @@ const TRAFFIC_INSURANCE_TAX = {
 // koster beboerparkering 3 850 kr (elbil 1 300 kr), i ytre by 0 kr (Oslo
 // kommune, 2026-priser), og leid plass i Bergen kommunes beboeranlegg koster
 // 1 257 kr/mnd (side oppdatert 13.10.2026). Med egen plass er den 0 kr.
-const PARKING_PER_YEAR = 582 * 12;
+const PARKING_PER_MONTH = 582;
+const PARKING_PER_YEAR = PARKING_PER_MONTH * 12;
 
 // Drivstoff og strøm, OFV kalkyle 2026: bensin 20,72 kr/l og 0,61 l/mil
 // (bensineksempel 1), diesel 20,35 kr/l og 0,69 l/mil (dieseleksempel 1).
@@ -115,25 +116,43 @@ const VOLVO_EX40 = {
 };
 
 // Tekst og kilder til «Slik beregner vi» ved eierkostnad og sparetall.
+// Tallene hentes fra konstantene over, så teksten følger med når de endres.
+const kr = (n) => `${new Intl.NumberFormat("nb-NO").format(n)} kr`;
+const roundedThousands = (n) => Math.round(n / 1000) * 1000;
+
 export const OWNERSHIP_METHOD = {
   note: "Eierkostnaden er et anslag for en ny bil i bilkategorien du bruker mest, " +
     "over tre års eiertid: verditap, forsikring, trafikkforsikringsavgift (tidligere årsavgift), " +
     "vedlikehold med dekk og service, parkering og drivstoff for kilometerne du kjørte. " +
     "Tallene er OFVs eksempler for 10 000 km i året. Vi har satt Minibil og Småbil " +
-    "lik en bil til 300 000 kr, Kombi 400 000 kr og Stasjonsvogn, SUV og Varebil " +
-    "550 000 kr. Forsikringen er snittpris i Oslo-området med 75 % bonus. " +
-    "Parkering er boligsone i Bergen sone 1–8, ca. 7 000 kr i året. Bor du andre steder, " +
+    `lik en bil til ${kr(CATEGORY_PRICE.Småbil)}, Kombi ${kr(CATEGORY_PRICE.Kombi)} og ` +
+    `Stasjonsvogn, SUV og Varebil ${kr(CATEGORY_PRICE.SUV)}. ` +
+    "Forsikringen er snittpris i Oslo-området med 75 % bonus. " +
+    `Parkering er boligsone i Bergen sone 1–8, ${kr(PARKING_PER_MONTH)} i måneden, ` +
+    `ca. ${kr(roundedThousands(PARKING_PER_YEAR))} i året. Bor du andre steder, ` +
     "er det annerledes: i Oslo indre by koster beboerparkering 3 850 kr (elbil 1 300 kr), " +
     "i ytre by ingenting, og med egen plass blir det 0 kr. Renter på kjøpesummen, " +
     "bompenger og ferje er ikke med, så det reelle tallet er som regel høyere. " +
-    "Volvo EX40 er regnet på samme måte ut fra veiledende pris 439 900 kr for P5 Core. " +
+    `Volvo EX40 er regnet på samme måte ut fra veiledende pris ${kr(VOLVO_EX40_PRICE)} for P5 Core. ` +
     "Bildeling er det du faktisk har betalt.",
   sources: [
-    "OFV: Kostnader ved bilhold – eksempler på beregning 2026 (16.06.2026)",
-    "NAF: Avgifter og kostnader for bil 2026 (oppdatert 02.10.2026)",
-    "Bergen kommune: Boligsoneparkering, sone 1–8 (side oppdatert 15.10.2026)",
-    "Oslo kommune: priser for beboerparkeringstillatelse 2026",
-    "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)",
+    {
+      text: "OFV: Kostnader ved bilhold – eksempler på beregning 2026 (16.06.2026)",
+      url: "https://kommunikasjon.ntb.no/pressemelding/18952851/ny-bil-koster-mer-enn-mange-tror-verditapet-er-den-storste-bilutgiften?lang=no",
+    },
+    {
+      text: "NAF: Avgifter og kostnader for bil 2026 (oppdatert 02.10.2026)",
+      url: "https://www.naf.no/politikk-og-samfunn/privatokonomi/avgifter-og-kostnader-for-bil-2026",
+    },
+    {
+      text: "Bergen kommune: Boligsoneparkering, sone 1–8 (side oppdatert 15.10.2026)",
+      url: "https://www.bergen.kommune.no/innbyggerhjelpen/trafikk-reiser-vei/vei-transport-og-parkering/parkering/boligsoneparkering",
+    },
+    {
+      text: "Oslo kommune: priser for beboerparkeringstillatelse 2026",
+      url: "https://www.oslo.kommune.no/gate-transport-og-parkering/parkering/beboerparkering/priser-for-beboerparkeringstillatelse/",
+    },
+    { text: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)" },
   ],
 };
 
