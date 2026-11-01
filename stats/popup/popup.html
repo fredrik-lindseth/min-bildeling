@@ -8,11 +8,11 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="popup">
-    <header class="header">
-      <h1 class="header__title">Bildeleringen Stats</h1>
-    </header>
+  <header class="header">
+    <h1 class="header__title">Bildeleringen Stats</h1>
+  </header>
 
+  <main class="body">
     <div id="status" class="status" role="status" hidden>
       <div class="status__text" id="status-text"></div>
       <div class="progress" id="progress" role="progressbar" aria-label="Fremdrift for synkronisering" aria-valuemin="0" aria-valuemax="100" hidden>
@@ -20,51 +20,33 @@
       </div>
     </div>
 
-    <section id="stats-section" class="stats" hidden>
-      <div class="cards">
-        <div class="card">
-          <span class="card__label">Denne måneden</span>
-          <span class="card__value" id="spend-this-month">–</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Forrige måned</span>
-          <span class="card__value" id="spend-last-month">–</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Turer denne mnd.</span>
-          <span class="card__value" id="trips-this-month">–</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Snittpris per tur</span>
-          <span class="card__value" id="avg-cost">–</span>
-        </div>
-        <div class="card card--wide">
-          <span class="card__label">Mest brukte bil</span>
-          <span class="card__value" id="most-used-car">–</span>
-        </div>
-        <div class="card card--highlight card--wide">
-          <span class="card__label">Spart i år</span>
-          <span class="card__value card__value--tertiary" id="yearly-savings">–</span>
-          <a class="card__method" id="savings-method" href="#">Slik beregner vi</a>
-        </div>
-      </div>
+    <section id="stats-section" class="stats" aria-label="Denne måneden" hidden>
+      <p class="lead">
+        <span class="lead__number" id="spend-this-month">–</span>
+        <span class="lead__text">denne måneden, <span id="trips-this-month">–</span>. Forrige måned <span id="spend-last-month">–</span>.</span>
+      </p>
+
+      <dl class="figures">
+        <div><dt>Snittpris per tur</dt><dd id="avg-cost">–</dd></div>
+        <div><dt>Mest brukte bil</dt><dd id="most-used-car">–</dd></div>
+        <div><dt>Spart i år</dt><dd id="yearly-savings">–</dd></div>
+      </dl>
+      <a class="method-link" id="savings-method" href="#">Slik beregner vi</a>
 
       <div class="months">
-        <span class="months__label" id="months-label">Siste 6 måneder, kr</span>
-        <canvas id="months-chart" role="img" aria-label="Siste 6 måneder"></canvas>
+        <h2 class="months__label" id="months-label">Siste 6 måneder, kr</h2>
+        <div class="months__frame">
+          <canvas id="months-chart" role="img" aria-label="Siste 6 måneder"></canvas>
+        </div>
       </div>
     </section>
+  </main>
 
-    <footer class="footer">
-      <button id="sync-btn" class="btn btn--sync" type="button">
-        Synkroniser
-      </button>
-      <span id="last-synced" class="footer__sync-time"></span>
-      <button id="dashboard-link" class="btn btn--dashboard" type="button">
-        Åpne dashboard
-      </button>
-    </footer>
-  </div>
+  <footer class="footer">
+    <span id="last-synced" class="footer__sync-time"></span>
+    <button id="sync-btn" class="btn btn--sync" type="button">Synkroniser</button>
+    <button id="dashboard-link" class="btn btn--primary" type="button">Åpne dashboard</button>
+  </footer>
 
   <script src="../vendor/chart.min.js"></script>
   <script type="module" src="popup.js"></script>

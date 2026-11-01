@@ -1,9 +1,9 @@
 #!/bin/bash
 # Måler WCAG 2-kontrast for fargeparene som brukes sammen i stats/.
-# Leser :root i lys modus og :root under prefers-color-scheme: dark (eller
-# light-dark(a, b)) i hver CSS-fil, og feiler under 4.5:1 for tekst og 3:1
-# for UI-elementer uten tekst (fremdriftslinjen). Farger med alfa kan ikke
-# måles og gir feil. summary.css er ikke med ennå.
+# Alle farger står i lib/tokens.css som light-dark(lys, mørk), og hvert par
+# måles i begge moduser. Leser også :root under prefers-color-scheme: dark
+# om en fil skulle bruke det. Feiler under 4.5:1 for tekst og 3:1 for kanter,
+# fremdrift og diagram. Farger med alfa kan ikke måles og gir feil.
 #
 # Bruk: stats/scripts/kontrast.sh
 # Nye par legges i PARS under. Format: fil, forgrunn, bakgrunn, krav, beskrivelse.
@@ -52,18 +52,6 @@ PARS = [
     (T, "--color-chart-4", "--color-surface", UI, "chart-4"),
     (T, "--color-chart-5", "--color-surface", UI, "chart-5"),
     (T, "--color-chart-3", "--color-bg", UI, "chart-3 mot bg"),
-    # Popup
-    ("popup/popup.css", "--color-text", "--color-bg", TEKST, "brødtekst"),
-    ("popup/popup.css", "--color-text-secondary", "--color-bg", TEKST, "tidsstempel"),
-    ("popup/popup.css", "--color-text", "--color-surface", TEKST, "tekst i synkbanner"),
-    ("popup/popup.css", "--color-accent", "--color-surface", UI, "fremdrift mot banner"),
-    ("popup/popup.css", "--color-accent", "--color-border", UI, "fremdrift mot spor"),
-    ("popup/popup.css", "--color-warning-text", "--color-warning-bg", TEKST, "ikke innlogget og feil"),
-    ("popup/popup.css", "--color-accent-text", "--color-accent", TEKST, "primærknapp"),
-    ("popup/popup.css", "--color-accent-text", "--color-accent-hover", TEKST, "primærknapp, hover"),
-    ("popup/popup.css", "--color-btn-secondary-text", "--color-btn-secondary-bg", TEKST, "sekundærknapp"),
-    ("popup/popup.css", "--color-btn-secondary-text", "--color-btn-secondary-hover", TEKST, "sekundærknapp, hover"),
-    ("popup/popup.css", "--color-disabled-text", "--color-disabled-bg", TEKST, "deaktivert knapp"),
 ]
 
 

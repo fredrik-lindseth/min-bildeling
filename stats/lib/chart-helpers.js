@@ -181,7 +181,7 @@ export function createMonthBars(canvas, labels, data, formatValue) {
     },
     options: {
       responsive: true,
-      aspectRatio: 2.5,
+      maintainAspectRatio: false,
       animation: false,
       layout: { padding: { top: 18 } },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },

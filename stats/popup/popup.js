@@ -64,7 +64,7 @@ function showLoginRequired() {
 
   const action = document.createElement("a");
   action.id = "status-action";
-  action.className = "status__action";
+  action.className = "btn btn--primary status__action";
   action.textContent = "Åpne app.dele.no";
   action.href = "https://app.dele.no";
   action.target = "_blank";
@@ -87,7 +87,7 @@ function showSyncMessage(message) {
   const action = document.createElement("button");
   action.type = "button";
   action.id = "status-action";
-  action.className = "status__action status__action--retry";
+  action.className = "btn status__action";
   action.textContent = "Prøv igjen";
   action.addEventListener("click", () => syncAndRender(true));
   statusEl.appendChild(action);
@@ -115,7 +115,7 @@ function renderStats(reservations) {
     : "0 kr";
 
   // Trips this month
-  tripsThisMonth.textContent = stats.tripsThisMonth;
+  tripsThisMonth.textContent = stats.tripsThisMonth === 1 ? "1 tur" : `${stats.tripsThisMonth} turer`;
 
   avgCost.textContent = stats.thisMonth
     ? formatNOK.format(stats.thisMonth.average)
@@ -136,7 +136,6 @@ function renderStats(reservations) {
     savingsEl.textContent = `ca. ${formatNOK.format(ownership.savings)}`;
   } else if (ownership) {
     savingsEl.textContent = "0 kr";
-    savingsEl.classList.remove("card__value--tertiary");
   } else {
     savingsEl.textContent = "–";
   }

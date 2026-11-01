@@ -1,48 +1,9 @@
-:root {
-  --color-bg: #ffffff;
-  --color-surface: #f7f8fa;
-  --color-border: #e2e5ea;
-  --color-text: #1a1d23;
-  --color-text-secondary: #5f6672;
-  --color-accent: #2a66ab;
-  --color-accent-hover: #1f5592;
-  --color-accent-text: #ffffff;
-  --color-warning-bg: #f5e4d3;
-  --color-warning-text: #7a3f0a;
-  --color-btn-secondary-bg: #f0f2f5;
-  --color-btn-secondary-hover: #e4e7ec;
-  --color-btn-secondary-text: #2a66ab;
-  --color-disabled-bg: #e4e7ec;
-  --color-disabled-text: #555b66;
-  --color-tertiary: #4caf7c;
-  --color-shadow: rgba(0, 0, 0, 0.06);
-  /* Demomerket: mørk rav på lys rav, kontrast over 7:1 */
-  --color-demo-bg: #fbe3b4;
-  --color-demo-text: #5c3a00;
-}
+/* Popupen, 350 px bred. Farger og størrelser fra ../lib/tokens.css, se
+   docs/design.md. Brødteksten er --text-sm, fordi 15 px gir for få tegn per
+   linje i denne bredden. */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1a1d23;
-    --color-surface: #23262e;
-    --color-border: #33373f;
-    --color-text: #e8eaef;
-    --color-text-secondary: #9ca1ad;
-    --color-accent: #5a9de6;
-    --color-accent-hover: #6db0f5;
-    --color-accent-text: #1a1d23;
-    --color-warning-bg: #3a2c1f;
-    --color-warning-text: #f0be8a;
-    --color-btn-secondary-bg: #23262e;
-    --color-btn-secondary-hover: #2a2e36;
-    --color-btn-secondary-text: #5a9de6;
-    --color-disabled-bg: #2a2d35;
-    --color-disabled-text: #a3a7b2;
-    --color-tertiary: #6fd092;
-    --color-shadow: rgba(0, 0, 0, 0.2);
-    --color-demo-bg: #4a3410;
-    --color-demo-text: #f6d88f;
-  }
+:root {
+  --line: 1px solid var(--color-border);
 }
 
 *,
@@ -56,255 +17,222 @@
 body {
   width: 350px;
   min-height: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
   background-color: var(--color-bg);
 }
 
-.popup {
-  padding: 16px;
+a {
+  color: var(--color-accent);
+  text-underline-offset: 3px;
 }
 
-/* Header */
 .header {
-  margin-bottom: 12px;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border-bottom: var(--line);
 }
 
 .header__title {
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
-/* Status message */
+.body {
+  padding: var(--space-4);
+}
+
+/* Synkbanner og feil */
 .status {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  background-color: var(--color-surface);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.status__text {
-  margin-bottom: 4px;
+  background-color: var(--color-surface);
+  border: var(--line);
+  border-radius: var(--radius);
 }
 
 .status__text strong {
   display: block;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-weight: 600;
 }
 
-/* Synk er informasjon og bruker vanlig flate. Gult er for feil og manglende innlogging. */
 .status--login {
-  background-color: var(--color-warning-bg);
   color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
   border-color: transparent;
-  padding: 16px;
-  text-align: center;
-}
-
-.status--login .status__text {
-  margin-bottom: 12px;
-  line-height: 1.5;
 }
 
 .status__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background-color: var(--color-accent);
-  color: var(--color-accent-text);
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
-  text-decoration: none;
-  transition: background-color 0.15s ease;
+  margin-top: var(--space-3);
 }
 
-.status__action:hover {
-  background-color: var(--color-accent-hover);
-}
-
-/* Prøv igjen-knappen ved synkfeil */
-.status__action--retry {
-  margin-top: 8px;
-  padding: 6px 12px;
-  border: 0;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Progress bar */
 .progress {
-  height: 6px;
-  border-radius: 3px;
-  background-color: var(--color-border);
-  overflow: hidden;
+  height: 4px;
+  margin-top: var(--space-2);
+  background-color: var(--color-sunken);
 }
 
 .progress__bar {
-  height: 100%;
-  border-radius: 3px;
-  background-color: var(--color-accent);
   width: 0%;
+  height: 100%;
+  background-color: var(--color-accent);
 }
 
-/* Stat cards grid */
-.cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
+/* Hovedtallet: månedens beløp */
+.lead__number {
+  display: block;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-
-.card--wide {
-  grid-column: 1 / -1;
-}
-
-.card__label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.lead__text {
+  display: block;
+  margin-top: var(--space-1);
   color: var(--color-text-secondary);
 }
 
-.card__value {
-  font-size: 18px;
+/* Nøkkeltall som liste */
+.figures {
+  margin-top: var(--space-4);
+}
+
+.figures > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-bottom: var(--line);
+}
+
+.figures dt {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.figures dd {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 600;
-  line-height: 1.2;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.card__value--tertiary {
-  color: var(--color-tertiary);
-}
-
-.card--highlight {
-  border-color: var(--color-tertiary);
-  border-width: 1px;
-}
-
-.card__method {
-  font-size: 12px;
-  color: var(--color-accent);
+.method-link {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
 }
 
 /* Siste seks måneder */
 .months {
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  margin-top: var(--space-4);
 }
 
 .months__label {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
-/* Footer */
+.months__frame {
+  position: relative;
+  height: 120px;
+}
+
+/* Fot med tidsstempel og to like brede knapper */
 .footer {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border-top: var(--line);
 }
 
 .footer__sync-time {
-  flex: 1;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-align: center;
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
 }
 
-/* Buttons */
+.footer__sync-time:empty {
+  display: none;
+}
+
+.footer .btn {
+  flex: 1;
+}
+
+/* Knapper */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
-  min-height: 44px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
   text-decoration: none;
-  transition: background-color 0.15s ease;
-}
-
-.btn--sync {
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  background-color: var(--color-btn-secondary-bg);
-  color: var(--color-btn-secondary-text);
+  cursor: pointer;
 }
 
-.btn--sync:hover {
-  background-color: var(--color-btn-secondary-hover);
+.btn:hover {
+  background-color: var(--color-sunken);
 }
 
-.btn--sync:disabled {
-  background-color: var(--color-disabled-bg);
+.btn--primary {
+  color: var(--color-on-accent);
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn--primary:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.btn:disabled,
+.btn:disabled:hover {
   color: var(--color-disabled-text);
+  background-color: var(--color-disabled-bg);
+  border-color: var(--color-border);
   cursor: not-allowed;
 }
 
-.btn--dashboard {
-  background-color: var(--color-accent);
-  color: var(--color-accent-text);
-}
-
-.btn--dashboard:hover {
-  background-color: var(--color-accent-hover);
-}
-
-/* Focus indicators */
 .btn:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-/* Bevegelse bare uten ønske om redusert bevegelse. Fargeoverganger står utenfor. */
-@media (prefers-reduced-motion: no-preference) {
-  html { scroll-behavior: smooth; }
-  .progress__bar { transition: width 0.2s ease; }
-}
-
-/* Demomodus (?demo=1): merket skiller skjermbilder fra ekte tall */
+/* Demomodus (?demo=1) */
 .demo-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-demo-bg);
-  color: var(--color-demo-text);
-  font-size: 12px;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--color-demo-text);
+  background-color: var(--color-demo-bg);
+  border-radius: var(--radius);
   vertical-align: middle;
-  margin-left: 6px;
+}
+
+/* Bare fremdriften beveger seg, og bare uten ønske om redusert bevegelse. */
+@media (prefers-reduced-motion: no-preference) {
+  .progress__bar {
+    transition: width 0.2s ease;
+  }
 }
