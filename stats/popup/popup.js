@@ -245,7 +245,7 @@ async function syncAndRender(force) {
 async function init() {
   if (demo) {
     syncBtn.remove();
-    document.querySelector(".header__title").append(" ", createDemoBadge(document));
+    document.querySelector(".body").prepend(createDemoBadge(document));
     renderStats(demo.reservations);
     hideStatus();
     return;
