@@ -23,12 +23,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Liste av reservasjonsobjekter, nyeste først. Tom array når ingen flere.",
+            "description": "Liste av slanke reservasjoner, nyeste først. Tom array når ingen flere. Pris, km og bil hentes per id fra /reservations/{id}.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Reservation" }
+                  "items": { "$ref": "#/components/schemas/ReservationListItem" }
                 }
               }
             }
@@ -67,6 +67,27 @@
       }
     },
     "schemas": {
+      "ReservationListItem": {
+        "type": "object",
+        "description": "Listeelement fra /reservations/historic, 14 felt. Pris, drivenKm, canceled, noTrips, car og created finnes bare i Reservation. Sjekket mot ekte API 2026-11-01.",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "reservationNumber": { "type": "string", "example": "1000001" },
+          "membershipId": { "type": "string", "format": "uuid" },
+          "start": { "type": "string", "format": "date-time", "description": "Planlagt starttidspunkt" },
+          "end": { "type": "string", "format": "date-time", "description": "Planlagt sluttidspunkt" },
+          "effectiveStart": { "type": "string", "format": "date-time" },
+          "effectiveEnd": { "type": "string", "format": "date-time" },
+          "ended": { "type": "string", "format": "date-time", "nullable": true, "description": "Faktisk sluttidspunkt" },
+          "state": { "type": "string", "enum": ["PAST", "ACTIVE", "UPCOMING", "CANCELED"], "description": "CANCELED forekommer i listen" },
+          "notes": { "type": "string", "nullable": true, "description": "Brukerens egne notater om turen" },
+          "model": { "type": "string", "example": "Toyota Corolla STV", "description": "Bilmodell, flatt felt (car.model i Reservation)" },
+          "licensePlate": { "type": "string" },
+          "iconUrl": { "type": "string", "example": "/car-icons/bildeleringen/toyota-corolla-black.webp" },
+          "location": { "type": "string", "description": "Stedsnavnet som streng, ikke Location-objekt" }
+        },
+        "required": ["id", "reservationNumber", "membershipId", "start", "end", "effectiveStart", "effectiveEnd", "ended", "state", "notes", "model", "licensePlate", "iconUrl", "location"]
+      },
       "Reservation": {
         "type": "object",
         "description": "En reservasjon (historisk tur eller booking)",

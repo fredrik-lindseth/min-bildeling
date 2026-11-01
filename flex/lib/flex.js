@@ -125,6 +125,13 @@ export function matchesFilters(car, filters = {}) {
   return true;
 }
 
+// "Uansett" avstand = regionen rundt stedet brukeren har valgt. Søket gir
+// biler fra hele landet med avstand fra det stedet, så taket holder andre
+// byer ute, også beboerbilene i Tromsø som har Bildeleringens organisasjon.
+// docs/api/README.md og flex/README.md nevner tallet, og test/docs.test.js
+// binder dem til konstanten.
+export const REGION_CEILING_M = 100000;
+
 export function withinDistance(car, filters = {}) {
   if (!filters.maxDistanceM) return true;
   const d = car.location?.distance;

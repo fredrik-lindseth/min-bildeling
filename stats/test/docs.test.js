@@ -122,3 +122,15 @@ test("feil per reservasjon og nye forsøk", () => {
   assert.equal(detailRetryDelayMs(5), DETAIL_RETRY_MAX_MS);
   mentions(`Svarer den 404 ${word(NOT_FOUND_MAX_ATTEMPTS)} ganger, regnes den som slettet`);
 });
+
+test("openapi.json beskriver listesvaret med de samme feltene som eksempelet", () => {
+  const read = (name) => JSON.parse(readFileSync(new URL(`../../docs/api/${name}`, import.meta.url), "utf8"));
+  const spec = read("openapi.json");
+  const items = spec.paths["/reservations/historic"].get.responses["200"].content["application/json"].schema.items;
+  const name = items.$ref.split("/").pop();
+  const fields = Object.keys(spec.components.schemas[name].properties).sort();
+  assert.equal(fields.length, 14);
+  for (const item of read("sample-historic-list.json")) {
+    assert.deepEqual(Object.keys(item).sort(), fields);
+  }
+});

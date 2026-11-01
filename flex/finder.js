@@ -1,13 +1,9 @@
-import { solve, splitPairs } from "./lib/flex.js";
+import { solve, splitPairs, REGION_CEILING_M } from "./lib/flex.js";
 import { parseLocalISO, toLocalISO } from "./lib/format.js";
 import { getPlaces, savePlace } from "./lib/storage.js";
 import { stationPlaces } from "./lib/places.js";
 import { searchErrorText } from "./lib/search-api.js";
 
-// "Uansett" avstand = regionen rundt stedet brukeren har valgt. Søket gir
-// biler fra hele landet med avstand fra det stedet, så taket holder andre
-// byer ute, også beboerbilene i Tromsø som har Bildeleringens organisasjon.
-const REGION_CEILING_M = 100000;
 // 2→4 km-utvidelsen gir bare mening ved en bevisst kort radius.
 const WIDEN_MAX_M = 5000;
 
