@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <!-- Samme motiv som icon.svg, med lys flis så ikonet skiller seg fra mørke verktøylinjer. -->
+  <rect width="16" height="16" rx="3.5" fill="#C9B6F5"/>
+  <g fill="#2B1260">
+    <rect x="4" y="5" width="2" height="2"/>
+    <rect x="7" y="2" width="2" height="5"/>
+    <rect x="10" y="4" width="2" height="3"/>
+    <rect x="2" y="8" width="12" height="3" rx="1"/>
+  </g>
+  <g fill="#2B1260" stroke="#C9B6F5" stroke-width="2" paint-order="stroke">
+    <circle cx="4.5" cy="12.5" r="1.5"/>
+    <circle cx="11.5" cy="12.5" r="1.5"/>
+  </g>
+</svg>

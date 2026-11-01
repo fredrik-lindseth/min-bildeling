@@ -68,8 +68,9 @@ Alt i `browser.storage.local`:
 | `syncHistory` | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }` | `lib/sync.js` |
 | `tripCategories` | `{ reservationId: categoryKey }` | dashboard (bruker-input) |
 | `transportData` | `{ "2025": { taxi: {...}, buss: {...} } }` | dashboard (bruker-input) |
+| `userKeywords` | `{ categoryKey: ["ord", ...] }` | dashboard (egne nøkkelord, import) |
 
-Reservasjoner, lastSync og sync-nøklene er API-data. Rør dem ikke direkte. tripCategories og transportData er bruker-data. Slett aldri ved sync.
+Reservasjoner, lastSync og sync-nøklene er API-data. Rør dem ikke direkte. tripCategories, transportData og userKeywords er bruker-data. Slett aldri ved sync.
 
 `reservations` inneholder bare detaljsvar, aldri listeelementer. Listesvaret fra `/reservations/historic` er en slank variant uten `price`, `drivenKm`, `canceled`, `noTrips`, `car` og `created`, og `location` er en streng der detaljen har et objekt. Et listeelement i `reservations` ville fått stats-funksjonene til å regne feil uten synlig feil. Id-er som venter på detalj, står i `syncState.pendingIds`.
 
@@ -99,10 +100,14 @@ Endepunkter:
 
 ## Turkategorier
 
-`lib/categories.js` har `KEYWORD_MAP`: substring-match mot `notes` (lowercased, ingen ordgrenser). Rekkefølgen betyr noe: første kategori som matcher vinner, så `handletur` ligger før `hoytid` for at "juleshopping" havner riktig. Manuelt valg i UI (lagret i `tripCategories`) overstyrer alltid.
+`lib/categories.js` har `DEFAULT_KEYWORDS`, en landsdekkende standardliste (kjeder, yrker, høytider, vanlige ord). Brukerens egne ord ligger i storage under `userKeywords` og redigeres i kortet «Egne nøkkelord» i Turkategorier-seksjonen, med treff-tellere og JSON-eksport og -import. `mergeKeywords(DEFAULT_KEYWORDS, userKeywords)` fletter dem, og `suggestCategory(reservation, keywords)` og `autoSuggestAll(..., keywords)` tar den flettede listen som parameter, så modulen forblir ren.
 
-Kartet inneholder Fredriks personlige keywords (navn, stedsnavn, arbeidsgiver, hyttenavn osv.). Andre brukere må fjerne/erstatte før utvidelsen er nyttig for dem. Treffer ca. 82 % av notes med default-listen. Uten personlige nøkkelord faller det betydelig.
+Matchingen er substring mot `notes` (lowercased, ingen ordgrenser). Rekkefølgen betyr noe: første kategori som matcher vinner, så `handletur` ligger før `hoytid` for at "juleshopping" havner riktig. Flettingen beholder kategorirekkefølgen fra `DEFAULT_KEYWORDS`, legger brukerens ord først innen hver kategori og setter kategorier som bare brukeren har ord i (f.eks. `helgetur`) sist. Manuelt valg i UI (lagret i `tripCategories`) overstyrer alltid.
+
+Stedsnavn og ord som peker på én person eller familie skal aldri inn i `DEFAULT_KEYWORDS`. Koden er offentlig og havner i pakken. Slike ord legges inn som egne nøkkelord. Fredriks egen liste ligger utenfor repoet og importeres lokalt.
 
 ## Varemerke
 
-Ikonene i `icons/` er basert på Dele AS sitt offisielle logo. For privat sideloading er det greit. For Chrome Web Store / AMO-publisering: lag eget Dele-inspirert symbol (samme lilla, `#51289D`, er fritt fram).
+Stats-ikonet er eget (bil med stolpediagram) og har ingenting fra Dele-logoen, så det kan publiseres. Kildene er `stats/icons/icon.svg` (lys verktøylinje) og `icon-dark.svg` (mørk). I manifestets `theme_icons` beskriver nøklene temaets tekstfarge, ikke ikonet: `"dark"` vises på lyst tema og `"light"` på mørkt, så `"light"` peker på `icon-dark-*.png`. `render-icons.sh` feiler hvis koblingen snus. PNG-ene rendres med `stats/scripts/render-icons.sh` (krever `rsvg-convert`), aldri for hånd. Motivet er tegnet på et 16-rutenett med kanter på hele enheter så 16 px blir skarpt; hold det slik ved endringer. `icons/listing/icon-256.png` er til AMO-listingen og holdes utenfor zip-en.
+
+`flex/icons/` er fortsatt Dele sitt symbol: greit for privat sideloading, men må byttes før flex publiseres. Lilla `#51289D` er fritt fram.

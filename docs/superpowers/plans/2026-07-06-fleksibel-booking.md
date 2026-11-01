@@ -1080,7 +1080,7 @@ Last flex på nytt i `about:debugging`, åpne finder-fanen, og i konsollen:
 
 ```js
 browser.runtime.sendMessage({ type: "SEARCH",
-  point: { lng: 5.32415, lat: 60.39299 },
+  point: { lng: 5.3331, lat: 60.3903 },
   start: "2026-07-08T09:00:00", end: "2026-07-13T20:00:00" }).then(console.log);
 ```
 
@@ -1140,7 +1140,7 @@ import { storage } from "./browser-polyfill.js";
 
 // Eksempelveien (hjem) — midtpunkt av gatas LineString fra /api/locations.
 export const DEFAULT_PLACES = [
-  { id: "home", name: "Eksempelveien (hjem)", point: { lng: 5.32415, lat: 60.39299 } },
+  { id: "home", name: "Eksempelveien (hjem)", point: { lng: 5.3331, lat: 60.3903 } },
 ];
 
 const PLACES_KEY = "places";

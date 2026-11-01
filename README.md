@@ -26,7 +26,7 @@ All data forblir i nettleseren. Ingen eksterne servere, ingen sporing.
 
 ## Installasjon
 
-Last ned `.zip` fra [Releases](../../releases).
+Last ned `.zip` fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases).
 
 **Firefox:**
 1. Gå til `about:debugging#/runtime/this-firefox`
@@ -50,7 +50,7 @@ Eierkostnader og CO₂ er estimater basert på norske kilder (NAF, Miljødirekto
 
 ## Varemerke
 
-Ikonet er basert på Dele AS sitt offisielle logo. Dele AS eier merket. Utvidelsen er ikke tilknyttet eller godkjent av dem. Greit for privat sideloading. Skal du publisere en fork til Chrome Web Store eller AMO, lag ditt eget Dele-inspirerte symbol (samme lilla, `#51289D`, er fritt fram).
+Stats-ikonet er tegnet for prosjektet, en bil som bærer et stolpediagram, og bruker ingenting fra Dele AS sitt logo. Bare fargen, lilla `#51289D`, er felles med dele.no. Utvidelsen er ikke tilknyttet eller godkjent av Dele AS. Flex-utvidelsen bruker fortsatt Dele-symbolet og trenger eget ikon før den kan publiseres.
 
 ## Utvikling
 

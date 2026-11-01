@@ -103,8 +103,8 @@ Liste av sammenhengende segmenter:
 ### Støtteendepunkter
 
 - `GET /api/locations` — 331 stasjoner med `id`, `name`, `geojson` (Point, LineString
-  eller Polygon). Brukes til stedsvalg. Hjem = "Eksempelveien"
-  (`bac2090b-e3cb-42d5-b292-c64b534bb25c`).
+  eller Polygon). Brukes til stedsvalg. Hjem = "Eksempelveien", en av stasjonene
+  i listen.
 - `GET /api/search/filters` — filteralternativer (ikke kartlagt i detalj ennå).
 
 ## Arkitektur

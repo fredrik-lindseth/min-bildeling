@@ -14,13 +14,17 @@ export const CATEGORIES = {
   annet:      { label: "Annet" },
 };
 
+// Standardlisten skal treffe for hvem som helst i landet: kjeder, yrker,
+// høytider og vanlige ord. Stedsnavn og ord som peker på én person eller
+// familie hører hjemme i brukerens egne nøkkelord (storage: userKeywords).
+//
 // Rekkefølge er signifikant: suggestCategory() returnerer første treff.
 // handletur står før hoytid så "juleshopping" havner i handletur, ikke høytid.
-export const KEYWORD_MAP = {
+export const DEFAULT_KEYWORDS = {
   handletur: [
     "ikea", "obs", "coop", "rema", "kiwi", "biltema", "handel", "handle",
-    "butikk", "bygg", "jula", "europris", "kjøpe", "shop", "fantoft",
-    "vestkanten", "felleskjøp", "hagesenter", "hageshop", "hageland",
+    "butikk", "bygg", "jula", "europris", "kjøpe", "shop", "kjøpesenter",
+    "felleskjøp", "hagesenter", "hageshop", "hageland",
     "monter", "meny", "pakke på posten", "pakker på posten",
   ],
   helse: [
@@ -28,18 +32,14 @@ export const KEYWORD_MAP = {
     "fysioterap", "barnelege", "dyrleg", "blodprøve",
     "poliklinikk", "helsesjekk", "passtime", "nytt pass",
   ],
-  besok: [
-    "besøk", "bursdag", "mamma", "pappa", "familie", "besteforeldre",
-    "onkel", "tante", "venner", "naboer", "katten",
-  ],
+  besok: ["besøk", "bursdag", "familie", "venner"],
   hyttetur: [
     "hytte", "hytta", "fjell", "hyttefelt", "naust", "sjøen", "øya",
   ],
-  flyplass: ["flesland", "flyplass", "fly", "airport"],
+  flyplass: ["flyplass", "fly", "airport", "lufthavn"],
   aktivitet: [
     "skøyte", "fotball", "trening", "svømme", "tur ", "ski", "klatring",
-    "klatre", "oasen", "buldr", "arboret", "mikkelparken", "kino",
-    "badelunsj", "gokart", "padle", "sykkel",
+    "klatre", "buldr", "kino", "gokart", "padle", "sykkel",
   ],
   transport: [
     "hente", "levere", "frakt", "flytt", "dump", "avfall", "gjenbruk",
@@ -53,17 +53,72 @@ export const KEYWORD_MAP = {
 };
 
 /**
+ * Clean up user keywords from storage or an imported file.
+ * Keeps only known category keys and non-blank strings, lowercased and
+ * deduplicated. Edge spaces are kept, since a keyword like "tur " relies on
+ * its trailing space to avoid matching "turné". Pure function.
+ */
+export function normalizeUserKeywords(raw) {
+  const result = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return result;
+
+  for (const key of Object.keys(CATEGORIES)) {
+    const list = raw[key];
+    if (!Array.isArray(list)) continue;
+    const seen = new Set();
+    for (const word of list) {
+      if (typeof word !== "string" || word.trim() === "") continue;
+      seen.add(word.toLowerCase());
+    }
+    if (seen.size > 0) result[key] = [...seen];
+  }
+  return result;
+}
+
+/**
+ * Parse a comma separated text field into a keyword list.
+ * Entries are trimmed, so a trailing space cannot be typed here; use JSON
+ * import for that.
+ */
+export function parseKeywordInput(text) {
+  if (typeof text !== "string") return [];
+  return text.split(",").map((w) => w.trim()).filter(Boolean);
+}
+
+/**
+ * Merge the default list with the user's own keywords.
+ * Category order follows `defaults`, so first match wins exactly as before.
+ * Categories only the user has words for (e.g. helgetur) come last, in
+ * CATEGORIES order. Within a category the user's words come first.
+ * Pure function.
+ */
+export function mergeKeywords(defaults, userKeywords) {
+  const user = normalizeUserKeywords(userKeywords);
+  const merged = {};
+
+  for (const [key, words] of Object.entries(defaults)) {
+    merged[key] = [...new Set([...(user[key] || []), ...words])];
+  }
+  for (const key of Object.keys(CATEGORIES)) {
+    if (!merged[key] && user[key]) merged[key] = user[key];
+  }
+  return merged;
+}
+
+/**
  * Auto-suggest a category based on the reservation's notes field.
+ * `keywords` is an ordered map { categoryKey: [keyword, ...] }, normally
+ * mergeKeywords(DEFAULT_KEYWORDS, userKeywords).
  * Returns a category key or null if no match is found.
  */
-export function suggestCategory(reservation) {
+export function suggestCategory(reservation, keywords) {
   const notes = reservation?.notes;
   if (!notes || typeof notes !== "string") return null;
 
   const lower = notes.toLowerCase();
 
-  for (const [category, keywords] of Object.entries(KEYWORD_MAP)) {
-    for (const keyword of keywords) {
+  for (const [category, words] of Object.entries(keywords)) {
+    for (const keyword of words) {
       if (lower.includes(keyword)) {
         return category;
       }
@@ -71,6 +126,27 @@ export function suggestCategory(reservation) {
   }
 
   return null;
+}
+
+/**
+ * Count how many driven trips with notes the keywords catch, using the same
+ * first-match rule as suggestCategory(). Pure function.
+ * Returns { total, matched, perCategory: { categoryKey: count } }.
+ */
+export function keywordHits(reservations, keywords) {
+  const withNotes = filterDriven(reservations)
+    .filter((r) => typeof r.notes === "string" && r.notes.trim() !== "");
+  const perCategory = {};
+  let matched = 0;
+
+  for (const r of withNotes) {
+    const category = suggestCategory(r, keywords);
+    if (!category) continue;
+    matched++;
+    perCategory[category] = (perCategory[category] || 0) + 1;
+  }
+
+  return { total: withNotes.length, matched, perCategory };
 }
 
 /**
@@ -89,6 +165,22 @@ export async function saveCategory(storage, reservationId, categoryKey) {
   const existing = await loadCategories(storage);
   existing[reservationId] = categoryKey;
   await storage.set({ tripCategories: existing });
+}
+
+/**
+ * Load the user's own keywords from storage, normalized.
+ * Returns { categoryKey: [keyword, ...] }.
+ */
+export async function loadUserKeywords(storage) {
+  const result = await storage.get("userKeywords");
+  return normalizeUserKeywords(result.userKeywords);
+}
+
+/**
+ * Save the user's own keywords. Only categories with words are kept.
+ */
+export async function saveUserKeywords(storage, userKeywords) {
+  await storage.set({ userKeywords: normalizeUserKeywords(userKeywords) });
 }
 
 /**
@@ -127,16 +219,17 @@ export function categoryStats(reservations, categoryMap) {
 
 /**
  * Batch auto-suggest categories for all uncategorized reservations.
+ * `keywords` is the merged keyword map, see suggestCategory().
  * Returns a map { id: suggestedCategoryKey } only for reservations
  * where a suggestion was found.
  */
-export function autoSuggestAll(reservations, existingCategories) {
+export function autoSuggestAll(reservations, existingCategories, keywords) {
   const suggestions = {};
 
   for (const r of reservations) {
     if (existingCategories[r.id]) continue;
 
-    const suggestion = suggestCategory(r);
+    const suggestion = suggestCategory(r, keywords);
     if (suggestion) {
       suggestions[r.id] = suggestion;
     }

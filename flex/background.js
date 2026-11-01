@@ -1,5 +1,5 @@
 import { browserAPI, storage } from "./lib/browser-polyfill.js";
-import { searchAvailability } from "./lib/search-api.js";
+import { searchAvailability, fetchLocations } from "./lib/search-api.js";
 import { getWatches, setWatches, getSettings, saveSettings } from "./lib/storage.js";
 import { detectHits, reconcile } from "./lib/watch.js";
 import { parseLocalISO, toLocalISO } from "./lib/format.js";
@@ -20,6 +20,10 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === "SEARCH") {
     handleSearch(message).then(sendResponse);
+    return true;
+  }
+  if (message.type === "GET_LOCATIONS") {
+    handleLocations().then(sendResponse);
     return true;
   }
   if (message.type === "GET_WATCHES") {
@@ -108,6 +112,20 @@ async function handleSearch({ point, start, end }) {
   try {
     const result = await searchAvailability(point, new Date(start), new Date(end), auth.token);
     return { result };
+  } catch (e) {
+    if (e.message === "AUTH_EXPIRED") {
+      currentAuth = null;
+      return { error: "AUTH_EXPIRED" };
+    }
+    return { error: e.message };
+  }
+}
+
+async function handleLocations() {
+  const auth = await getAuth();
+  if (!auth) return { error: "NOT_LOGGED_IN" };
+  try {
+    return { locations: await fetchLocations(auth.token) };
   } catch (e) {
     if (e.message === "AUTH_EXPIRED") {
       currentAuth = null;
