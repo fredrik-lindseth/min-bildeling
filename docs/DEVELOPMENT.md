@@ -1,6 +1,6 @@
 # Utvikling
 
-Repoet har to selvstendige utvidelser: `stats/` for statistikk og `flex/` for fleksibelt booking-søk (se `flex/README.md` og `flex/AGENTS.md`). Konvensjonene for `stats/` står i `AGENTS.md`.
+Repoet har to selvstendige utvidelser: `stats/` for statistikk og `flex/` for fleksibelt booking-søk (se [flex/README.md](../flex/README.md)). Reglene for agenter står i [AGENTS.md](../AGENTS.md) og [flex/AGENTS.md](../flex/AGENTS.md), hvordan delene henger sammen i [arkitektur.md](arkitektur.md).
 
 ## Kom i gang
 
@@ -11,7 +11,24 @@ Last inn stats-utvidelsen:
 
 Endringer i HTML, JS og CSS på utvidelsessidene trenger bare at du laster siden på nytt. Endrer du `background.js` eller `manifest.json`, klikker du «Last inn på nytt» (Firefox) eller oppdater-ikonet (Chrome).
 
-Tester: `cd stats && node --test`.
+Tester: `cd stats && node --test` og `cd flex && node --test` (Node 24, ingen avhengigheter, `package.json` er bare `{"type":"module"}`). Bare de rene funksjonene i `lib/` testes, og `stats/test/docs.test.js` sjekker [api-bruk.md](api-bruk.md) mot konstantene. UI og lagring røyktestes i nettleseren.
+
+## Firefox via MCP
+
+Agenter styrer utvidelsene med `firefox-devtools`-MCP-en. Den kjører en egen Firefox-instans med profilen `~/.firefox-devtools-mcp-profile`, ikke den vanlige nettleseren. Innloggingen hentes fra en app.dele.no-fane i den instansen.
+
+- **HTML, JS og CSS på utvidelsessider:** ikke installer på nytt. Filene leses ferskt fra disk ved hver sidelasting, så last fanen på nytt. `install_extension` erstatter det midlertidige tillegget og lukker fanene dets, og det er det som tvinger fram ny innlasting for hånd.
+- **`background.js` og `manifest.json`:** installer på nytt med `install_extension` (`type: "path"`, stien til `stats/` eller `flex/`).
+- **For hånd:** bruk «Last inn på nytt» på tillegget i `about:debugging`, ikke fjern og legg til. Da beholdes UUID-en.
+
+Fallgruver:
+
+- Broen mister forbindelsen innimellom. `/reload-plugins` og nye tilkoblinger starter nye serverprosesser uten å rydde de gamle. Hoper de seg opp (`pgrep -fl firefox-devtools-mcp`), kjør `pkill -f firefox-devtools-mcp`, så starter én ren server ved neste kall.
+- `install_extension` kan gi ny intern UUID. Den står i `webextensions.uuids` i `~/.firefox-devtools-mcp-profile/prefs.js`.
+- `list_pages` viser bare tittelen, ikke URL-en. Fanene bytter rekkefølge ved ny installasjon.
+- MCP-en nekter å navigere til `moz-extension://` og `about:debugging`. Server en kopi av siden over http med et stubbet `browser`-API, eller be Fredrik klikke.
+- WebDriver avviser `window.confirm`, `alert` og `prompt`: `confirm("test")` gir `false` uten at noen dialog vises. Bruk `<dialog>` for bekreftelser, så kan de testes.
+- Synken i stats må testes uten DevTools koblet til tillegget, ellers avslutter ikke Firefox event-pagen, og feilen synes ikke (se [arkitektur.md](arkitektur.md)).
 
 ## Teknologi
 
@@ -48,13 +65,6 @@ vendor/                    # Chart.js og html2canvas
 icons/
 ```
 
-## Dataflyt
-
-1. `content.js` kjører på `app.dele.no` og leser auth-token fra localStorage.
-2. Synken kjører i siden som ba om den (popup eller dashboard), ikke i background, siden Firefox kan avslutte background midt i en lang synk. Background skaffer bare innloggingen.
-3. Reservasjonene lagres i `browser.storage.local`, og sidene regner ut statistikken ved visning.
-4. Turkategorier og transportdata lagres separat i `browser.storage.local`.
-
 ## Tillatelser
 
 | Tillatelse          | Brukes til                                      |
@@ -75,6 +85,10 @@ icons/
 | CO₂ taxi              | Miljødirektoratet (~120 g/km)   |
 | CO₂ fly               | Avinor (~150 g/passasjer-km)    |
 | Substitusjonseffekter | TØI 1895/2022                   |
+
+## Ikoner
+
+Stats-ikonet er eget (bil med stolpediagram) og har ingenting fra Dele-logoen, så det kan publiseres. Kildene er `stats/icons/icon.svg` (lys verktøylinje) og `icon-dark.svg` (mørk). I manifestets `theme_icons` beskriver nøklene temaets tekstfarge, ikke ikonet: `"dark"` vises på lyst tema og `"light"` på mørkt, så `"light"` peker på `icon-dark-*.png`. PNG-ene rendres med `stats/scripts/render-icons.sh` (krever `rsvg-convert`), som feiler hvis koblingen snus. Motivet er tegnet på et 16-rutenett med kanter på hele enheter, så 16 px blir skarpt. `icons/listing/icon-256.png` er til AMO-listingen og holdes utenfor zip-en.
 
 ## Release
 

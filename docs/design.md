@@ -278,3 +278,13 @@ Ingen bevegelse som ikke svarer på noe brukeren gjør. Ingen hover-løft på ko
 Ber man om «et moderne dashboard for bildelingsstatistikk», får man nesten nøyaktig det som står i dag: hvit flate, blå eller lilla-til-blå aksent, avrundede kort med myk skygge i et tre-kolonners rutenett, et tall per kort med en etikett i sperrede store bokstaver over, grønt for sparing og rødt for kostnad, ikoner på alle knapper, hover-løft og inntoning ved scroll. Mørk modus blir blåsvart med samme kort. Årsoppsummeringen blir en «Wrapped»-kopi med gradienter. Valgene over går bevisst mot hvert av disse punktene.
 
 Valgt bort: bundlet webfont, ikoner som pynt, gradienter, glassmorfisme, emoji i seksjonsoverskrifter, `01 / 02 / 03`-nummerering av seksjonene (de er ikke en rekkefølge), metastrenger med midtprikk, `→` etter lenker, og en egen dekorert «hero» øverst. Det øverste på siden er selve kostnaden.
+
+## Flex
+
+Flex deler token-systemet med stats (gråblå flate, hvite kort, tre nivåer tekst) og 2 px hjørner, men har Dele-lilla `#51289D` som aksent.
+
+- Biltype og drivstoff er av/på-brikker, ikke nedtrekkslister. Småbil og Varebil er av som standard, resten på.
+- Sjeldne filtre (biltype, drivstoff, gangavstand) ligger bak en sammenleggbar «Flere filtre», lukket som standard, med hint om aktive valg.
+- «Søk» står i en egen fot (`.wish__foot`). Panelet er begrenset til vindushøyden og kroppen scroller inni, så Søk alltid synes.
+- Tidslinjen tegner alle segmentene (grønn ledig, grå opptatt) med eget stylet verktøytips, ikke `title`.
+- Tid velges med egen kalender og tid-lister, ikke `datetime-local`, som arver nettleserens locale og ga AM/PM og amerikansk format.
