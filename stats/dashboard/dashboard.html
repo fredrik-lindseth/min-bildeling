@@ -4,24 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bildeleringen Stats</title>
+  <link rel="stylesheet" href="../lib/tokens.css">
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
   <header class="header">
-    <div class="header__inner">
+    <div class="wrap header__inner">
       <h1 class="header__title">Bildeleringen Stats</h1>
+      <p class="header__meta">
+        <span id="data-summary" hidden></span>
+        <span id="last-synced" hidden></span>
+      </p>
       <div class="header__actions">
-        <span id="data-summary" class="header__data-summary" hidden></span>
-        <span id="last-synced" class="header__sync-time" hidden></span>
-        <button id="summary-btn" class="btn btn--sync" type="button">Årsoppsummering</button>
-        <button id="sync-btn" class="btn btn--sync" type="button">Synkroniser</button>
+        <button id="summary-btn" class="btn" type="button">Årsoppsummering</button>
+        <button id="sync-btn" class="btn btn--primary btn--sync" type="button">Synkroniser</button>
       </div>
     </div>
   </header>
 
-  <nav class="nav" id="nav">
-    <div class="nav__inner">
-      <a class="nav__link nav__link--active" href="#kostnader" data-section="kostnader">Kostnader</a>
+  <nav class="nav" id="nav" aria-label="Seksjoner">
+    <div class="wrap nav__inner">
+      <a class="nav__link" href="#kostnader" data-section="kostnader" aria-current="true">Kostnader</a>
       <a class="nav__link" href="#bruksmonster" data-section="bruksmonster">Bruksm&oslash;nster</a>
       <a class="nav__link" href="#bookingmonster" data-section="bookingmonster">Bookingm&oslash;nster</a>
       <a class="nav__link" href="#kilometer" data-section="kilometer">Kilometer</a>
@@ -33,347 +36,271 @@
     </div>
   </nav>
 
-  <!-- Loading / status -->
-  <div id="status" class="status" role="status" hidden>
-    <span id="status-text">Laster…</span>
-    <div id="progress-bar" class="progress" role="progressbar" aria-label="Fremdrift for synkronisering" aria-valuemin="0" aria-valuemax="100" hidden>
-      <div class="progress__bar" id="progress-fill"></div>
+  <div class="wrap">
+    <!-- Loading / status -->
+    <div id="status" class="status" role="status" hidden>
+      <span id="status-text">Laster…</span>
+      <div id="progress-bar" class="progress" role="progressbar" aria-label="Fremdrift for synkronisering" aria-valuemin="0" aria-valuemax="100" hidden>
+        <div class="progress__bar" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Første synk: forklaringen står til de første turene er lagret -->
+    <div id="first-run" class="empty-state" hidden>
+      <p class="empty-state__text">Henter turene dine fra Dele.</p>
+      <p class="empty-state__sub">Første gang tar det et par minutter. Tallene fylles inn etter hvert som turene kommer, og alt lagres bare i denne nettleseren.</p>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state" hidden>
+      <p class="empty-state__text">Ingen turer lagret ennå.</p>
+      <p class="empty-state__sub">Logg inn på <a href="https://app.dele.no" target="_blank" rel="noopener">app.dele.no</a> i en annen fane og trykk Synkroniser. Første henting tar et par minutter, og alt lagres bare i nettleseren.</p>
     </div>
   </div>
 
-  <!-- Første synk: forklaringen står til de første turene er lagret -->
-  <div id="first-run" class="empty-state" hidden>
-    <p class="empty-state__text">Henter turene dine fra Dele.</p>
-    <p class="empty-state__sub">Første gang tar det et par minutter. Tallene fylles inn etter hvert som turene kommer, og alt lagres bare i denne nettleseren.</p>
-  </div>
-
-  <!-- Empty state -->
-  <div id="empty-state" class="empty-state" hidden>
-    <p class="empty-state__text">Ingen turer lagret ennå.</p>
-    <p class="empty-state__sub">Logg inn på <a href="https://app.dele.no" target="_blank" rel="noopener">app.dele.no</a> i en annen fane og trykk Synkroniser. Første henting tar et par minutter, og alt lagres bare i nettleseren.</p>
-  </div>
-
-  <main id="main-content" class="main" hidden>
-    <!-- Section 1: Kostnader -->
-    <section class="section" id="kostnader">
-      <div class="section__header">
-        <h2 class="section__title">Kostnader</h2>
-        <button class="btn btn--export" data-section="kostnader" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+  <main id="main-content" class="wrap main" hidden>
+    <!-- Kostnader: hovedtall, månedsdiagram og nøkkeltall -->
+    <section class="section" id="kostnader" aria-labelledby="kostnader-title">
+      <div class="section__head">
+        <h2 class="section__title" id="kostnader-title">Kostnader</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="kostnader">Last ned bilde</button>
       </div>
 
-      <div class="year-selector" id="cost-year-selector">
-        <button type="button" class="year-btn year-btn--active" data-year="all" aria-pressed="true">Alle år</button>
+      <p class="lead">
+        <span class="lead__number" id="cost-total">&ndash;</span>
+        <span class="lead__text" id="cost-total-text"></span>
+      </p>
+
+      <div class="year-selector" id="cost-year-selector" role="group" aria-label="Velg år">
+        <button type="button" class="btn year-btn" data-year="all" aria-pressed="true">Alle år</button>
       </div>
 
-      <div class="chart-container">
-        <h3 class="chart-container__title">M&aring;nedlige kostnader</h3>
-        <div class="chart-frame"><canvas id="monthly-cost-chart"></canvas></div>
-      </div>
-
-      <div class="cards cards--3">
-        <div class="card">
-          <span class="card__label">Totalt per &aring;r</span>
-          <div class="card__value" id="cost-yearly-total">&ndash;</div>
+      <div class="split">
+        <div class="panel">
+          <h3 class="panel__title">M&aring;nedlige kostnader</h3>
+          <div class="chart-frame"><canvas id="monthly-cost-chart"></canvas></div>
         </div>
-        <div class="card">
-          <span class="card__label">Snitt per tur</span>
-          <span class="card__value" id="cost-avg-trip">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Median per tur</span>
-          <span class="card__value" id="cost-median-trip">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Dyrest tur</span>
-          <span class="card__value" id="cost-max-trip">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Billigst tur</span>
-          <span class="card__value" id="cost-min-trip">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Kostnad per km</span>
-          <span class="card__value" id="cost-per-km">&ndash;</span>
-        </div>
+        <dl class="figures" id="cost-figures">
+          <div><dt>Snitt per tur</dt><dd id="cost-avg-trip">&ndash;</dd></div>
+          <div><dt>Median per tur</dt><dd id="cost-median-trip">&ndash;</dd></div>
+          <div><dt>Dyrest tur</dt><dd id="cost-max-trip">&ndash;</dd></div>
+          <div><dt>Billigst tur</dt><dd id="cost-min-trip">&ndash;</dd></div>
+          <div><dt>Kostnad per km</dt><dd id="cost-per-km">&ndash;</dd></div>
+        </dl>
       </div>
     </section>
 
-    <!-- Section 2: Bruksmønster -->
-    <section class="section" id="bruksmonster">
-      <div class="section__header">
-        <h2 class="section__title">Bruksm&oslash;nster</h2>
-        <button class="btn btn--export" data-section="bruksmonster" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Bruksmønster -->
+    <section class="section" id="bruksmonster" aria-labelledby="bruksmonster-title">
+      <div class="section__head">
+        <h2 class="section__title" id="bruksmonster-title">Bruksm&oslash;nster</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="bruksmonster">Last ned bilde</button>
       </div>
 
-      <div class="chart-container">
-        <h3 class="chart-container__title">Ukedag &times; tidspunkt</h3>
+      <div class="panel">
+        <h3 class="panel__title">Ukedag &times; tidspunkt</h3>
         <div class="heatmap-wrapper">
           <canvas id="heatmap-chart" width="720" height="210"></canvas>
         </div>
         <div class="heatmap-legend">
-          <span class="heatmap-legend__label">F&aelig;rre turer</span>
-          <div class="heatmap-legend__scale"></div>
-          <span class="heatmap-legend__label">Flere turer</span>
+          <span>F&aelig;rre turer</span>
+          <span class="heatmap-legend__scale" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </span>
+          <span>Flere turer</span>
         </div>
       </div>
 
-      <div class="chart-container">
-        <h3 class="chart-container__title">Turer per m&aring;ned</h3>
-        <div class="chart-frame"><canvas id="trips-per-month-chart"></canvas></div>
-      </div>
-
-      <div class="cards cards--2">
-        <div class="card">
-          <span class="card__label">Snittvarighet</span>
-          <span class="card__value" id="usage-avg-duration">&ndash;</span>
+      <div class="split">
+        <div class="panel">
+          <h3 class="panel__title">Turer per m&aring;ned</h3>
+          <div class="chart-frame"><canvas id="trips-per-month-chart"></canvas></div>
         </div>
-        <div class="card">
-          <span class="card__label">Turer totalt</span>
-          <span class="card__value" id="usage-total-trips">&ndash;</span>
+        <div>
+          <dl class="figures">
+            <div><dt>Snittvarighet</dt><dd id="usage-avg-duration">&ndash;</dd></div>
+            <div><dt>Turer totalt</dt><dd id="usage-total-trips">&ndash;</dd></div>
+          </dl>
+          <h3 class="list-title">Mest brukte biler</h3>
+          <ol class="ranked" id="top-cars-list">
+            <li class="ranked__empty">Ingen data</li>
+          </ol>
         </div>
-      </div>
-
-      <div class="card card--list">
-        <span class="card__label">Mest brukte biler</span>
-        <ol class="ranked-list" id="top-cars-list">
-          <li class="ranked-list__empty">Ingen data</li>
-        </ol>
       </div>
     </section>
 
-    <!-- Section 3: Bookingmønster -->
-    <section class="section" id="bookingmonster">
-      <div class="section__header">
-        <h2 class="section__title">Bookingm&oslash;nster</h2>
-        <button class="btn btn--export" data-section="bookingmonster" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Bookingmønster -->
+    <section class="section" id="bookingmonster" aria-labelledby="bookingmonster-title">
+      <div class="section__head">
+        <h2 class="section__title" id="bookingmonster-title">Bookingm&oslash;nster</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="bookingmonster">Last ned bilde</button>
       </div>
 
       <div id="booking-empty" class="empty-state empty-state--inline" hidden>
         <p class="empty-state__text">Ingen turer med bookingtidspunkt.</p>
       </div>
 
-      <div id="booking-content">
-        <div class="cards cards--2">
-          <div class="card">
-            <span class="card__label">Booket i forveien, snitt</span>
-            <span class="card__value" id="booking-avg-lead">&ndash;</span>
+      <div id="booking-content" class="stack">
+        <div class="split">
+          <div class="panel">
+            <h3 class="panel__title">N&aring;r booker du?</h3>
+            <div class="chart-frame"><canvas id="lead-time-chart"></canvas></div>
           </div>
-          <div class="card">
-            <span class="card__label">Booket i forveien, median</span>
-            <span class="card__value" id="booking-median-lead">&ndash;</span>
-          </div>
-          <div class="card">
-            <span class="card__label">Booket samme d&oslash;gn</span>
-            <span class="card__value" id="booking-short-notice">&ndash;</span>
-          </div>
-          <div class="card">
-            <span class="card__label">Ulike stasjoner</span>
-            <span class="card__value" id="booking-unique-stations">&ndash;</span>
-          </div>
+          <dl class="figures">
+            <div><dt>Booket i forveien, snitt</dt><dd id="booking-avg-lead">&ndash;</dd></div>
+            <div><dt>Booket i forveien, median</dt><dd id="booking-median-lead">&ndash;</dd></div>
+            <div><dt>Booket samme d&oslash;gn</dt><dd id="booking-short-notice">&ndash;</dd></div>
+            <div><dt>Ulike stasjoner</dt><dd id="booking-unique-stations">&ndash;</dd></div>
+          </dl>
         </div>
 
-        <div class="chart-container">
-          <h3 class="chart-container__title">N&aring;r booker du?</h3>
-          <div class="chart-frame"><canvas id="lead-time-chart"></canvas></div>
-        </div>
-
-        <div class="chart-container">
-          <h3 class="chart-container__title">Mest brukte stasjoner</h3>
+        <div class="panel">
+          <h3 class="panel__title">Mest brukte stasjoner</h3>
           <div class="chart-frame chart-frame--tall"><canvas id="top-stations-chart"></canvas></div>
         </div>
 
         <div class="method-block">
-          <button type="button" class="method-toggle" id="booking-method-toggle" aria-expanded="false">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="booking-method-toggle" aria-expanded="false" aria-controls="booking-method-detail">Slik beregner vi</button>
           <div class="method-detail" id="booking-method-detail" hidden></div>
         </div>
       </div>
     </section>
 
-    <!-- Section 4: Kilometer -->
-    <section class="section" id="kilometer">
-      <div class="section__header">
-        <h2 class="section__title">Kilometer</h2>
-        <button class="btn btn--export" data-section="kilometer" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Kilometer -->
+    <section class="section" id="kilometer" aria-labelledby="kilometer-title">
+      <div class="section__head">
+        <h2 class="section__title" id="kilometer-title">Kilometer</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="kilometer">Last ned bilde</button>
       </div>
 
       <div id="km-empty" class="empty-state empty-state--inline" hidden>
         <p class="empty-state__text">Ingen kilometerdata ennå.</p>
       </div>
 
-      <div id="km-content">
-        <div class="chart-container">
-          <h3 class="chart-container__title">M&aring;nedlig distanse</h3>
-          <div class="chart-frame"><canvas id="monthly-km-chart"></canvas></div>
-        </div>
-
-        <div class="cards cards--3">
-          <div class="card">
-            <span class="card__label">Totalt kj&oslash;rt</span>
-            <span class="card__value" id="km-total">&ndash;</span>
+      <div id="km-content" class="stack">
+        <div class="split">
+          <div class="panel">
+            <h3 class="panel__title">M&aring;nedlig distanse</h3>
+            <div class="chart-frame"><canvas id="monthly-km-chart"></canvas></div>
           </div>
-          <div class="card">
-            <span class="card__label">Snitt per tur</span>
-            <span class="card__value" id="km-avg">&ndash;</span>
+          <div>
+            <dl class="figures">
+              <div><dt>Totalt kj&oslash;rt</dt><dd id="km-total">&ndash;</dd></div>
+              <div><dt>Snitt per tur</dt><dd id="km-avg">&ndash;</dd></div>
+              <div><dt>Lengste tur</dt><dd id="km-max">&ndash;</dd></div>
+            </dl>
+            <h3 class="list-title">Kilometer per bil (topp 5)</h3>
+            <ol class="ranked" id="km-by-car-list">
+              <li class="ranked__empty">Ingen data</li>
+            </ol>
           </div>
-          <div class="card">
-            <span class="card__label">Lengste tur</span>
-            <span class="card__value" id="km-max">&ndash;</span>
-          </div>
-        </div>
-
-        <div class="card card--list">
-          <span class="card__label">Kilometer per bil (topp 5)</span>
-          <ol class="ranked-list" id="km-by-car-list">
-            <li class="ranked-list__empty">Ingen data</li>
-          </ol>
         </div>
       </div>
     </section>
 
-    <!-- Section 4: Trender -->
-    <section class="section" id="trender">
-      <div class="section__header">
-        <h2 class="section__title">Trender</h2>
-        <button class="btn btn--export" data-section="trender" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Trender -->
+    <section class="section" id="trender" aria-labelledby="trender-title">
+      <div class="section__head">
+        <h2 class="section__title" id="trender-title">Trender</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="trender">Last ned bilde</button>
       </div>
 
       <div id="trends-empty" class="empty-state empty-state--inline" hidden>
         <p class="empty-state__text">Trender vises når du har turer fra minst tre måneder.</p>
       </div>
 
-      <div id="trends-content">
-        <div class="chart-container">
-          <h3 class="chart-container__title">År mot år</h3>
+      <div id="trends-content" class="stack">
+        <div class="panel">
+          <h3 class="panel__title">År mot år</h3>
+          <div class="chart-legend" id="yoy-legend" aria-hidden="true"></div>
           <div class="chart-frame"><canvas id="yoy-chart"></canvas></div>
         </div>
 
-        <div class="chart-container">
-          <h3 class="chart-container__title">Glidende snitt, tre måneder</h3>
+        <div class="panel">
+          <h3 class="panel__title">Glidende snitt, tre måneder</h3>
           <div class="chart-frame"><canvas id="rolling-avg-chart"></canvas></div>
         </div>
 
-        <div class="chart-container" id="seasonal-container" hidden>
-          <h3 class="chart-container__title">Sesongsammenligning</h3>
+        <div class="panel" id="seasonal-container" hidden>
+          <h3 class="panel__title">Sesongsammenligning</h3>
           <div class="chart-frame"><canvas id="seasonal-chart"></canvas></div>
         </div>
       </div>
     </section>
 
-    <!-- Section 5: Bilregnestykket -->
-    <section class="section" id="bilregnestyket">
-      <div class="section__header">
-        <h2 class="section__title">Bilregnestykket</h2>
-        <button class="btn btn--export" data-section="bilregnestyket" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Bilregnestykket: hovedtall og regnestykke -->
+    <section class="section" id="bilregnestyket" aria-labelledby="bilregnestyket-title">
+      <div class="section__head">
+        <h2 class="section__title" id="bilregnestyket-title">Bilregnestykket</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="bilregnestyket">Last ned bilde</button>
       </div>
 
       <div id="ownership-empty" class="empty-state empty-state--inline" hidden>
         <p class="empty-state__text">Ingen kjørte turer å regne på ennå.</p>
       </div>
 
-      <div id="ownership-content" hidden>
-        <div class="comparison">
-          <div class="comparison__column">
-            <span class="comparison__label">Bildeling</span>
-            <span class="comparison__amount" id="sharing-cost">&ndash;</span>
-            <span class="comparison__period">per &aring;r</span>
+      <div id="ownership-content" class="stack" hidden>
+        <p class="lead">
+          <span class="lead__number" id="ownership-savings">&ndash;</span>
+          <span class="lead__text" id="ownership-savings-text"></span>
+        </p>
+
+        <div class="split">
+          <div>
+            <dl class="ledger">
+              <div class="ledger__row"><dt>Egen bil, per år</dt><dd id="ledger-car">&ndash;</dd></div>
+              <div class="ledger__row"><dt>Bildeling, per år</dt><dd id="ledger-sharing">&ndash;</dd></div>
+              <div class="ledger__row ledger__row--sum"><dt>Forskjell</dt><dd id="ledger-diff">&ndash;</dd></div>
+            </dl>
+            <p class="ledger__note" id="comparison-note"></p>
+
+            <h3 class="list-title">Mot Volvo EX C40 2026</h3>
+            <dl class="ledger ledger--small">
+              <div class="ledger__row"><dt>Volvo EX C40, per år</dt><dd id="volvo-car">&ndash;</dd></div>
+              <div class="ledger__row"><dt>Bildeling, per år</dt><dd id="volvo-sharing">&ndash;</dd></div>
+              <div class="ledger__row ledger__row--sum"><dt>Forskjell</dt><dd id="volvo-diff">&ndash;</dd></div>
+            </dl>
           </div>
-          <div class="comparison__vs">mot</div>
-          <div class="comparison__column">
-            <span class="comparison__label">Eid bil</span>
-            <span class="comparison__amount" id="ownership-cost">&ndash;</span>
-            <span class="comparison__period">per &aring;r</span>
-          </div>
-        </div>
 
-        <div class="comparison__verdict" id="comparison-verdict"></div>
-
-        <div class="chart-container">
-          <h3 class="chart-container__title">Kostnadsfordeling, eid bil</h3>
-          <div class="chart-frame"><canvas id="ownership-breakdown-chart"></canvas></div>
-        </div>
-
-        <h3 class="section__subtitle">Mot Volvo EX C40 2026</h3>
-
-        <div class="comparison">
-          <div class="comparison__column">
-            <span class="comparison__label">Bildeling</span>
-            <span class="comparison__amount" id="volvo-sharing-cost">&ndash;</span>
-            <span class="comparison__period">per &aring;r</span>
-          </div>
-          <div class="comparison__vs">mot</div>
-          <div class="comparison__column">
-            <span class="comparison__label">Volvo EX C40</span>
-            <span class="comparison__amount" id="volvo-ownership-cost">&ndash;</span>
-            <span class="comparison__period">per &aring;r</span>
+          <div class="panel">
+            <h3 class="panel__title">Kostnadsfordeling, eid bil</h3>
+            <div class="chart-frame"><canvas id="ownership-breakdown-chart"></canvas></div>
           </div>
         </div>
-
-        <div class="comparison__verdict" id="volvo-verdict"></div>
-
-        <p class="comparison__note" id="comparison-note"></p>
 
         <div class="method-block">
-          <button type="button" class="method-toggle" id="ownership-method-toggle" aria-expanded="false">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="ownership-method-toggle" aria-expanded="false" aria-controls="ownership-method-detail">Slik beregner vi</button>
           <div class="method-detail" id="ownership-method-detail" hidden></div>
         </div>
       </div>
     </section>
 
-    <!-- Section 6: Turkategorier -->
-    <section class="section" id="turkategorier">
-      <div class="section__header">
-        <h2 class="section__title">Turkategorier</h2>
-        <button class="btn btn--export" data-section="turkategorier" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Turkategorier -->
+    <section class="section" id="turkategorier" aria-labelledby="turkategorier-title">
+      <div class="section__head">
+        <h2 class="section__title" id="turkategorier-title">Turkategorier</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="turkategorier">Last ned bilde</button>
       </div>
 
-      <div class="cards cards--2">
-        <div class="chart-container" style="grid-column: 1 / -1;">
-          <h3 class="chart-container__title">Kostnad per kategori</h3>
+      <div class="split">
+        <div class="panel">
+          <h3 class="panel__title">Kostnad per kategori</h3>
           <div class="chart-frame"><canvas id="category-donut-chart"></canvas></div>
+        </div>
+        <div>
+          <h3 class="list-title list-title--first">Oversikt per kategori</h3>
+          <div class="table" id="category-table"></div>
         </div>
       </div>
 
-      <div class="card card--list">
-        <span class="card__label">Oversikt per kategori</span>
-        <div class="category-table" id="category-table"></div>
-      </div>
-
-      <div class="card card--list" id="uncategorized-section" hidden>
-        <span class="card__label">Forslag til kategori</span>
+      <div id="uncategorized-section" hidden>
+        <h3 class="list-title">Forslag til kategori</h3>
         <div class="suggestion-list" id="suggestion-list"></div>
       </div>
 
-      <details class="card card--list keyword-card" id="keyword-card">
+      <details class="panel keyword-card" id="keyword-card">
         <summary class="keyword-card__summary">
-          <span class="card__label">Egne n&oslash;kkelord</span>
+          Egne n&oslash;kkelord
           <span class="keyword-card__total" id="keyword-total"></span>
         </summary>
         <p class="keyword-card__help">
@@ -381,196 +308,157 @@
         </p>
         <form id="keyword-form" class="keyword-form">
           <div id="keyword-fields"></div>
-          <div class="transport-form__actions">
-            <button type="submit" class="btn btn--save">Lagre</button>
-            <button type="button" id="keyword-export" class="btn btn--reset">Eksporter JSON</button>
-            <label class="btn btn--reset keyword-import">
+          <div class="form-actions">
+            <button type="submit" class="btn">Lagre</button>
+            <button type="button" id="keyword-export" class="btn btn--quiet">Eksporter JSON</button>
+            <label class="btn btn--quiet keyword-import">
               Importer JSON
               <input type="file" id="keyword-import" accept="application/json,.json" class="visually-hidden">
             </label>
-            <span id="keyword-status" class="transport-save-status" role="status" aria-live="polite"></span>
+            <span id="keyword-status" class="form-status" role="status" aria-live="polite"></span>
           </div>
         </form>
       </details>
     </section>
 
-    <!-- Section 7: Klimaregnskap -->
-    <section class="section" id="klima">
-      <div class="section__header">
-        <h2 class="section__title">Klimaregnskap</h2>
-        <button class="btn btn--export" data-section="klima" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Klimaregnskap -->
+    <section class="section" id="klima" aria-labelledby="klima-title">
+      <div class="section__head">
+        <h2 class="section__title" id="klima-title">Klimaregnskap</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="klima">Last ned bilde</button>
       </div>
 
       <div id="co2-empty" class="empty-state empty-state--inline" hidden>
         <p class="empty-state__text">Ingen kilometerdata å regne utslipp fra.</p>
       </div>
 
-      <div id="co2-content" hidden>
-        <div class="cards cards--3">
-          <div class="card">
-            <span class="card__label">CO&#8322; totalt</span>
-            <span class="card__value" id="co2-total">&ndash;</span>
+      <div id="co2-content" class="stack" hidden>
+        <div class="split">
+          <div class="panel">
+            <h3 class="panel__title">CO&#8322; per m&aring;ned</h3>
+            <div class="chart-frame"><canvas id="monthly-co2-chart"></canvas></div>
           </div>
-          <div class="card">
-            <span class="card__label">Snitt per km</span>
-            <span class="card__value" id="co2-avg-km">&ndash;</span>
+          <div>
+            <dl class="figures">
+              <div><dt>CO&#8322; totalt</dt><dd id="co2-total">&ndash;</dd></div>
+              <div><dt>Snitt per km</dt><dd id="co2-avg-km">&ndash;</dd></div>
+              <div><dt>Turer med elbil</dt><dd id="co2-electric-pct">&ndash;</dd></div>
+            </dl>
+            <h3 class="list-title">Utslipp per drivstofftype</h3>
+            <div id="co2-fuel-list" class="table"></div>
           </div>
-          <div class="card">
-            <span class="card__label">Turer med elbil</span>
-            <span class="card__value" id="co2-electric-pct">&ndash;</span>
-          </div>
-        </div>
-
-        <div class="chart-container">
-          <h3 class="chart-container__title">CO&#8322; per m&aring;ned</h3>
-          <div class="chart-frame"><canvas id="monthly-co2-chart"></canvas></div>
-        </div>
-
-        <div class="card card--list">
-          <span class="card__label">Utslipp per drivstofftype</span>
-          <div id="co2-fuel-list" class="category-table"></div>
         </div>
 
         <div class="method-block">
-          <button type="button" class="method-toggle" id="co2-method-toggle" aria-expanded="false">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="co2-method-toggle" aria-expanded="false" aria-controls="co2-method-detail">Slik beregner vi</button>
           <div class="method-detail" id="co2-method-detail" hidden></div>
         </div>
       </div>
     </section>
 
-    <!-- Section 8: Min transport -->
-    <section class="section" id="transport">
-      <div class="section__header">
-        <h2 class="section__title">Min transport</h2>
-        <button class="btn btn--export" data-section="transport" title="Last ned som bilde">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1v10M4 8l4 4 4-4M2 13h12"/>
-          </svg>
-        </button>
+    <!-- Min transport -->
+    <section class="section" id="transport" aria-labelledby="transport-title">
+      <div class="section__head">
+        <h2 class="section__title" id="transport-title">Min transport</h2>
+        <button class="btn btn--quiet btn--export" type="button" data-section="transport">Last ned bilde</button>
       </div>
 
-      <!-- Year selector for transport data -->
       <div class="transport-year" id="transport-year-selector">
         <label for="transport-year">År</label>
-        <select id="transport-year" class="transport-select"></select>
+        <select id="transport-year" class="field"></select>
       </div>
 
-      <!-- Input form -->
-      <div class="card card--list">
-        <span class="card__label">Annen transport</span>
+      <div class="panel">
+        <h3 class="panel__title">Annen transport</h3>
         <form id="transport-form" class="transport-form">
-          <!-- JS will build rows for each transport mode -->
+          <!-- JS bygger én rad per transportmiddel -->
           <div id="transport-fields"></div>
-          <div class="transport-form__actions">
-            <button type="submit" class="btn btn--save">Lagre</button>
-            <button type="button" id="transport-reset" class="btn btn--reset">Tøm feltene</button>
-            <span id="transport-save-status" class="transport-save-status"></span>
+          <div class="form-actions">
+            <button type="submit" class="btn">Lagre</button>
+            <button type="button" id="transport-reset" class="btn btn--quiet">Tøm feltene</button>
+            <span id="transport-save-status" class="form-status" role="status"></span>
           </div>
         </form>
       </div>
 
-      <!-- Summary (shown after data exists) -->
-      <div id="transport-summary" hidden>
-        <div class="chart-container">
-          <h3 class="chart-container__title">Transportkostnader fordelt</h3>
-          <div class="chart-frame"><canvas id="transport-cost-chart"></canvas></div>
-        </div>
+      <div id="transport-summary" class="stack" hidden>
+        <dl class="figures figures--wide">
+          <div><dt>Kostnad totalt</dt><dd id="transport-total-cost">&ndash;</dd></div>
+          <div><dt>Totalt CO&#8322;</dt><dd id="transport-total-co2">&ndash;</dd></div>
+          <div><dt>Bildelingens andel</dt><dd id="transport-sharing-pct">&ndash;</dd></div>
+        </dl>
 
-        <div class="chart-container">
-          <h3 class="chart-container__title">CO&#8322;-utslipp fordelt</h3>
-          <div class="chart-frame"><canvas id="transport-co2-chart"></canvas></div>
-        </div>
-
-        <div class="cards cards--3">
-          <div class="card">
-            <span class="card__label">Kostnad totalt</span>
-            <span class="card__value" id="transport-total-cost">&ndash;</span>
+        <div class="split split--even">
+          <div class="panel">
+            <h3 class="panel__title">Transportkostnader fordelt</h3>
+            <div class="chart-frame"><canvas id="transport-cost-chart"></canvas></div>
           </div>
-          <div class="card">
-            <span class="card__label">Totalt CO&#8322;</span>
-            <span class="card__value" id="transport-total-co2">&ndash;</span>
-          </div>
-          <div class="card">
-            <span class="card__label">Bildelingens andel</span>
-            <span class="card__value" id="transport-sharing-pct">&ndash;</span>
+          <div class="panel">
+            <h3 class="panel__title">CO&#8322;-utslipp fordelt</h3>
+            <div class="chart-frame"><canvas id="transport-co2-chart"></canvas></div>
           </div>
         </div>
 
-        <div class="card card--list">
-          <span class="card__label">Per transportmiddel</span>
-          <div class="category-table" id="transport-table"></div>
-        </div>
+        <h3 class="list-title">Per transportmiddel</h3>
+        <div class="table" id="transport-table"></div>
 
         <div class="method-block">
-          <button type="button" class="method-toggle" id="transport-method-toggle" aria-expanded="false">Slik beregner vi</button>
+          <button type="button" class="btn btn--quiet method-toggle" id="transport-method-toggle" aria-expanded="false" aria-controls="transport-method-detail">Slik beregner vi</button>
           <div class="method-detail" id="transport-method-detail" hidden></div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Dev tools, kun synlig med ?dev=1 i URL. Ligger utenfor <main> slik at -->
-  <!-- panelet vises selv når dashbordet er i empty/login-state. -->
-  <aside class="main" id="devtools-wrapper" hidden>
+  <!-- Utviklerverktøy, bare med ?dev=1. Utenfor <main> så panelet også vises
+       i tom tilstand og når innloggingen mangler. -->
+  <aside class="wrap" id="devtools-wrapper" aria-labelledby="devtools-title" hidden>
     <section class="section section--dev" id="devtools">
-      <div class="section__header">
-        <h2 class="section__title">Utviklerverkt&oslash;y</h2>
+      <div class="section__head">
+        <h2 class="section__title" id="devtools-title">Utviklerverkt&oslash;y</h2>
       </div>
 
       <p class="dev-warning">Synlig fordi URL-en har <code>?dev=1</code>.</p>
 
-      <div class="cards cards--3">
-        <div class="card">
-          <span class="card__label">Reservasjoner i storage</span>
-          <span class="card__value" id="dev-count">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Sist synkronisert</span>
-          <span class="card__value" id="dev-last-sync">&ndash;</span>
-        </div>
-        <div class="card">
-          <span class="card__label">Storage-bruk</span>
-          <span class="card__value" id="dev-storage-size">&ndash;</span>
-        </div>
-      </div>
+      <dl class="figures figures--wide">
+        <div><dt>Reservasjoner i storage</dt><dd id="dev-count">&ndash;</dd></div>
+        <div><dt>Sist synkronisert</dt><dd id="dev-last-sync">&ndash;</dd></div>
+        <div><dt>Storage-bruk</dt><dd id="dev-storage-size">&ndash;</dd></div>
+      </dl>
 
-      <div class="card card--list">
-        <span class="card__label">Kall mot dele.no, tre siste synker</span>
+      <div class="panel">
+        <h3 class="panel__title">Kall mot dele.no, tre siste synker</h3>
         <ol id="dev-sync-history" class="dev-sync-history">
           <li>Ingen synker registrert enn&aring;.</li>
         </ol>
         <p class="dev-help" id="dev-sync-state"></p>
       </div>
 
-      <div class="card card--list">
-        <span class="card__label">Sikkerhetskopi</span>
+      <div class="panel">
+        <h3 class="panel__title">Sikkerhetskopi</h3>
         <p class="dev-help">Reservasjoner og synktidspunkt som JSON. Kategorier, transport og egne nøkkelord er ikke med.</p>
-        <div class="dev-actions">
-          <button type="button" id="dev-export-btn" class="btn btn--save">Eksporter data</button>
-          <button type="button" id="dev-import-btn" class="btn btn--reset">Importer data</button>
+        <div class="form-actions">
+          <button type="button" id="dev-export-btn" class="btn">Eksporter data</button>
+          <button type="button" id="dev-import-btn" class="btn">Importer data</button>
           <input type="file" id="dev-import-file" accept="application/json,.json" hidden>
-          <span id="dev-action-status" class="dev-status"></span>
+          <span id="dev-action-status" class="form-status" role="status"></span>
         </div>
       </div>
 
-      <div class="card card--list">
-        <span class="card__label">Nullstilling</span>
+      <div class="panel">
+        <h3 class="panel__title">Nullstilling</h3>
         <p class="dev-help">Sletter reservasjoner, kategorier, nøkkelord og transportdata. Kan ikke angres.</p>
-        <div class="dev-actions">
+        <div class="form-actions">
           <button type="button" id="dev-reset-btn" class="btn btn--danger">Nullstill alt</button>
         </div>
       </div>
     </section>
 
-    <dialog id="dev-confirm" class="dev-dialog" aria-labelledby="dev-confirm-text">
+    <dialog id="dev-confirm" class="dialog" aria-labelledby="dev-confirm-text">
       <form method="dialog">
         <p id="dev-confirm-text"></p>
-        <div class="dev-actions">
-          <button type="submit" value="cancel" id="dev-confirm-cancel" class="btn btn--reset" autofocus>Avbryt</button>
+        <div class="form-actions">
+          <button type="submit" value="cancel" id="dev-confirm-cancel" class="btn" autofocus>Avbryt</button>
           <button type="submit" value="confirm" id="dev-confirm-ok" class="btn btn--danger"></button>
         </div>
       </form>

@@ -18,25 +18,40 @@ import sys
 TEKST = 4.5
 UI = 3.0
 
+T = "lib/tokens.css"
+
 PARS = [
-    # Dashboard: header
-    ("dashboard/dashboard.css", "--color-text", "--color-header-bg", TEKST, "headertekst"),
-    ("dashboard/dashboard.css", "--color-text-secondary", "--color-header-bg", TEKST, "synketidspunkt i header"),
-    # Dashboard: synkbanner og fremdrift
-    ("dashboard/dashboard.css", "--color-text", "--color-surface", TEKST, "tekst i synkbanner"),
-    ("dashboard/dashboard.css", "--color-progress-fill", "--color-progress-bg", UI, "fremdrift mot spor"),
-    ("dashboard/dashboard.css", "--color-progress-fill", "--color-surface", UI, "fremdrift mot banner"),
-    ("dashboard/dashboard.css", "--color-warning-text", "--color-warning-bg", TEKST, "ikke innlogget og feil"),
-    ("dashboard/dashboard.css", "--color-accent-text", "--color-accent", TEKST, "primærknapp og banner-handling"),
-    ("dashboard/dashboard.css", "--color-accent-text", "--color-accent-hover", TEKST, "primærknapp, hover"),
-    # Dashboard: tom tilstand og første synk
-    ("dashboard/dashboard.css", "--color-text", "--color-bg", TEKST, "tom tilstand, første linje"),
-    ("dashboard/dashboard.css", "--color-text-secondary", "--color-bg", TEKST, "tom tilstand, forklaring"),
-    ("dashboard/dashboard.css", "--color-link", "--color-bg", TEKST, "lenke i tom tilstand"),
-    # Dashboard: knapper
-    ("dashboard/dashboard.css", "--color-btn-sync-text", "--color-btn-sync-bg", TEKST, "sekundærknapp"),
-    ("dashboard/dashboard.css", "--color-btn-sync-text", "--color-btn-sync-hover", TEKST, "sekundærknapp, hover"),
-    ("dashboard/dashboard.css", "--color-disabled-text", "--color-disabled-bg", TEKST, "deaktivert knapp"),
+    # Tekst på flatene (tabellen «Kontrast» i docs/design.md)
+    (T, "--color-text", "--color-bg", TEKST, "brødtekst og hovedtall"),
+    (T, "--color-text", "--color-surface", TEKST, "tekst i panel, header og banner"),
+    (T, "--color-text-secondary", "--color-bg", TEKST, "etiketter, forklarende setning"),
+    (T, "--color-text-secondary", "--color-surface", TEKST, "etiketter i panel"),
+    (T, "--color-text-secondary", "--color-sunken", TEKST, "sekundærknapp, hover"),
+    (T, "--color-text-tertiary", "--color-bg", TEKST, "aksetekst, Beregnes"),
+    (T, "--color-text-tertiary", "--color-surface", TEKST, "aksetekst i panel"),
+    # Aksent
+    (T, "--color-accent", "--color-bg", TEKST, "lenker, stille knapper"),
+    (T, "--color-accent", "--color-surface", TEKST, "aktiv fane, sum i regnestykket"),
+    (T, "--color-accent", "--color-accent-soft", TEKST, "valgt år"),
+    (T, "--color-on-accent", "--color-accent", TEKST, "primærknapp"),
+    (T, "--color-on-accent", "--color-accent-hover", TEKST, "primærknapp, hover"),
+    # Tilstander
+    (T, "--color-warning-text", "--color-warning-bg", TEKST, "ikke innlogget og feil"),
+    (T, "--color-danger", "--color-surface", TEKST, "Nullstill alt"),
+    (T, "--color-danger", "--color-bg", TEKST, "feilmelding i skjema"),
+    (T, "--color-disabled-text", "--color-disabled-bg", TEKST, "deaktivert knapp"),
+    (T, "--color-demo-text", "--color-demo-bg", TEKST, "demomerket"),
+    # Kanter og fremdrift
+    (T, "--color-border-strong", "--color-surface", UI, "kant på knapper og felt"),
+    (T, "--color-border-strong", "--color-bg", UI, "kant på knapper og felt mot bg"),
+    (T, "--color-accent", "--color-sunken", UI, "fremdrift mot spor"),
+    # Diagram
+    (T, "--color-chart-1", "--color-surface", UI, "chart-1"),
+    (T, "--color-chart-2", "--color-surface", UI, "chart-2"),
+    (T, "--color-chart-3", "--color-surface", UI, "chart-3"),
+    (T, "--color-chart-4", "--color-surface", UI, "chart-4"),
+    (T, "--color-chart-5", "--color-surface", UI, "chart-5"),
+    (T, "--color-chart-3", "--color-bg", UI, "chart-3 mot bg"),
     # Popup
     ("popup/popup.css", "--color-text", "--color-bg", TEKST, "brødtekst"),
     ("popup/popup.css", "--color-text-secondary", "--color-bg", TEKST, "tidsstempel"),

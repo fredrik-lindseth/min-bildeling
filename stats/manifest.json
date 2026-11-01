@@ -44,7 +44,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "bildeleringen-stats@extension",
-      "strict_min_version": "112.0"
+      "strict_min_version": "120.0"
     }
   }
 }

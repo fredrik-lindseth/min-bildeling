@@ -15,6 +15,10 @@ import {
   drawChart,
   barChartConfig,
   lineChartConfig,
+  resolveColor,
+  applyChartTheme,
+  axes,
+  onColorSchemeChange,
 } from "../lib/chart-helpers.js";
 
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
@@ -63,43 +67,48 @@ const browserAPI = globalThis.browser ?? globalThis.chrome;
 const demo = isDemoMode(window.location.search) ? createDemoSession() : null;
 const storage = demo ? demo.storage : extensionStorage;
 
-// ---------- CSS Color Helpers ----------
+// ---------- Diagramfarger ----------
 
-/**
- * Read a CSS custom property value from :root.
- */
-function cssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-/**
- * Convert any CSS color string to rgba() with a given alpha.
- * Uses a scratch canvas to let the browser parse the color.
- */
-const _colorCtx = document.createElement("canvas").getContext("2d");
-function colorWithAlpha(cssColor, alpha) {
-  _colorCtx.fillStyle = cssColor;
-  // The browser normalises any color to rgb()/rgba() in fillStyle
-  const parsed = _colorCtx.fillStyle;
-  if (parsed.startsWith("#")) {
-    // Kort hex, konverter for hånd
-    const r = parseInt(parsed.slice(1, 3), 16);
-    const g = parseInt(parsed.slice(3, 5), 16);
-    const b = parseInt(parsed.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  // Already rgb(...) or rgba(...)
-  return parsed.replace(/rgba?\(([^)]+)\)/, (_, inner) => {
-    const parts = inner.split(",").map((s) => s.trim());
-    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
-  });
-}
-
-// Set Chart.js global defaults for current theme
-Chart.defaults.color = cssVar("--color-text-secondary");
-Chart.defaults.borderColor = cssVar("--color-border");
+applyChartTheme();
 // Høyden kommer fra .chart-frame i CSS-en, ikke fra bredden.
 Chart.defaults.maintainAspectRatio = false;
+
+// Varmekartet bruker én kulør i fem trinn, fra sunken til accent. Trinnene
+// blandes i CSS, så det finnes ingen fargeverdier her.
+const HEAT_STEPS = [0, 25, 50, 75, 100].map(
+  (pct) => `color-mix(in srgb, var(--color-accent) ${pct}%, var(--color-sunken))`
+);
+
+// Annet i Turkategorier og egen bil i Transport er ikke chart-farger.
+const NEUTRAL_SERIES = "--color-border-strong";
+
+function chartColor(n) {
+  return resolveColor(`--color-chart-${n}`);
+}
+
+// Kakestykker skilles med 2 px strek i flatefargen.
+function doughnutDataset(data, colors) {
+  return {
+    data,
+    backgroundColor: colors,
+    borderColor: resolveColor("--color-surface"),
+    borderWidth: 2,
+  };
+}
+
+function doughnutOptions(label) {
+  return {
+    responsive: true,
+    cutout: "55%",
+    plugins: {
+      legend: {
+        position: "right",
+        labels: { boxWidth: 12, boxHeight: 12, color: resolveColor("--color-text-secondary") },
+      },
+      tooltip: { callbacks: { label } },
+    },
+  };
+}
 
 // ---------- Formatters ----------
 
@@ -226,7 +235,7 @@ function showLoginRequired() {
 
   const action = document.createElement("a");
   action.id = "status-action";
-  action.className = "status__action";
+  action.className = "btn btn--primary status__action";
   action.textContent = "Åpne app.dele.no";
   action.href = "https://app.dele.no";
   action.target = "_blank";
@@ -250,7 +259,7 @@ function showSyncMessage(message) {
   const action = document.createElement("button");
   action.type = "button";
   action.id = "status-action";
-  action.className = "status__action status__action--retry";
+  action.className = "btn status__action";
   action.textContent = "Prøv igjen";
   action.addEventListener("click", () => syncAndRender(true));
   statusEl.appendChild(action);
@@ -300,19 +309,20 @@ function updateActiveNav() {
     }
   }
 
+  setActiveNav(current);
+}
+
+function setActiveNav(sectionId) {
   navLinks.forEach((link) => {
-    const isActive = link.dataset.section === current;
-    link.classList.toggle("nav__link--active", isActive);
+    if (link.dataset.section === sectionId) link.setAttribute("aria-current", "true");
+    else link.removeAttribute("aria-current");
   });
 }
 
 window.addEventListener("scroll", updateActiveNav, { passive: true });
 
 navLinks.forEach((link) => {
-  link.addEventListener("click", (e) => {
-    navLinks.forEach((l) => l.classList.remove("nav__link--active"));
-    link.classList.add("nav__link--active");
-  });
+  link.addEventListener("click", () => setActiveNav(link.dataset.section));
 });
 
 // ---------- Messaging ----------
@@ -349,7 +359,7 @@ function buildYearSelector(reservations) {
       ...options.map((year) => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "year-btn";
+        btn.className = "btn year-btn";
         btn.dataset.year = year;
         btn.textContent = year === "all" ? "Alle år" : year;
         return btn;
@@ -362,7 +372,6 @@ function buildYearSelector(reservations) {
 function markSelectedYear() {
   for (const btn of yearSelector.querySelectorAll(".year-btn")) {
     const active = btn.dataset.year === selectedYear;
-    btn.classList.toggle("year-btn--active", active);
     btn.setAttribute("aria-pressed", String(active));
   }
 }
@@ -382,22 +391,33 @@ function renderCosts(reservations) {
   const yearly = yearlyCosts(filtered);
   const mileage = mileageStats(filtered);
 
-  // Yearly total display
-  const yearlyEl = document.getElementById("cost-yearly-total");
-  if (selectedYear === "all" && yearly.length > 0) {
-    yearlyEl.innerHTML = yearly
-      .map(
-        (y) =>
-          `<div class="yearly-row"><span>${y.year}</span><span>${formatNOK.format(y.total)}</span></div>`
-      )
-      .join("");
-  } else if (stats) {
-    yearlyEl.textContent = formatNOK.format(stats.total);
-  } else {
-    yearlyEl.textContent = "–";
+  // Hovedtallet: summen av faktiske beløp, derfor uten «ca.»
+  setText("cost-total", stats ? formatNOK.format(stats.total) : "–");
+  const years = yearly.map((y) => y.year);
+  const period = years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0] ?? ""}`;
+  setText(
+    "cost-total-text",
+    stats ? `brukt på bildeling i ${period}, fordelt på ${formatTrips(stats.count)}.` : ""
+  );
+
+  // Alle år: én linje per år øverst i nøkkeltallene
+  const figures = $("cost-figures");
+  figures.querySelectorAll(".figures__year").forEach((row) => row.remove());
+  if (selectedYear === "all" && yearly.length > 1) {
+    const rows = yearly.map((y) => {
+      const row = document.createElement("div");
+      row.className = "figures__year";
+      const dt = document.createElement("dt");
+      dt.textContent = `Totalt ${y.year}`;
+      const dd = document.createElement("dd");
+      dd.textContent = formatNOK.format(y.total);
+      row.append(dt, dd);
+      return row;
+    });
+    figures.prepend(...rows);
   }
 
-  // Stat cards
+  // Nøkkeltall
   setText("cost-avg-trip", stats ? formatNOK.format(stats.average) : "–");
   setText("cost-median-trip", stats ? formatNOK.format(stats.median) : "–");
   setText("cost-max-trip", stats ? formatNOK.format(stats.max) : "–");
@@ -443,7 +463,7 @@ function renderUsage(reservations) {
     draw("tripsPerMonth", $("trips-per-month-chart"), lineChartConfig(labels, data, "Turer", { yTitle: "Antall" }));
   }
 
-  // Stat cards
+  // Nøkkeltall
   setText("usage-avg-duration", formatDuration(patterns.avgDuration));
   setText("usage-total-trips", valid.length.toString());
 
@@ -452,15 +472,14 @@ function renderUsage(reservations) {
   topCarsList.innerHTML = "";
   const top5 = patterns.topCars.slice(0, 5);
   if (top5.length === 0) {
-    topCarsList.innerHTML = '<li class="ranked-list__empty">Ingen data</li>';
+    topCarsList.innerHTML = '<li class="ranked__empty">Ingen data</li>';
   } else {
     for (let i = 0; i < top5.length; i++) {
       const li = document.createElement("li");
-      li.className = "ranked-list__item";
+      li.className = "ranked__item";
       li.innerHTML = `
-        <span class="ranked-list__rank">${i + 1}</span>
-        <span class="ranked-list__name">${escapeHtml(top5[i].name)}</span>
-        <span class="ranked-list__value">${formatTrips(top5[i].count)}</span>
+        <span class="ranked__row"><span class="ranked__name">${escapeHtml(top5[i].name)}</span>
+        <span class="ranked__value">${formatTrips(top5[i].count)}</span></span>
       `;
       topCarsList.appendChild(li);
     }
@@ -495,14 +514,12 @@ function renderHeatmapWithLabels(canvas, heatmapData) {
 
   const max = Math.max(...heatmapData.flat(), 1);
 
-  // Get CSS custom property values for theming
-  const styles = getComputedStyle(document.documentElement);
-  const emptyColor = styles.getPropertyValue("--color-heatmap-empty").trim();
-  const textColor = styles.getPropertyValue("--color-heatmap-text").trim();
-  const heatmapFill = styles.getPropertyValue("--color-heatmap-fill").trim();
+  // Fem trinn fra sunken til accent, løst til ferdige farger for modusen nå.
+  const steps = HEAT_STEPS.map(resolveColor);
+  const textColor = resolveColor("--color-text-tertiary");
 
-  // Hour labels
-  ctx.font = "11px " + getComputedStyle(document.body).fontFamily;
+  // Timetall
+  ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
   ctx.fillStyle = textColor;
   ctx.textAlign = "center";
   for (let h = 0; h < 24; h += 3) {
@@ -520,28 +537,21 @@ function renderHeatmapWithLabels(canvas, heatmapData) {
     // Day label
     ctx.fillStyle = textColor;
     ctx.textAlign = "right";
-    ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
     ctx.fillText(dayLabels[day], labelW - 6, y + cellH / 2 + 4);
 
     for (let hour = 0; hour < 24; hour++) {
       const x = labelW + hour * cellW;
       const intensity = heatmapData[day][hour] / max;
-
-      if (intensity === 0) {
-        ctx.fillStyle = emptyColor;
-      } else {
-        ctx.fillStyle = colorWithAlpha(heatmapFill, 0.15 + intensity * 0.85);
-      }
-      // Use roundRect if available, fallback to fillRect for older browsers
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(x, y, cellW - 2, cellH - 2, 3);
-        ctx.fill();
-      } else {
-        ctx.fillRect(x, y, cellW - 2, cellH - 2);
-      }
+      const step = intensity === 0 ? 0 : Math.max(1, Math.ceil(intensity * 4));
+      ctx.fillStyle = steps[step];
+      ctx.fillRect(x, y, cellW - 2, cellH - 2);
     }
   }
+
+  // Forklaringen under bruker de samme fem trinnene.
+  document.querySelectorAll(".heatmap-legend__scale span").forEach((el, i) => {
+    el.style.setProperty("--heat-step", HEAT_STEPS[i]);
+  });
 }
 
 // ---------- Rendering: Section 3 - Bookingmønster ----------
@@ -574,7 +584,7 @@ function renderBookingPatterns(reservations) {
   $("booking-empty").hidden = true;
   $("booking-content").hidden = false;
 
-  // Stat cards
+  // Nøkkeltall
   setText("booking-avg-lead", formatLeadDays(patterns.avgDays));
   setText("booking-median-lead", formatLeadDays(patterns.medianDays));
   setText(
@@ -607,7 +617,7 @@ function renderBookingPatterns(reservations) {
         {
           label: "Turer",
           data: stationData,
-          backgroundColor: cssVar("--color-accent"),
+          backgroundColor: chartColor(1),
         },
       ],
     },
@@ -622,15 +632,11 @@ function renderBookingPatterns(reservations) {
           },
         },
       },
-      scales: {
-        x: {
-          title: { display: true, text: "Antall turer", font: { size: 12 } },
-          ticks: { precision: 0 },
-        },
-        y: {
-          ticks: { font: { size: 12 } },
-        },
-      },
+      scales: (() => {
+        const scales = axes({ yTitle: "Antall turer", horizontal: true });
+        scales.x.ticks.precision = 0;
+        return scales;
+      })(),
     },
   });
 
@@ -657,7 +663,7 @@ function renderMileage(reservations) {
   $("km-empty").hidden = true;
   $("km-content").hidden = false;
 
-  // Stat cards
+  // Nøkkeltall
   setText("km-total", `${formatKm.format(mileage.total)} km`);
   setText("km-avg", `${formatKm.format(mileage.average)} km`);
   setText("km-max", `${formatKm.format(mileage.max)} km`);
@@ -676,15 +682,14 @@ function renderMileage(reservations) {
   list.innerHTML = "";
   const top5 = mileage.byCar.slice(0, 5);
   if (top5.length === 0) {
-    list.innerHTML = '<li class="ranked-list__empty">Ingen data</li>';
+    list.innerHTML = '<li class="ranked__empty">Ingen data</li>';
   } else {
     for (let i = 0; i < top5.length; i++) {
       const li = document.createElement("li");
-      li.className = "ranked-list__item";
+      li.className = "ranked__item";
       li.innerHTML = `
-        <span class="ranked-list__rank">${i + 1}</span>
-        <span class="ranked-list__name">${escapeHtml(top5[i][0])}</span>
-        <span class="ranked-list__value">${formatKm.format(top5[i][1])} km</span>
+        <span class="ranked__row"><span class="ranked__name">${escapeHtml(top5[i][0])}</span>
+        <span class="ranked__value">${formatKm.format(top5[i][1])} km</span></span>
       `;
       list.appendChild(li);
     }
@@ -711,6 +716,7 @@ function renderTrends(reservations) {
     renderYearOverYear(reservations, yearly);
   } else {
     destroyChart("yoy");
+    $("yoy-legend").replaceChildren();
   }
 
   // Rolling 3-month average
@@ -730,11 +736,13 @@ function renderYearOverYear(reservations, yearly) {
   const canvas = $("yoy-chart");
 
   // Build datasets per year, indexed by month 0-11
+  // Siste år er fylt i chart-1. Årene før er hule søyler med 2 px kant, så
+  // seriene skilles på form og ikke bare på farge. Nærmeste år får chart-3,
+  // som har størst lyshetsavstand til chart-1.
   const datasets = [];
-  const colors = [1, 2, 3, 4, 5].map((n) => {
-    const c = cssVar(`--color-chart-${n}`);
-    return { border: c, bg: colorWithAlpha(c, 0.1) };
-  });
+  const hollowOrder = [3, 5, 2, 4];
+  const legend = $("yoy-legend");
+  legend.replaceChildren();
 
   for (let i = 0; i < yearly.length; i++) {
     const year = yearly[i].year;
@@ -747,30 +755,47 @@ function renderYearOverYear(reservations, yearly) {
       byMonth[new Date(r.start).getMonth()] += r.price.total;
     }
 
-    const color = colors[i % colors.length];
+    const isLatest = i === yearly.length - 1;
+    const stepsBack = yearly.length - 1 - i;
+    const token = isLatest
+      ? "--color-chart-1"
+      : `--color-chart-${hollowOrder[(stepsBack - 1) % hollowOrder.length]}`;
+    const color = resolveColor(token);
     datasets.push({
       label: String(year),
       data: byMonth,
-      borderColor: color.border,
-      backgroundColor: color.bg,
-      tension: 0.3,
-      fill: false,
+      backgroundColor: isLatest ? color : "transparent",
+      borderColor: color,
+      borderWidth: isLatest ? 0 : 2,
+      borderRadius: 0,
     });
+
+    const item = document.createElement("span");
+    const key = document.createElement("span");
+    key.className = "chart-legend__key";
+    key.style.color = `var(${token})`;
+    if (isLatest) key.style.backgroundColor = `var(${token})`;
+    item.append(key, String(year));
+    legend.append(item);
   }
 
   draw("yoy", canvas, {
-    type: "line",
+    type: "bar",
     data: {
-      labels: MONTH_NAMES_FULL,
+      labels: MONTH_NAMES,
       datasets,
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: true, position: "top" } },
-      scales: {
-        x: { ticks: { maxTicksLimit: 12, font: { size: 11 } } },
-        y: { beginAtZero: true, title: { display: true, text: "Kr", font: { size: 12 } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${formatNOK.format(ctx.parsed.y)}`,
+          },
+        },
       },
+      scales: axes({ yTitle: "Kr" }),
     },
   });
 }
@@ -828,19 +853,15 @@ function renderOwnership(reservations) {
   $("ownership-empty").hidden = true;
   $("ownership-content").hidden = false;
 
-  // Set cost amounts
-  setText("sharing-cost", formatNOK.format(result.sharingCost));
-  setText("ownership-cost", `ca. ${formatNOK.format(result.ownershipCost)}`);
-
-  // Build verdict
-  const verdictEl = $("comparison-verdict");
-  if (result.savings > 0) {
-    verdictEl.textContent = `Du sparer ca. ${formatNOK.format(result.savings)} i året med bildeling`;
-    verdictEl.className = "comparison__verdict comparison__verdict--saving";
-  } else {
-    verdictEl.textContent = `Bildeling koster ca. ${formatNOK.format(Math.abs(result.savings))} mer i året`;
-    verdictEl.className = "comparison__verdict comparison__verdict--more";
-  }
+  // Hovedtallet er forskjellen, og regnestykket under viser hvor den kommer fra.
+  setText("ownership-savings", `ca. ${formatNOK.format(Math.abs(result.savings))}`);
+  setText(
+    "ownership-savings-text",
+    result.savings > 0
+      ? "mindre per år enn å eie en tilsvarende bil."
+      : "mer per år enn å eie en tilsvarende bil."
+  );
+  setLedger("ledger", result.ownershipCost, result.sharingCost, result.savings);
 
   // Ownership breakdown horizontal bar chart
   const bd = result.breakdownOwnership;
@@ -860,15 +881,7 @@ function renderOwnership(reservations) {
     bd.parking,
     bd.fuel,
   ];
-  const breakdownColors = [
-    cssVar("--color-chart-1"),
-    cssVar("--color-chart-2"),
-    cssVar("--color-chart-3"),
-    cssVar("--color-chart-4"),
-    cssVar("--color-chart-5"),
-    cssVar("--color-tertiary"),
-  ];
-
+  // Én serie, én farge. Etikettene på aksen sier hva søylene er.
   draw("ownershipBreakdown", $("ownership-breakdown-chart"), {
     type: "bar",
     data: {
@@ -876,7 +889,7 @@ function renderOwnership(reservations) {
       datasets: [{
         label: "Kostnad",
         data: breakdownData,
-        backgroundColor: breakdownColors,
+        backgroundColor: chartColor(1),
       }],
     },
     options: {
@@ -893,31 +906,14 @@ function renderOwnership(reservations) {
           },
         },
       },
-      scales: {
-        x: {
-          title: { display: true, text: "Kr", font: { size: 12 } },
-        },
-        y: {
-          ticks: { font: { size: 12 } },
-        },
-      },
+      scales: axes({ yTitle: "Kr", horizontal: true }),
     },
   });
 
-  // Volvo EX C40 comparison
+  // Volvo EX C40, som et mindre regnestykke under det første
   const volvo = estimateVolvoComparison(reservations);
   if (volvo) {
-    setText("volvo-sharing-cost", formatNOK.format(volvo.sharingCost));
-    setText("volvo-ownership-cost", `ca. ${formatNOK.format(volvo.ownershipCost)}`);
-
-    const volvoVerdictEl = $("volvo-verdict");
-    if (volvo.savings > 0) {
-      volvoVerdictEl.textContent = `Du sparer ca. ${formatNOK.format(volvo.savings)} i året med bildeling`;
-      volvoVerdictEl.className = "comparison__verdict comparison__verdict--saving";
-    } else {
-      volvoVerdictEl.textContent = `Bildeling koster ca. ${formatNOK.format(Math.abs(volvo.savings))} mer i året`;
-      volvoVerdictEl.className = "comparison__verdict comparison__verdict--more";
-    }
+    setLedger("volvo", volvo.ownershipCost, volvo.sharingCost, volvo.savings);
   }
 
   // Note text
@@ -931,11 +927,19 @@ function renderOwnership(reservations) {
     const bd = result.breakdownOwnership;
     ownershipMethodDetail.innerHTML = `
       <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
-      <p style="margin-top: 4px;"><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + årsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
-      <p style="margin-top: 4px;">Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
+      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + årsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
+      <p>Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
       ${sourcesHtml(OWNERSHIP_METHOD.sources)}
     `;
   }
+}
+
+// Regnestykket: egen bil minus bildeling er forskjellen. Egen bil og
+// forskjellen er estimater og får «ca.», bildelingen er faktiske beløp.
+function setLedger(prefix, ownershipCost, sharingCost, savings) {
+  setText(`${prefix}-car`, `ca. ${formatNOK.format(ownershipCost)}`);
+  setText(`${prefix}-sharing`, `− ${formatNOK.format(sharingCost)}`);
+  setText(`${prefix}-diff`, `ca. ${formatNOK.format(savings)}`);
 }
 
 // ---------- Rendering: Section 6 - Turkategorier ----------
@@ -960,31 +964,28 @@ async function renderCategories(reservations) {
   if (entries.length === 0) {
     destroyChart("categoryDonut");
   } else {
-    const labels = entries.map(([, v]) => v.label);
-    const data = entries.map(([, v]) => v.totalCost);
-    const colors = entries.map((_, i) => cssVar(`--color-chart-${(i % 5) + 1}`));
+    // De fem største får hver sin chart-farge etter beløp. Resten samles som
+    // «Øvrige» i en nøytral grå, alltid sist, så det aldri trengs en sjette farge.
+    const sorted = [...entries].sort(([, a], [, b]) => b.totalCost - a.totalCost);
+    const MAX_SLICES = 5;
+    const shown = sorted.length > MAX_SLICES ? sorted.slice(0, MAX_SLICES) : sorted;
+    const labels = shown.map(([, v]) => v.label);
+    const data = shown.map(([, v]) => v.totalCost);
+    const colors = shown.map((_, i) => chartColor(i + 1));
+    if (sorted.length > MAX_SLICES) {
+      labels.push("Øvrige");
+      data.push(sorted.slice(MAX_SLICES).reduce((sum, [, v]) => sum + v.totalCost, 0));
+      colors.push(resolveColor(NEUTRAL_SERIES));
+    }
 
     draw("categoryDonut", $("category-donut-chart"), {
       type: "doughnut",
-      data: {
-        labels,
-        datasets: [{ data, backgroundColor: colors }],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "right" },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const val = formatNOK.format(ctx.parsed);
-                const pct = Math.round((ctx.parsed / data.reduce((a, b) => a + b, 0)) * 100);
-                return `${ctx.label}: ${val} (${pct} %)`;
-              },
-            },
-          },
-        },
-      },
+      data: { labels, datasets: [doughnutDataset(data, colors)] },
+      options: doughnutOptions((ctx) => {
+        const val = formatNOK.format(ctx.parsed);
+        const pct = Math.round((ctx.parsed / data.reduce((a, b) => a + b, 0)) * 100);
+        return `${ctx.label}: ${val} (${pct} %)`;
+      }),
     });
   }
 
@@ -993,11 +994,11 @@ async function renderCategories(reservations) {
   tableEl.innerHTML = "";
   for (const [key, val] of entries.sort(([, a], [, b]) => b.totalCost - a.totalCost)) {
     const row = document.createElement("div");
-    row.className = "category-row";
+    row.className = "table-row";
     row.innerHTML = `
-      <span class="category-row__name">${escapeHtml(val.label)}</span>
-      <span class="category-row__stat">${formatTrips(val.count)}</span>
-      <span class="category-row__stat">${formatNOK.format(val.totalCost)}</span>
+      <span class="table-row__name">${escapeHtml(val.label)}</span>
+      <span class="table-row__stat">${formatTrips(val.count)}</span>
+      <span class="table-row__stat">${formatNOK.format(val.totalCost)}</span>
     `;
     tableEl.appendChild(row);
   }
@@ -1019,7 +1020,7 @@ async function renderCategories(reservations) {
       item.className = "suggestion-item";
       item.innerHTML = `
         <span class="suggestion-item__notes">${escapeHtml(r.notes || "Ingen notat")}</span>
-        <button class="suggestion-item__btn" data-id="${r.id}" data-cat="${catKey}">${escapeHtml(catLabel)}</button>
+        <button type="button" class="btn suggestion-item__btn" data-id="${r.id}" data-cat="${catKey}">${escapeHtml(catLabel)}</button>
       `;
       listEl.appendChild(item);
     }
@@ -1051,12 +1052,11 @@ function keywordCategoryOrder() {
   return order;
 }
 
-function setKeywordStatus(message) {
+// Meldingen blir stående til neste handling, så den rekker å bli lest.
+function setKeywordStatus(message, { error = false } = {}) {
   const status = $("keyword-status");
   status.textContent = message;
-  setTimeout(() => {
-    if (status.textContent === message) status.textContent = "";
-  }, 4000);
+  status.classList.toggle("form-status--error", error);
 }
 
 function formatTrips(n) {
@@ -1083,7 +1083,7 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     row.className = "keyword-row";
     row.innerHTML = `
       <label class="keyword-row__label" for="${inputId}">${escapeHtml(CATEGORIES[key].label)}</label>
-      <input type="text" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
+      <input type="text" class="field" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
         aria-describedby="${hintId}">
       <span class="keyword-row__hits" id="${hintId}">
         ${formatTrips(hits.perCategory[key] || 0)}${defaults.length > 0 ? `, ${defaults.length} standardord` : ""}
@@ -1124,13 +1124,13 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     try {
       parsed = JSON.parse(await file.text());
     } catch {
-      setKeywordStatus("Klarte ikke å lese filen. Velg en JSON-fil.");
+      setKeywordStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
       return;
     }
     const imported = normalizeUserKeywords(parsed?.userKeywords ?? parsed);
     const count = Object.values(imported).reduce((sum, list) => sum + list.length, 0);
     if (count === 0) {
-      setKeywordStatus("Fant ingen n\u00f8kkelord i filen.");
+      setKeywordStatus("Fant ingen n\u00f8kkelord i filen.", { error: true });
       return;
     }
 
@@ -1161,7 +1161,7 @@ function renderClimate(reservations) {
   $("co2-empty").hidden = true;
   $("co2-content").hidden = false;
 
-  // Stat cards
+  // Nøkkeltall
   setText("co2-total", `ca. ${formatKm.format(Math.round(total.totalKg))} kg`);
   setText("co2-avg-km", `ca. ${Math.round(total.avgPerKm)} g/km`);
 
@@ -1184,7 +1184,7 @@ function renderClimate(reservations) {
     methodDetail.innerHTML = `
       <p>${escapeHtml(CO2_METHOD.note)}</p>
       ${fuelLines}
-      <p style="margin-top: 4px;">Totalt: <code>${formatKm.format(Math.round(total.totalKg))} kg CO\u2082</code> fra <code>${formatKm.format(total.totalKm)} km</code></p>
+      <p>Totalt: <code>${formatKm.format(Math.round(total.totalKg))} kg CO\u2082</code> fra <code>${formatKm.format(total.totalKm)} km</code></p>
       ${sourcesHtml(CO2_METHOD.sources)}
     `;
   }
@@ -1207,11 +1207,11 @@ function renderClimate(reservations) {
   for (const [fuel, data] of Object.entries(total.byFuelType).sort(([,a],[,b]) => b.kg - a.kg)) {
     if (data.trips === 0) continue;
     const row = document.createElement("div");
-    row.className = "category-row";
+    row.className = "table-row";
     row.innerHTML = `
-      <span class="category-row__name">${escapeHtml(fuel)}</span>
-      <span class="category-row__stat">${formatTrips(data.trips)}</span>
-      <span class="category-row__stat">ca. ${formatKm.format(Math.round(data.kg))} kg</span>
+      <span class="table-row__name">${escapeHtml(fuel)}</span>
+      <span class="table-row__stat">${formatTrips(data.trips)}</span>
+      <span class="table-row__stat">ca. ${formatKm.format(Math.round(data.kg))} kg</span>
     `;
     fuelList.appendChild(row);
   }
@@ -1249,7 +1249,8 @@ function buildTransportForm(year, savedData) {
       if (field.type === "select") {
         const select = document.createElement("select");
         select.name = `${mode}_${field.key}`;
-        select.className = "transport-select";
+        select.className = "field";
+        select.setAttribute("aria-label", `${definition.label}, ${field.label.toLowerCase()}`);
         for (const opt of field.options) {
           const option = document.createElement("option");
           option.value = opt.value;
@@ -1263,6 +1264,8 @@ function buildTransportForm(year, savedData) {
         // type="text" + inputmode lar oss godta "4 740" og andre format.
         // Tall-input parses og normaliseres ved save og blur.
         input.type = "text";
+        input.className = "field";
+        input.setAttribute("aria-label", `${definition.label}, ${field.label.toLowerCase()}`);
         input.inputMode = "numeric";
         input.autocomplete = "off";
         input.name = `${mode}_${field.key}`;
@@ -1304,10 +1307,10 @@ const TRANSPORT_CHART_COLORS = {
   bildeling: "--color-chart-1",
   taxi: "--color-chart-2",
   leiebil: "--color-chart-3",
-  egenbil: "--color-secondary",
+  egenbil: NEUTRAL_SERIES,
   buss: "--color-chart-4",
   fly: "--color-chart-5",
-  sykkel: "--color-text-tertiary",
+  sykkel: NEUTRAL_SERIES,
 };
 
 async function renderTransport(reservations) {
@@ -1375,7 +1378,6 @@ async function renderTransport(reservations) {
     // Show save status
     const status = $("transport-save-status");
     status.textContent = "Lagret";
-    setTimeout(() => { status.textContent = ""; }, 2000);
 
     // Re-render summary
     renderTransportSummary(reservations, freshData, transportYear);
@@ -1388,7 +1390,6 @@ async function renderTransport(reservations) {
     for (const input of inputs) input.value = "";
     const status = $("transport-save-status");
     status.textContent = "Trykk Lagre for å slette";
-    setTimeout(() => { status.textContent = ""; }, 3000);
   };
 }
 
@@ -1408,7 +1409,7 @@ function renderTransportSummary(reservations, savedData, year) {
 
   $("transport-summary").hidden = false;
 
-  // Summary cards
+  // Nøkkeltall
   setText("transport-total-cost", formatNOK.format(summary.totals.cost));
   setText(
     "transport-total-co2",
@@ -1438,31 +1439,17 @@ function renderTransportSummary(reservations, savedData, year) {
       type: "doughnut",
       data: {
         labels: costEntries.map(([, m]) => m.label),
-        datasets: [
-          {
-            data: costEntries.map(([, m]) => m.cost),
-            backgroundColor: costEntries.map(([key]) =>
-              cssVar(TRANSPORT_CHART_COLORS[key] || "--color-chart-1")
-            ),
-          },
-        ],
+        datasets: [doughnutDataset(
+          costEntries.map(([, m]) => m.cost),
+          costEntries.map(([key]) => resolveColor(TRANSPORT_CHART_COLORS[key] || "--color-chart-1"))
+        )],
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "right" },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const val = formatNOK.format(ctx.parsed);
-                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                const pct = Math.round((ctx.parsed / total) * 100);
-                return `${ctx.label}: ${val} (${pct} %)`;
-              },
-            },
-          },
-        },
-      },
+      options: doughnutOptions((ctx) => {
+        const val = formatNOK.format(ctx.parsed);
+        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+        const pct = Math.round((ctx.parsed / total) * 100);
+        return `${ctx.label}: ${val} (${pct} %)`;
+      }),
     });
   }
 
@@ -1475,30 +1462,16 @@ function renderTransportSummary(reservations, savedData, year) {
       type: "doughnut",
       data: {
         labels: co2Entries.map(([, m]) => m.label),
-        datasets: [
-          {
-            data: co2Entries.map(([, m]) => Math.round(m.co2Kg)),
-            backgroundColor: co2Entries.map(([key]) =>
-              cssVar(TRANSPORT_CHART_COLORS[key] || "--color-chart-1")
-            ),
-          },
-        ],
+        datasets: [doughnutDataset(
+          co2Entries.map(([, m]) => Math.round(m.co2Kg)),
+          co2Entries.map(([key]) => resolveColor(TRANSPORT_CHART_COLORS[key] || "--color-chart-1"))
+        )],
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "right" },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                const pct = Math.round((ctx.parsed / total) * 100);
-                return `${ctx.label}: ca. ${formatKm.format(ctx.parsed)} kg (${pct} %)`;
-              },
-            },
-          },
-        },
-      },
+      options: doughnutOptions((ctx) => {
+        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+        const pct = Math.round((ctx.parsed / total) * 100);
+        return `${ctx.label}: ca. ${formatKm.format(ctx.parsed)} kg (${pct} %)`;
+      }),
     });
   }
 
@@ -1507,12 +1480,12 @@ function renderTransportSummary(reservations, savedData, year) {
   tableEl.innerHTML = "";
   for (const [, mode] of sortedModes) {
     const row = document.createElement("div");
-    row.className = "category-row";
+    row.className = "table-row";
     row.innerHTML = `
-      <span class="category-row__name">${escapeHtml(mode.label)}</span>
-      <span class="category-row__stat">${formatNOK.format(mode.cost)}</span>
-      <span class="category-row__stat">ca. ${formatKm.format(Math.round(mode.co2Kg))} kg</span>
-      <span class="category-row__stat">${formatKm.format(mode.km)} km</span>
+      <span class="table-row__name">${escapeHtml(mode.label)}</span>
+      <span class="table-row__stat">${formatNOK.format(mode.cost)}</span>
+      <span class="table-row__stat">ca. ${formatKm.format(Math.round(mode.co2Kg))} kg</span>
+      <span class="table-row__stat">${formatKm.format(mode.km)} km</span>
     `;
     tableEl.appendChild(row);
   }
@@ -1537,12 +1510,22 @@ function escapeHtml(str) {
 
 function sourcesHtml(sources) {
   const items = sources.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
-  return `<p style="margin-top: 8px;">Kilder:</p><ul style="margin-left: 16px; margin-top: 4px;">${items}</ul>`;
+  return `<p>Kilder:</p><ul>${items}</ul>`;
 }
 
 // ---------- Sync ----------
 
+let renderedLastSync = null;
+
+// Fargene i diagrammene er løst for én modus. Bytter systemet mellom lys og
+// mørk, tegnes alt på nytt med fargene for den nye modusen.
+onColorSchemeChange(() => {
+  applyChartTheme();
+  if (allReservations.length > 0) renderAll(allReservations, renderedLastSync);
+});
+
 async function renderAll(reservations, lastSync) {
+  renderedLastSync = lastSync;
   allReservations = reservations;
   setHeaderText(lastSyncedEl, formatSyncTime(lastSync));
   updateDataSummary(allReservations);
@@ -1691,12 +1674,12 @@ document.addEventListener("click", async (e) => {
   if (!section) return;
 
   btn.disabled = true;
-  btn.style.opacity = "0.5";
 
   try {
     const canvas = await html2canvas(section, {
-      backgroundColor: cssVar("--color-bg"),
+      backgroundColor: resolveColor("--color-bg"),
       scale: 2,
+      onclone: (doc) => doc.body.classList.add("export"),
     });
 
     const link = document.createElement("a");
@@ -1708,7 +1691,6 @@ document.addEventListener("click", async (e) => {
   }
 
   btn.disabled = false;
-  btn.style.opacity = "";
 });
 
 // ---------- Methodology Toggles ----------
@@ -1745,9 +1727,9 @@ function setDevStatus(message, kind) {
   const el = $("dev-action-status");
   if (!el) return;
   el.textContent = message || "";
-  el.classList.remove("dev-status--ok", "dev-status--error");
-  if (kind === "ok") el.classList.add("dev-status--ok");
-  if (kind === "error") el.classList.add("dev-status--error");
+  el.classList.remove("form-status--ok", "form-status--error");
+  if (kind === "ok") el.classList.add("form-status--ok");
+  if (kind === "error") el.classList.add("form-status--error");
 }
 
 function clearDevStatusLater(ms = 4000) {

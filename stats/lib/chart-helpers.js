@@ -1,13 +1,82 @@
 /**
- * Resolve a CSS custom property to its computed value.
+ * Chart.js-oppsett for dashboard og popup. Fargene kommer fra tokens.css.
+ * Tokenene er skrevet med light-dark(), og getPropertyValue() gir da tilbake
+ * selve light-dark(...)-teksten, som Chart.js ikke kan tegne. resolveColor()
+ * løser verdien gjennom et skjult måleelement i stedet, så svaret er en
+ * ferdig farge for modusen som gjelder akkurat nå.
  */
-function cssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+let probe = null;
+
+/**
+ * En ferdig beregnet farge for en CSS-verdi, for eksempel
+ * "var(--color-chart-1)" eller "color-mix(in srgb, var(--color-accent) 40%,
+ * var(--color-sunken))". Et tokennavn alene ("--color-text") går også.
+ */
+export function resolveColor(value) {
+  if (!probe) {
+    probe = document.createElement("span");
+    probe.hidden = true;
+    document.body.appendChild(probe);
+  }
+  probe.style.color = value.startsWith("--") ? `var(${value})` : value;
+  return getComputedStyle(probe).color;
 }
 
 // Chart.js formaterer akser og tooltips med nettleserens språk, som kan være
 // engelsk selv om resten av siden er norsk.
 Chart.defaults.locale = "nb-NO";
+
+/**
+ * Setter fellesvalgene som følger tokenene: tekst, rutenett, font og tooltip.
+ * Kalles ved oppstart og på nytt når fargemodusen endres.
+ */
+export function applyChartTheme() {
+  const font = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.font.family = font;
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = resolveColor("--color-text-tertiary");
+  Chart.defaults.borderColor = resolveColor("--color-grid");
+  // Diagrammene tegnes ferdige. Ingen vekst fra null, heller ikke ved første lasting.
+  Chart.defaults.animation = false;
+
+  const tooltip = Chart.defaults.plugins.tooltip;
+  tooltip.backgroundColor = resolveColor("--color-surface");
+  tooltip.borderColor = resolveColor("--color-border");
+  tooltip.borderWidth = 1;
+  tooltip.cornerRadius = 2;
+  tooltip.titleColor = resolveColor("--color-text");
+  tooltip.bodyColor = resolveColor("--color-text");
+  tooltip.titleFont = { weight: "600" };
+  tooltip.padding = 8;
+  tooltip.boxPadding = 4;
+}
+
+/**
+ * Akseoppsett etter designet: bare horisontale rutenettlinjer, x-aksen i
+ * border-strong, aksetekst i tertiary.
+ */
+export function axes({ yTitle = "", horizontal = false } = {}) {
+  const valueAxis = {
+    beginAtZero: true,
+    grid: { color: resolveColor("--color-grid") },
+    border: { display: false },
+    ticks: { maxRotation: 0 },
+    title: yTitle ? { display: true, text: yTitle } : { display: false },
+  };
+  const categoryAxis = {
+    grid: { display: false },
+    border: { color: resolveColor("--color-border-strong") },
+    ticks: { maxTicksLimit: 14, maxRotation: 0, autoSkipPadding: 4 },
+  };
+  if (horizontal) {
+    return {
+      x: { ...valueAxis, ticks: { maxRotation: 0, maxTicksLimit: 6 } },
+      y: { ...categoryAxis, ticks: { autoSkip: false } },
+    };
+  }
+  return { x: categoryAxis, y: valueAxis };
+}
 
 const defaultTooltip = {
   callbacks: {
@@ -18,39 +87,27 @@ const defaultTooltip = {
   },
 };
 
-const reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
-
 /**
  * Tegner et diagram. Finnes det alt et av samme type på samme canvas, byttes
- * data og innstillinger og det tegnes på nytt uten animasjon. Ellers lages et
- * nytt, uten animasjon når animate er false eller brukeren har bedt om
- * redusert bevegelse. Under synk tegnes dashbordet opp hvert par sekunder, og
- * da skal ikke søylene vokse fra null hver gang.
+ * data og innstillinger og det tegnes på nytt. Ellers lages et nytt.
  */
-export function drawChart(existing, canvas, config, { animate = true } = {}) {
-  const prepared = withMotionPreference(config, animate);
+export function drawChart(existing, canvas, config) {
   if (existing && existing.canvas === canvas && existing.config.type === config.type) {
-    existing.data = prepared.data;
-    existing.options = prepared.options;
+    existing.data = config.data;
+    existing.options = config.options;
     existing.update("none");
     return existing;
   }
   existing?.destroy();
-  return new Chart(canvas, prepared);
-}
-
-function withMotionPreference(config, animate = true) {
-  if (animate && !reducedMotion?.matches) return config;
-  return { ...config, options: { ...config.options, animation: false } };
+  return new Chart(canvas, config);
 }
 
 export function barChartConfig(labels, data, label = "", { yTitle = "" } = {}) {
-  const accent = cssVar("--color-accent");
   return {
     type: "bar",
     data: {
       labels,
-      datasets: [{ label, data, backgroundColor: accent }],
+      datasets: [{ label, data, backgroundColor: resolveColor("--color-chart-1"), borderRadius: 0 }],
     },
     options: {
       responsive: true,
@@ -58,18 +115,12 @@ export function barChartConfig(labels, data, label = "", { yTitle = "" } = {}) {
         legend: { display: false },
         tooltip: defaultTooltip,
       },
-      scales: {
-        x: { ticks: { maxTicksLimit: 14, maxRotation: 45, font: { size: 11 } } },
-        y: {
-          title: yTitle ? { display: true, text: yTitle, font: { size: 12 } } : { display: false },
-        },
-      },
+      scales: axes({ yTitle }),
     },
   };
 }
 
 export function lineChartConfig(labels, data, label = "", { yTitle = "" } = {}) {
-  const accent = cssVar("--color-accent");
   return {
     type: "line",
     data: {
@@ -77,23 +128,23 @@ export function lineChartConfig(labels, data, label = "", { yTitle = "" } = {}) 
       datasets: [{
         label,
         data,
-        borderColor: accent,
+        borderColor: resolveColor("--color-chart-1"),
+        backgroundColor: resolveColor("--color-chart-1"),
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
         tension: 0.3,
         fill: false,
       }],
     },
     options: {
       responsive: true,
+      interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: defaultTooltip,
       },
-      scales: {
-        x: { ticks: { maxTicksLimit: 14, maxRotation: 45, font: { size: 11 } } },
-        y: {
-          title: yTitle ? { display: true, text: yTitle, font: { size: 12 } } : { display: false },
-        },
-      },
+      scales: axes({ yTitle }),
     },
   };
 }
@@ -103,15 +154,15 @@ export function lineChartConfig(labels, data, label = "", { yTitle = "" } = {}) 
  * uten hover. Ingen glatting: hver søyle er én måneds faktiske sum.
  */
 export function createMonthBars(canvas, labels, data, formatValue) {
-  const accent = cssVar("--color-accent");
-  const textColor = cssVar("--color-text-secondary");
+  const textColor = resolveColor("--color-text-secondary");
+  const font = getComputedStyle(document.body).fontFamily;
   const valueLabels = {
     id: "valueLabels",
     afterDatasetsDraw(chart) {
       const { ctx } = chart;
       ctx.save();
       ctx.fillStyle = textColor;
-      ctx.font = `11px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.font = `12px ${font}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       chart.getDatasetMeta(0).data.forEach((bar, i) => {
@@ -122,22 +173,35 @@ export function createMonthBars(canvas, labels, data, formatValue) {
   };
   // Etikett-pluginen holder på data fra denne opptegningen, så popupen lager
   // et nytt diagram hver gang i stedet for å bruke drawChart.
-  return new Chart(canvas, withMotionPreference({
+  return new Chart(canvas, {
     type: "bar",
     data: {
       labels,
-      datasets: [{ data, backgroundColor: accent }],
+      datasets: [{ data, backgroundColor: resolveColor("--color-chart-1"), borderRadius: 0 }],
     },
     options: {
       responsive: true,
       aspectRatio: 2.5,
-      layout: { padding: { top: 16 } },
+      animation: false,
+      layout: { padding: { top: 18 } },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
-        x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+        x: {
+          grid: { display: false },
+          border: { color: resolveColor("--color-border-strong") },
+          ticks: { color: resolveColor("--color-text-tertiary"), font: { size: 12, family: font } },
+        },
         y: { display: false, beginAtZero: true },
       },
     },
     plugins: [valueLabels],
-  }));
+  });
+}
+
+/**
+ * Kaller fn når systemet bytter mellom lys og mørk modus, så diagrammene kan
+ * tegnes på nytt med fargene for den nye modusen.
+ */
+export function onColorSchemeChange(fn) {
+  globalThis.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", fn);
 }

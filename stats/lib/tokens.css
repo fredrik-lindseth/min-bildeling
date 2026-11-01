@@ -1,0 +1,76 @@
+/* Felles tokens for dashboard, popup og årsoppsummering. Eneste sted i stats/
+   med fargeverdier. Hver farge står én gang med light-dark(), og
+   color-scheme avgjør hvilken som gjelder: lys/mørk etter systemet, eller
+   bare mørk der en side setter color-scheme: dark (årsoppsummeringen).
+   Parene måles av scripts/kontrast.sh. Se docs/design.md. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Flater og linjer */
+  --color-bg: light-dark(#eceae6, #1f1f21);
+  --color-surface: light-dark(#f7f6f3, #28282b);
+  --color-sunken: light-dark(#e3e0db, #323236);
+  --color-border: light-dark(#d3cfc8, #3b3b3f);
+  --color-border-strong: light-dark(#8a847b, #7c7c83);
+  --color-grid: light-dark(#dedad4, #333337);
+
+  /* Tekst */
+  --color-text: light-dark(#1e1c19, #ecebe8);
+  --color-text-secondary: light-dark(#57524b, #b5b3ae);
+  --color-text-tertiary: light-dark(#6b665e, #9a9893);
+
+  /* Aksent, lilla fra dele.no */
+  --color-accent: light-dark(#51289d, #b39aeb);
+  --color-accent-hover: light-dark(#41207f, #c6b3f1);
+  --color-on-accent: light-dark(#ffffff, #1f1f21);
+  --color-accent-soft: light-dark(#e4ddf0, #352d48);
+
+  /* Tilstander */
+  --color-warning-bg: light-dark(#f5e4d3, #3a2c1f);
+  --color-warning-text: light-dark(#7a3f0a, #f0be8a);
+  --color-danger: light-dark(#a12f28, #f08a80);
+  --color-disabled-bg: light-dark(#e3e0db, #323236);
+  --color-disabled-text: light-dark(#5e5952, #a3a19c);
+
+  /* Demomerket skiller skjermbilder fra ekte tall */
+  --color-demo-bg: light-dark(#fbe3b4, #4a3410);
+  --color-demo-text: light-dark(#5c3a00, #f6d88f);
+
+  /* Diagram, maks fem. Hver på sitt lyshetstrinn i begge moduser. */
+  --color-chart-1: light-dark(#51289d, #b39aeb);
+  --color-chart-2: light-dark(#a45c09, #fdd57e);
+  --color-chart-3: light-dark(#4b86c2, #3e79b3);
+  --color-chart-4: light-dark(#5b0233, #ffa5c1);
+  --color-chart-5: light-dark(#0d6460, #3b9c97);
+
+  /* Typografi */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 15px;
+  --text-md: 18px;
+  --text-lg: 24px;
+  --text-xl: 32px;
+  --text-hero: 44px;
+  --measure: 68ch;
+
+  /* Avstand */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius: 2px;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --text-hero: 34px;
+  }
+}
