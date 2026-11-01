@@ -818,9 +818,13 @@ a:focus-visible,
   }
 }
 
-/* html2canvas setter canvas-fonten med font-variant, og tabular-nums der gjør
-   fonten ugyldig, så ordene i eksporten får feil avstand. Kopien som tegnes
-   til bilde bruker vanlige sifre. */
+/* Kopien html2canvas tegner til bilde. Biblioteket plasserer hvert ord der
+   DOM-en målte det, men tegner det med en canvas-font uten tabular-nums, så
+   sifrene får feil bredde. Med devicePixelRatio som ikke er et helt tall
+   (1,5 eller 1,636) forsvinner i tillegg mellomrommene mellom ord. Med en
+   letter-spacing ulik 0 tegner html2canvas tegn for tegn på DOM-posisjonene
+   i stedet, og begge feilene er borte. 0,01 px er usynlig i selve layouten. */
 .export {
   font-variant-numeric: normal;
+  letter-spacing: 0.01px;
 }
