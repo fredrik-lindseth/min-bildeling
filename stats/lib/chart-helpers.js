@@ -14,9 +14,35 @@ const defaultTooltip = {
   },
 };
 
-export function createBarChart(canvas, labels, data, label = "", { unit = "", yTitle = "" } = {}) {
+const reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
+
+/**
+ * Tegner et diagram. Finnes det alt et av samme type på samme canvas, byttes
+ * data og innstillinger og det tegnes på nytt uten animasjon. Ellers lages et
+ * nytt, uten animasjon når animate er false eller brukeren har bedt om
+ * redusert bevegelse. Under synk tegnes dashbordet opp hvert par sekunder, og
+ * da skal ikke søylene vokse fra null hver gang.
+ */
+export function drawChart(existing, canvas, config, { animate = true } = {}) {
+  const prepared = withMotionPreference(config, animate);
+  if (existing && existing.canvas === canvas && existing.config.type === config.type) {
+    existing.data = prepared.data;
+    existing.options = prepared.options;
+    existing.update("none");
+    return existing;
+  }
+  existing?.destroy();
+  return new Chart(canvas, prepared);
+}
+
+function withMotionPreference(config, animate = true) {
+  if (animate && !reducedMotion?.matches) return config;
+  return { ...config, options: { ...config.options, animation: false } };
+}
+
+export function barChartConfig(labels, data, label = "", { yTitle = "" } = {}) {
   const accent = cssVar("--color-accent");
-  return new Chart(canvas, {
+  return {
     type: "bar",
     data: {
       labels,
@@ -35,12 +61,12 @@ export function createBarChart(canvas, labels, data, label = "", { unit = "", yT
         },
       },
     },
-  });
+  };
 }
 
-export function createLineChart(canvas, labels, data, label = "", { unit = "", yTitle = "" } = {}) {
+export function lineChartConfig(labels, data, label = "", { yTitle = "" } = {}) {
   const accent = cssVar("--color-accent");
-  return new Chart(canvas, {
+  return {
     type: "line",
     data: {
       labels,
@@ -65,7 +91,7 @@ export function createLineChart(canvas, labels, data, label = "", { unit = "", y
         },
       },
     },
-  });
+  };
 }
 
 /**
@@ -90,7 +116,9 @@ export function createMonthBars(canvas, labels, data, formatValue) {
       ctx.restore();
     },
   };
-  return new Chart(canvas, {
+  // Etikett-pluginen holder på data fra denne opptegningen, så popupen lager
+  // et nytt diagram hver gang i stedet for å bruke drawChart.
+  return new Chart(canvas, withMotionPreference({
     type: "bar",
     data: {
       labels,
@@ -107,5 +135,5 @@ export function createMonthBars(canvas, labels, data, formatValue) {
       },
     },
     plugins: [valueLabels],
-  });
+  }));
 }

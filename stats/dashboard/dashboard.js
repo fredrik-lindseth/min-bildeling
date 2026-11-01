@@ -7,11 +7,14 @@ import {
   usagePatterns,
   mileageStats,
   bookingPatterns,
+  costYears,
+  keepSelectedYear,
 } from "../lib/stats.js";
 
 import {
-  createBarChart,
-  createLineChart,
+  drawChart,
+  barChartConfig,
+  lineChartConfig,
 } from "../lib/chart-helpers.js";
 
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
@@ -191,6 +194,12 @@ function updateDataSummary(reservations) {
 // ---------- Chart instances (for cleanup) ----------
 const charts = {};
 
+// Under synk oppdateres diagrammene uten animasjon, se drawChart.
+function draw(name, canvas, config) {
+  charts[name] = drawChart(charts[name], canvas, config, { animate: !syncing });
+}
+
+// For diagrammer som forsvinner fordi det ikke lenger er data å vise.
 function destroyChart(name) {
   if (charts[name]) {
     charts[name].destroy();
@@ -323,45 +332,46 @@ function getFilteredByYear(reservations, year) {
   });
 }
 
+const yearSelector = $("cost-year-selector");
+
+// Knappene bygges bare på nytt når årene endrer seg, så fokus blir stående
+// under opptegningene mens synken går. Valget hentes fra selectedYear.
 function buildYearSelector(reservations) {
-  const container = $("cost-year-selector");
-  const years = new Set();
-  for (const r of filterValid(reservations)) {
-    years.add(new Date(r.start).getFullYear());
-  }
+  const years = costYears(reservations);
+  selectedYear = keepSelectedYear(selectedYear, years);
 
-  const sorted = [...years].sort((a, b) => a - b);
-
-  // Clear and rebuild
-  container.innerHTML = "";
-
-  const allBtn = document.createElement("button");
-  allBtn.className = "year-btn year-btn--active";
-  allBtn.dataset.year = "all";
-  allBtn.textContent = "Alle år";
-  container.appendChild(allBtn);
-
-  for (const year of sorted) {
-    const btn = document.createElement("button");
-    btn.className = "year-btn";
-    btn.dataset.year = String(year);
-    btn.textContent = String(year);
-    container.appendChild(btn);
-  }
-
-  container.addEventListener("click", (e) => {
-    const btn = e.target.closest(".year-btn");
-    if (!btn) return;
-
-    container.querySelectorAll(".year-btn").forEach((b) =>
-      b.classList.remove("year-btn--active")
+  const options = ["all", ...years.map(String)];
+  const current = [...yearSelector.querySelectorAll(".year-btn")].map((b) => b.dataset.year);
+  if (current.join() !== options.join()) {
+    yearSelector.replaceChildren(
+      ...options.map((year) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "year-btn";
+        btn.dataset.year = year;
+        btn.textContent = year === "all" ? "Alle år" : year;
+        return btn;
+      })
     );
-    btn.classList.add("year-btn--active");
-
-    selectedYear = btn.dataset.year;
-    renderCosts(allReservations);
-  });
+  }
+  markSelectedYear();
 }
+
+function markSelectedYear() {
+  for (const btn of yearSelector.querySelectorAll(".year-btn")) {
+    const active = btn.dataset.year === selectedYear;
+    btn.classList.toggle("year-btn--active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  }
+}
+
+yearSelector.addEventListener("click", (e) => {
+  const btn = e.target.closest(".year-btn");
+  if (!btn) return;
+  selectedYear = btn.dataset.year;
+  markSelectedYear();
+  renderCosts(allReservations);
+});
 
 function renderCosts(reservations) {
   const filtered = getFilteredByYear(reservations, selectedYear);
@@ -400,17 +410,12 @@ function renderCosts(reservations) {
   }
 
   // Monthly cost bar chart
-  destroyChart("monthlyCost");
-  if (monthly.length > 0) {
+  if (monthly.length === 0) {
+    destroyChart("monthlyCost");
+  } else {
     const labels = monthly.map((m) => formatMonthLabel(m.month));
     const data = monthly.map((m) => m.total);
-    charts.monthlyCost = createBarChart(
-      $("monthly-cost-chart"),
-      labels,
-      data,
-      "Kostnad",
-      { yTitle: "Kr" }
-    );
+    draw("monthlyCost", $("monthly-cost-chart"), barChartConfig(labels, data, "Kostnad", { yTitle: "Kr" }));
   }
 }
 
@@ -425,20 +430,15 @@ function renderUsage(reservations) {
   renderHeatmapWithLabels(heatmapCanvas, patterns.heatmap);
 
   // Trips per month line chart
-  destroyChart("tripsPerMonth");
   const tpmEntries = Object.entries(patterns.tripsPerMonth).sort(([a], [b]) =>
     a.localeCompare(b)
   );
-  if (tpmEntries.length > 0) {
+  if (tpmEntries.length === 0) {
+    destroyChart("tripsPerMonth");
+  } else {
     const labels = tpmEntries.map(([key]) => formatMonthLabel(key));
     const data = tpmEntries.map(([, val]) => val);
-    charts.tripsPerMonth = createLineChart(
-      $("trips-per-month-chart"),
-      labels,
-      data,
-      "Turer",
-      { yTitle: "Antall" }
-    );
+    draw("tripsPerMonth", $("trips-per-month-chart"), lineChartConfig(labels, data, "Turer", { yTitle: "Antall" }));
   }
 
   // Stat cards
@@ -580,19 +580,11 @@ function renderBookingPatterns(reservations) {
   setText("booking-unique-stations", String(patterns.uniqueStations));
 
   // Lead time histogram
-  destroyChart("leadTime");
   const distLabels = patterns.distribution.map((b) => b.label);
   const distData = patterns.distribution.map((b) => b.count);
-  charts.leadTime = createBarChart(
-    $("lead-time-chart"),
-    distLabels,
-    distData,
-    "Turer",
-    { yTitle: "Antall" }
-  );
+  draw("leadTime", $("lead-time-chart"), barChartConfig(distLabels, distData, "Turer", { yTitle: "Antall" }));
 
   // Top stations (top 10, resten samlet som "Andre")
-  destroyChart("topStations");
   const TOP_N = 10;
   const top = patterns.stationsRanked.slice(0, TOP_N);
   const rest = patterns.stationsRanked.slice(TOP_N);
@@ -603,7 +595,7 @@ function renderBookingPatterns(reservations) {
     stationData.push(rest.reduce((sum, s) => sum + s.count, 0));
   }
 
-  charts.topStations = new Chart($("top-stations-chart"), {
+  draw("topStations", $("top-stations-chart"), {
     type: "bar",
     data: {
       labels: stationLabels,
@@ -667,17 +659,12 @@ function renderMileage(reservations) {
   setText("km-max", `${formatKm.format(mileage.max)} km`);
 
   // Monthly distance bar chart
-  destroyChart("monthlyKm");
-  if (mileage.byMonth.length > 0) {
+  if (mileage.byMonth.length === 0) {
+    destroyChart("monthlyKm");
+  } else {
     const labels = mileage.byMonth.map(([key]) => formatMonthLabel(key));
     const data = mileage.byMonth.map(([, val]) => val);
-    charts.monthlyKm = createBarChart(
-      $("monthly-km-chart"),
-      labels,
-      data,
-      "Distanse",
-      { yTitle: "Km" }
-    );
+    draw("monthlyKm", $("monthly-km-chart"), barChartConfig(labels, data, "Distanse", { yTitle: "Km" }));
   }
 
   // Km by car list
@@ -716,22 +703,22 @@ function renderTrends(reservations) {
   $("trends-content").hidden = false;
 
   // Year-over-year comparison
-  destroyChart("yoy");
   if (yearly.length >= 2) {
     renderYearOverYear(reservations, yearly);
+  } else {
+    destroyChart("yoy");
   }
 
   // Rolling 3-month average
-  destroyChart("rollingAvg");
   renderRollingAverage(monthly);
 
   // Seasonal comparison (need at least 2 years of data)
   if (yearly.length >= 2) {
     $("seasonal-container").hidden = false;
-    destroyChart("seasonal");
     renderSeasonalComparison(reservations, yearly);
   } else {
     $("seasonal-container").hidden = true;
+    destroyChart("seasonal");
   }
 }
 
@@ -767,7 +754,7 @@ function renderYearOverYear(reservations, yearly) {
     });
   }
 
-  charts.yoy = new Chart(canvas, {
+  draw("yoy", canvas, {
     type: "line",
     data: {
       labels: MONTH_NAMES_FULL,
@@ -799,7 +786,7 @@ function renderRollingAverage(monthly) {
     data.push(Math.round(avg));
   }
 
-  charts.rollingAvg = createLineChart(canvas, labels, data, "Snitt tre måneder", { yTitle: "Kr" });
+  draw("rollingAvg", canvas, lineChartConfig(labels, data, "Snitt tre måneder", { yTitle: "Kr" }));
 }
 
 function renderSeasonalComparison(reservations, yearly) {
@@ -820,13 +807,7 @@ function renderSeasonalComparison(reservations, yearly) {
     monthCounts[i] > 0 ? Math.round(total / yearly.length) : 0
   );
 
-  charts.seasonal = createBarChart(
-    canvas,
-    MONTH_NAMES_FULL,
-    avgPerMonth,
-    "Snitt månedskostnad",
-    { yTitle: "Kr" }
-  );
+  draw("seasonal", canvas, barChartConfig(MONTH_NAMES_FULL, avgPerMonth, "Snitt månedskostnad", { yTitle: "Kr" }));
 }
 
 // ---------- Rendering: Section 5 - Bilregnestykket ----------
@@ -858,7 +839,6 @@ function renderOwnership(reservations) {
   }
 
   // Ownership breakdown horizontal bar chart
-  destroyChart("ownershipBreakdown");
   const bd = result.breakdownOwnership;
   const breakdownLabels = [
     "Verditap",
@@ -885,7 +865,7 @@ function renderOwnership(reservations) {
     cssVar("--color-tertiary"),
   ];
 
-  charts.ownershipBreakdown = new Chart($("ownership-breakdown-chart"), {
+  draw("ownershipBreakdown", $("ownership-breakdown-chart"), {
     type: "bar",
     data: {
       labels: breakdownLabels,
@@ -972,14 +952,15 @@ async function renderCategories(reservations) {
   const stats = categoryStats(reservations, merged);
 
   // 5. Render donut chart (cost distribution)
-  destroyChart("categoryDonut");
   const entries = Object.entries(stats).filter(([, v]) => v.totalCost > 0);
-  if (entries.length > 0) {
+  if (entries.length === 0) {
+    destroyChart("categoryDonut");
+  } else {
     const labels = entries.map(([, v]) => v.label);
     const data = entries.map(([, v]) => v.totalCost);
     const colors = entries.map((_, i) => cssVar(`--color-chart-${(i % 5) + 1}`));
 
-    charts.categoryDonut = new Chart($("category-donut-chart"), {
+    draw("categoryDonut", $("category-donut-chart"), {
       type: "doughnut",
       data: {
         labels,
@@ -1205,15 +1186,15 @@ function renderClimate(reservations) {
   }
 
   // Monthly chart
-  destroyChart("monthlyCO2");
-  if (monthly.length > 0) {
-    charts.monthlyCO2 = createBarChart(
-      $("monthly-co2-chart"),
+  if (monthly.length === 0) {
+    destroyChart("monthlyCO2");
+  } else {
+    draw("monthlyCO2", $("monthly-co2-chart"), barChartConfig(
       monthly.map(m => formatMonthLabel(m.month)),
       monthly.map(m => Math.round(m.co2Kg)),
       "CO\u2082",
       { yTitle: "Kg" }
-    );
+    ));
   }
 
   // Fuel type breakdown
@@ -1445,10 +1426,11 @@ function renderTransportSummary(reservations, savedData, year) {
     .sort(([, a], [, b]) => b.cost - a.cost);
 
   // Cost donut chart
-  destroyChart("transportCost");
-  if (sortedModes.some(([, m]) => m.cost > 0)) {
+  if (!sortedModes.some(([, m]) => m.cost > 0)) {
+    destroyChart("transportCost");
+  } else {
     const costEntries = sortedModes.filter(([, m]) => m.cost > 0);
-    charts.transportCost = new Chart($("transport-cost-chart"), {
+    draw("transportCost", $("transport-cost-chart"), {
       type: "doughnut",
       data: {
         labels: costEntries.map(([, m]) => m.label),
@@ -1481,10 +1463,11 @@ function renderTransportSummary(reservations, savedData, year) {
   }
 
   // CO2 donut chart
-  destroyChart("transportCO2");
-  if (sortedModes.some(([, m]) => m.co2Kg > 0)) {
+  if (!sortedModes.some(([, m]) => m.co2Kg > 0)) {
+    destroyChart("transportCO2");
+  } else {
     const co2Entries = sortedModes.filter(([, m]) => m.co2Kg > 0);
-    charts.transportCO2 = new Chart($("transport-co2-chart"), {
+    draw("transportCO2", $("transport-co2-chart"), {
       type: "doughnut",
       data: {
         labels: co2Entries.map(([, m]) => m.label),

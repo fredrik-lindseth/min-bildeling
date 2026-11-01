@@ -69,6 +69,20 @@ export function yearlyCosts(reservations) {
     .map(([year, total]) => ({ year: Number(year), total }));
 }
 
+// Årene årsvalget i Kostnader tilbyr, stigende.
+export function costYears(reservations) {
+  const years = new Set(filterValid(reservations).map((r) => new Date(r.start).getFullYear()));
+  return [...years].sort((a, b) => a - b);
+}
+
+// Valget brukeren har gjort står så lenge året finnes i dataene. Under synk
+// tegnes siden opp på nytt hvert par sekunder, og da skal valget ikke hoppe
+// tilbake til «Alle år».
+export function keepSelectedYear(selected, years) {
+  if (selected === "all") return "all";
+  return years.includes(Number(selected)) ? String(selected) : "all";
+}
+
 export function usagePatterns(reservations) {
   const valid = filterDriven(reservations);
 
