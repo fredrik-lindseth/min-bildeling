@@ -40,7 +40,7 @@ Notatet til reviewer står på engelsk i [amo-listing.md](amo-listing.md). Lim d
 
 Den nye gecko-id-en gir Firefox et nytt lager. Det som er lagret under den gamle id-en (`bildeleringen-stats@extension`), blir ikke med. Gjør derfor dette i den gamle utgaven før den fjernes:
 
-1. Last den gamle utgaven inn på nytt fra denne koden, så den har «Sikkerhetskopi» nederst i dashbordet.
+1. Sett `gecko.id` i `stats/manifest.json` midlertidig tilbake til `bildeleringen-stats@extension`, og last den gamle utgaven inn på nytt fra denne koden («Reload» i `about:debugging`), så den har «Sikkerhetskopi» nederst i dashbordet. Lageret følger id-en, så med den nye id-en i manifestet åpner dashbordet et tomt lager. Sett id-en tilbake før pakking.
 2. Trykk «Eksporter alt» med «Ta med turene» på. Filen `bildeleringen-sikkerhetskopi-<dato>.json` har kategoriene, nøkkelordene, transporttallene, turene og `lastSync`, men ikke `syncState` eller `syncLock`.
 
 Fjern så den gamle utgaven, og installer den signerte xpi-en permanent: `about:addons`, tannhjulet, «Installer tillegg fra fil». Åpne dashbordet og velg «Importer» under Sikkerhetskopi. Dialogen viser hva filen har, og det som alt er lagret i den nye utgaven, står med mindre «Overskriv det som alt er lagret her» er krysset av. Turene flettes på id. Med turene og `lastSync` på plass henter neste synk bare nye turer, ikke hele historikken, og det sparer Dele for ett detaljkall per tur. Pågår en synk, hoppes turene over og resten importeres, så importer på nytt når synken er ferdig.

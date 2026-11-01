@@ -2291,7 +2291,8 @@ function confirmBackupImport(backup, skipped, exportedAt) {
   }));
 
   const invalid = skipped.categories + skipped.transport + skipped.reservations;
-  const notes = ["Turer flettes på id, og de som alt er lagret, står."];
+  const notes = [];
+  if (backup.reservations) notes.push("Turer flettes på id, og de som alt er lagret, står.");
   if (invalid > 0) notes.push(`${formatCount(invalid, "ugyldig oppføring", "ugyldige oppføringer")} hoppes over.`);
   setText("backup-dialog-note", notes.join(" "));
 
