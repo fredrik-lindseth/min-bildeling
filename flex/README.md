@@ -5,7 +5,7 @@ Nettleserutvidelse for [Bildeleringen / dele.no](https://dele.no) som finner *n�
 ## Funksjoner
 
 - **Ledig hele vinduet**: biler som er ledige hele tidsrommet.
-- **Passer med justering**: nesten-treff som «skyv start til tirsdag» eller «lengste ledige blokk er ~53 t». Svært korte blokker skjules bak en egen knapp.
+- **Passer med justering**: nesten-treff som «skyv start til tirsdag» eller «bare ledig ~53 t i strekk». Svært korte blokker skjules bak en egen knapp.
 - **Del opp på to biler**: dekker ingen bil hele turen, foreslås et bytte underveis.
 - **Tidslinje** per bil, grønn for ledig og grå for opptatt. Tidspunktet vises når du holder musen over.
 - **Fleksibel varighet**: «hele vinduet» eller «N timer et sted i vinduet».
@@ -22,7 +22,7 @@ Krever Firefox 128 eller nyere.
 
 Du må være innlogget på [app.dele.no](https://app.dele.no) i en fane, for utvidelsen bruker den innloggingen. Er du ikke det, åpner den fanen for deg. Logg inn og søk på nytt.
 
-Varsler via relay: åpne «Mine overvåkninger» fra popupen, fyll inn backend-URL og abonnent-token, og trykk Lagre. Nettleseren spør om tilgang til adressen.
+Varsler via relay: åpne «Mine overvåkninger» fra popupen, fyll inn backend-URL og token, og trykk Lagre. Nettleseren spør om tilgang til adressen.
 
 ## Personvern
 

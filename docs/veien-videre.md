@@ -13,4 +13,4 @@ Konkrete oppgaver ligger under [issues](https://github.com/fredrik-lindseth/bild
 - **Eget ikon og pakking**: flex bruker fortsatt Dele-symbolet og mangler `package.sh`. Begge trengs før den kan signeres, se [publisering.md](publisering.md).
 - **Booking i utvidelsen**: legge inn reservasjonen via API framfor å sende brukeren til dele.no. Krever at skrive-endepunktet kartlegges, og feil koster penger.
 
-Mindre ting i koden: `splitPairs` rangerer etter tidligste gyldige byttetid og ikke den nærmeste midtpunktet, `opts.sameLocationOnly` mangler tester, og `parseLocalISO` sjekker sifrene, men ikke om datoen finnes.
+Mindre ting i koden: `splitPairs` rangerer etter tidligste gyldige byttetid og ikke den som ligger nærmest midtpunktet, `opts.sameLocationOnly` mangler tester, og `parseLocalISO` sjekker sifrene, men ikke om datoen finnes.
