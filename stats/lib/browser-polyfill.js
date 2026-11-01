@@ -1,5 +1,7 @@
-// Thin wrapper: use browser.* (Firefox) with chrome.* fallback
-const browserAPI = typeof browser !== "undefined" ? browser : chrome;
+// Thin wrapper: use browser.* (Firefox) with chrome.* fallback.
+// globalThis-oppslag kaster ikke når siden lastes uten utvidelses-API
+// (demomodus over http), da blir browserAPI bare undefined.
+const browserAPI = globalThis.browser ?? globalThis.chrome;
 
 // Promisify chrome.* callback APIs if needed
 function promisify(fn) {

@@ -16,6 +16,9 @@
   --color-disabled-text: #555b66;
   --color-tertiary: #4caf7c;
   --color-shadow: rgba(0, 0, 0, 0.06);
+  /* Demomerket: mørk rav på lys rav, kontrast over 7:1 */
+  --color-demo-bg: #fbe3b4;
+  --color-demo-text: #5c3a00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +40,8 @@
     --color-disabled-text: #a3a7b2;
     --color-tertiary: #6fd092;
     --color-shadow: rgba(0, 0, 0, 0.2);
+    --color-demo-bg: #4a3410;
+    --color-demo-text: #f6d88f;
   }
 }
 
@@ -288,4 +293,18 @@ a:focus-visible {
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
   .progress__bar { transition: width 0.2s ease; }
+}
+
+/* Demomodus (?demo=1): merket skiller skjermbilder fra ekte tall */
+.demo-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-demo-bg);
+  color: var(--color-demo-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  margin-left: 6px;
 }

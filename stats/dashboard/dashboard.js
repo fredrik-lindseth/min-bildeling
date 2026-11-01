@@ -33,7 +33,8 @@ import {
   saveUserKeywords,
 } from "../lib/categories.js";
 
-import { storage } from "../lib/browser-polyfill.js";
+import { storage as extensionStorage } from "../lib/browser-polyfill.js";
+import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
 import {
   startSync,
   isAuthError,
@@ -52,7 +53,12 @@ import {
   TRANSPORT_METHOD,
 } from "../lib/transport.js";
 
-const browserAPI = typeof browser !== "undefined" ? browser : chrome;
+const browserAPI = globalThis.browser ?? globalThis.chrome;
+
+// ?demo=1: syntetiske data og et lager i minnet. Ingen synk, ingen
+// utvidelses-API, så siden kan også åpnes over vanlig http.
+const demo = isDemoMode(window.location.search) ? createDemoSession() : null;
+const storage = demo ? demo.storage : extensionStorage;
 
 // ---------- CSS Color Helpers ----------
 
@@ -1661,6 +1667,14 @@ async function syncAndRender(force) {
 // ---------- Init ----------
 
 async function init() {
+  if (demo) {
+    syncBtn.remove();
+    lastSyncedEl.remove();
+    document.querySelector(".header__title").append(" ", createDemoBadge(document));
+    await renderAll(demo.reservations, null);
+    showMain();
+    return;
+  }
   showStatus("Laster…");
   const hasData = await loadStored();
   if (!hasData) showStatus("Synkroniserer…");
@@ -1671,6 +1685,10 @@ async function init() {
 
 // Summary button
 $("summary-btn").addEventListener("click", () => {
+  if (demo) {
+    window.open("../summary/summary.html?demo=1", "_blank");
+    return;
+  }
   browserAPI.tabs.create({ url: browserAPI.runtime.getURL("summary/summary.html") });
 });
 
@@ -1971,7 +1989,8 @@ async function handleDevReset() {
 }
 
 function initDevTools() {
-  if (!isDevMode()) return;
+  // Utviklerpanelet leser og skriver ekte storage, så det er av i demomodus.
+  if (!isDevMode() || demo) return;
 
   const wrapper = $("devtools-wrapper");
   if (!wrapper) return;

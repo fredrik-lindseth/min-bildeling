@@ -13,8 +13,11 @@ import {
 // Den henter derfor bare et lite antall detaljer om gangen og ber om dashbordet
 // for resten. Det som er hentet, står i storage uansett.
 import { POPUP_MAX_DETAILS } from "../lib/sync.js";
+import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
 
-const browserAPI = typeof browser !== "undefined" ? browser : chrome;
+const browserAPI = globalThis.browser ?? globalThis.chrome;
+// ?demo=1: syntetiske data, ingen synk og ingen utvidelses-API.
+const demo = isDemoMode(window.location.search) ? createDemoSession() : null;
 
 // DOM references
 const statusEl = document.getElementById("status");
@@ -229,6 +232,13 @@ async function syncAndRender(force) {
 }
 
 async function init() {
+  if (demo) {
+    syncBtn.remove();
+    document.querySelector(".header__title").append(" ", createDemoBadge(document));
+    renderStats(demo.reservations);
+    hideStatus();
+    return;
+  }
   // Vis "Laster…" som standard så popup aldri ser tom ut. hideStatus()
   // kalles eksplisitt når vi har data å rendere.
   showStatus("Laster…");
@@ -266,6 +276,10 @@ async function init() {
 syncBtn.addEventListener("click", () => syncAndRender(true));
 
 function openDashboard(hash = "") {
+  if (demo) {
+    window.open(`../dashboard/dashboard.html?demo=1${hash}`, "_blank");
+    return;
+  }
   browserAPI.tabs.create({
     url: browserAPI.runtime.getURL(`dashboard/dashboard.html${hash}`),
   });
