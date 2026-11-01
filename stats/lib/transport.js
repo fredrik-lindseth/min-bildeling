@@ -1,16 +1,23 @@
 /**
  * Transport calculator module.
  *
- * CO₂ factors per transport mode (g/km, passenger) based on Norwegian sources:
- *   - Miljødirektoratet: Utslippsfaktorer
- *   - TØI/Skyss: Kollektivtransport passasjer-km
- *   - Avinor: Innenriks luftfart utslipp
+ * CO₂ factors per transport mode (g/km, passenger). Taxi and bus apply to
+ * every Bilparaplyen member, not just Bergen:
+ *   - Taxi: zero-emission taxis are required in all of Vestland (incl. Bergen)
+ *     since 01.04.2024 (FOR-2020-03-03-2549) and in all of Trøndelag since
+ *     01.07.2025 (FOR-2021-05-27-1753). Exempt: wheelchair taxis with more
+ *     than seven seats. Lovdata, read 01.11.2026.
+ *   - Bus: SSB national figure for diesel buses, 59.4 g/pkm in 2019, the last
+ *     year before the pandemic skewed occupancy (SSB, «Mer utslipp for hver
+ *     kilometer reist», table 1, 13.12.2021). Electric buses, light rail and
+ *     trams pull the real number down, so this is an upper estimate.
+ *   - Fly: Avinor/Miljødirektoratet.
  */
 
 export const TRANSPORT_MODES = {
   taxi: {
     label: "Taxi",
-    co2PerKm: 120, // Bergen mix, increasing EV share (Miljødirektoratet)
+    co2PerKm: 0, // Zero-emission requirement in Vestland and Trøndelag, see top
     fields: [
       { key: "trips", label: "Antall turer", type: "number" },
       { key: "totalKm", label: "Totalt km", type: "number" },
@@ -27,8 +34,8 @@ export const TRANSPORT_MODES = {
     ],
   },
   buss: {
-    label: "Buss/bybane",
-    co2PerKm: 50, // Per passenger-km, average occupancy (TØI/Skyss)
+    label: "Buss/bane",
+    co2PerKm: 59, // Per passenger-km, SSB 2019, see top
     fields: [
       { key: "trips", label: "Antall turer", type: "number" },
       { key: "totalKm", label: "Estimert km (valgfritt)", type: "number", optional: true },
@@ -163,15 +170,17 @@ export function transportSummary(transportData, sharingStats) {
 
 export const TRANSPORT_METHOD = {
   note:
-    "CO₂-faktorer: Taxi ~120 g/km (Bergen, blandet flåte), " +
+    "CO₂-faktorer: Taxi 0 g/km (nullutslippskrav for drosjer i Vestland og Trøndelag), " +
     "Leiebil ~130 g/km (norsk bilparksnitt), " +
     "Egen bil: bensin ~130, diesel ~120, elbil 0 g/km (Miljødirektoratet), " +
-    "Buss ~50 g/km per passasjer (TØI/Skyss, gjennomsnittsbelegg), " +
+    "Buss ~59 g/km per passasjer (SSB, dieselbuss 2019, elbuss og bane gir mindre), " +
     "Fly ~150 g/km per passasjer (Avinor/Miljødirektoratet), " +
     "Sykkel/gange = 0.",
   sources: [
     "Miljødirektoratet: Utslippsfaktorer",
-    "TØI/Skyss: Kollektivtransport passasjer-km",
+    "Lovdata: miljøkrav til drosjenæringa i Vestland (FOR-2020-03-03-2549, fra 01.04.2024)",
+    "Lovdata: miljøkrav til drosjer i Trøndelag (FOR-2021-05-27-1753, fra 01.07.2025)",
+    "SSB: Mer utslipp for hver kilometer reist, tabell 1 (13.12.2021)",
     "Avinor: Innenriks luftfart utslipp",
   ],
 };

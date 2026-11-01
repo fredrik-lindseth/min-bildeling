@@ -82,15 +82,18 @@ icons/
 
 ## Estimater og kilder
 
-| Estimat               | Kilde                           |
-| --------------------- | ------------------------------- |
-| Eierkostnader         | OFV kalkyle 2026, NAF, kommuner |
-| Volvo EX40            | Finn-pris 10.09.2026, OFV       |
-| CO₂ bildeling         | Miljødirektoratet (per biltype) |
-| CO₂ buss              | TØI/Skyss (~50 g/passasjer-km)  |
-| CO₂ taxi              | Miljødirektoratet (~120 g/km)   |
-| CO₂ fly               | Avinor (~150 g/passasjer-km)    |
-| Substitusjonseffekter | TØI 1895/2022                   |
+| Estimat               | Kilde                                                   |
+| --------------------- | ------------------------------------------------------- |
+| Eierkostnader         | OFV kalkyle 2026, NAF                                   |
+| Parkering             | Bergen eller Trondheim kommune, etter organisasjonen    |
+| Volvo EX40            | Finn-pris 10.09.2026, OFV                               |
+| CO₂ bildeling         | Miljødirektoratet (per biltype)                         |
+| CO₂ buss              | SSB, dieselbuss 2019 (~59 g/passasjer-km)               |
+| CO₂ taxi              | 0 g/km, nullutslippskrav i Vestland og Trøndelag        |
+| CO₂ fly               | Avinor (~150 g/passasjer-km)                            |
+| Substitusjonseffekter | TØI 1895/2022                                           |
+
+Forutsetningene skal gjelde alle medlemmene i Bilparaplyen. Er en verdi lokal, velges den ut fra `organizationId` (`regionForOrganization` i `lib/ownership-cost.js`), og begge byene står i «Slik beregner vi». For et år som pågår tas de faste eierkostnadene for den delen av året som er gått (`yearFraction`), så «Spart i år» ikke stiller helårskostnaden mot bildelingen hittil.
 
 ## Ikoner
 
