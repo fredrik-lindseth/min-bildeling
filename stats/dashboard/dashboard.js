@@ -191,23 +191,28 @@ function updateDataSummary(reservations) {
     setHeaderText(dataSummaryEl, "");
     return;
   }
+  // Samme utvalg som Kostnader og Bruksmønster, så headeren og seksjonene
+  // teller likt. Avbestilte og turer uten pris er med i lageret, men ikke her.
   const valid = filterValid(reservations);
+  if (valid.length === 0) {
+    setHeaderText(dataSummaryEl, "");
+    return;
+  }
   const total = valid.reduce((sum, r) => sum + (r.price?.total || 0), 0);
 
-  const years = [...new Set(reservations.map((r) => new Date(r.start).getFullYear()))]
+  const years = [...new Set(valid.map((r) => new Date(r.start).getFullYear()))]
     .sort((a, b) => a - b);
   const yearLabel =
     years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : `${years[0]}`;
 
-  setHeaderText(dataSummaryEl, `${formatTrips(reservations.length)} i ${yearLabel}, ${formatNOK.format(total)}`);
+  setHeaderText(dataSummaryEl, `${formatTrips(valid.length)} i ${yearLabel}, ${formatNOK.format(total)}`);
 }
 
 // ---------- Chart instances (for cleanup) ----------
 const charts = {};
 
-// Under synk oppdateres diagrammene uten animasjon, se drawChart.
 function draw(name, canvas, config) {
-  charts[name] = drawChart(charts[name], canvas, config, { animate: !syncing });
+  charts[name] = drawChart(charts[name], canvas, config);
 }
 
 // For diagrammer som forsvinner fordi det ikke lenger er data å vise.
