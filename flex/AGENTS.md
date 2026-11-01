@@ -1,6 +1,6 @@
 # Bildeleringen Fleksibel: prosjektkonvensjoner
 
-Egen Firefox-utvidelse ved siden av stats-utvidelsen (`../stats/`). Alternativt booking-søk oppå dele.no sitt `/api/search`: finn *når* en bil faktisk er ledig, ikke bare "opptatt". Spec + plan i `../docs/superpowers/`.
+Egen Firefox-utvidelse ved siden av stats-utvidelsen (`../stats/`). Alternativt booking-søk oppå dele.no sitt `/api/search`: finn *når* en bil faktisk er ledig, ikke bare "opptatt".
 
 ## Regler (arver fra stats)
 
@@ -58,7 +58,7 @@ Utvidelsen drives via `firefox-devtools`-MCP-en, som styrer en **egen, dedikert 
 
 ## Varsler (overvåkning)
 
-Overvåk et sted + filtre over et tidsvindu, varsle når en bil blir ledig en sammenhengende blokk ≥ terskel. Pollingen skjer i nettleseren (dele.no-token bor kun i nettleser-sesjonen), så det poller bare mens Firefox er åpen. Full design + plan i `../docs/superpowers/{specs,plans}/2026-07-16-varsler*`.
+Overvåk et sted + filtre over et tidsvindu, varsle når en bil blir ledig en sammenhengende blokk ≥ terskel. Pollingen skjer i nettleseren (dele.no-token bor kun i nettleser-sesjonen), så det poller bare mens Firefox er åpen.
 
 **Flyt:** `alarms` (default 15 min) → `pollWatches` søker per aktiv watch → `detectHits` → `reconcile` → dispatcher fyrer ÉN browser-notifikasjon + ÉN POST til backend per watch. Backenden (egen tjeneste, eget repo) relayer til Signal.
 
