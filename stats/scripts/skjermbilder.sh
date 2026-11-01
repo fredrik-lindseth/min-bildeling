@@ -104,8 +104,12 @@ for mode in lys mork; do
     "dashboard-bruksmonster-$mode" 1280x800 "$D#bruksmonster" \
     "popup-$mode" 350x0 "popup/popup.html?demo=1"
 done
-# Årsoppsummeringen har bare mørk utgave.
-shoot mork summary-mork 1280x800 "summary/summary.html?demo=1"
+# Årsoppsummeringen tas bare i mørk, og på to tallsider framfor forsiden,
+# som bare viser årstallet. Ankrene står på <section>-ene i summary.html.
+S="summary/summary.html?demo=1"
+shoot mork \
+  summary-brukt-mork 1280x800 "$S#brukt" \
+  summary-spart-mork 1280x800 "$S#spart"
 
 echo "Skjermbilder i $OUT_DIR:"
 for raw in "$RAW_DIR"/*.png; do

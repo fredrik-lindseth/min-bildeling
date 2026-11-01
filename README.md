@@ -39,7 +39,9 @@ Tallene er demodata fra `?demo=1`, ikke ekte turer. Bildene følger lys eller m�
   <img src="skjermbilder/popup-lys.png" alt="Popupen med forbruket denne måneden" width="350">
 </picture>
 
-<img src="skjermbilder/summary-mork.png" alt="Årsoppsummeringen, første side" width="640">
+<img src="skjermbilder/summary-brukt-mork.png" alt="Årsoppsummeringen: brukt på bildeling i året, med antall turer" width="640">
+
+<img src="skjermbilder/summary-spart-mork.png" alt="Årsoppsummeringen: spart mot å eie bil, regnet mot en bilkategori" width="640">
 
 ## Installasjon
 
