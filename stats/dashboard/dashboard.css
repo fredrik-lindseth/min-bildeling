@@ -9,32 +9,31 @@
   --color-text: #1a1d23;
   --color-text-secondary: #5f6672;
   --color-text-tertiary: #8a8f9a;
-  --color-accent: #4a90d9;
+  --color-accent: #2a66ab;
   --color-accent-light: rgba(74, 144, 217, 0.1);
-  --color-accent-hover: #3a7bc4;
+  --color-accent-hover: #1f5592;
   --color-accent-text: #ffffff;
   --color-header-bg: #ffffff;
   --color-header-border: #e2e5ea;
   --color-nav-bg: #ffffff;
   --color-nav-border: #e2e5ea;
   --color-nav-active-bg: rgba(74, 144, 217, 0.1);
-  --color-nav-active-text: #4a90d9;
-  --color-status-bg: #fff8e6;
-  --color-status-text: #7a6520;
-  --color-status-border: #f0dfa0;
+  --color-nav-active-text: #2a66ab;
   --color-progress-bg: #e2e5ea;
-  --color-progress-fill: #4a90d9;
+  --color-progress-fill: #2a66ab;
   --color-btn-sync-bg: #f0f2f5;
   --color-btn-sync-hover: #e4e7ec;
-  --color-btn-sync-text: #4a90d9;
+  --color-btn-sync-text: #2a66ab;
+  --color-disabled-bg: #e4e7ec;
+  --color-disabled-text: #555b66;
   --color-card-shadow: rgba(0, 0, 0, 0.04);
   --color-heatmap-empty: #f0f2f5;
   --color-heatmap-fill: rgba(74, 144, 217, 1);
   --color-heatmap-text: #5f6672;
   --color-empty-text: #8a8f9a;
-  --color-link: #4a90d9;
+  --color-link: #2a66ab;
   --color-rank-bg: rgba(74, 144, 217, 0.08);
-  --color-rank-text: #4a90d9;
+  --color-rank-text: #2a66ab;
   --color-section-divider: #e2e5ea;
 
   --color-secondary: #e87949;
@@ -47,7 +46,8 @@
   --color-chart-5: #dbb94e;
 
   --color-saving-bg: rgba(76, 175, 124, 0.1);
-  --color-warning-bg: rgba(232, 121, 73, 0.1);
+  --color-warning-bg: #f5e4d3;
+  --color-warning-text: #7a3f0a;
 
   --color-danger: #c84a3a;
   --color-danger-hover: #b03d2e;
@@ -86,14 +86,13 @@
     --color-nav-border: #2a2e36;
     --color-nav-active-bg: rgba(90, 157, 230, 0.12);
     --color-nav-active-text: #5a9de6;
-    --color-status-bg: #2e2a1a;
-    --color-status-text: #d4c576;
-    --color-status-border: #4a4328;
     --color-progress-bg: #2a2e36;
     --color-progress-fill: #5a9de6;
     --color-btn-sync-bg: #23262e;
     --color-btn-sync-hover: #2a2e36;
     --color-btn-sync-text: #5a9de6;
+    --color-disabled-bg: #2a2e36;
+    --color-disabled-text: #a3a7b2;
     --color-card-shadow: rgba(0, 0, 0, 0.2);
     --color-heatmap-empty: #23262e;
     --color-heatmap-fill: rgba(90, 157, 230, 1);
@@ -114,7 +113,8 @@
     --color-chart-5: #e5c95e;
 
     --color-saving-bg: rgba(111, 208, 146, 0.1);
-    --color-warning-bg: rgba(240, 147, 95, 0.1);
+    --color-warning-bg: #3a2c1f;
+    --color-warning-text: #f0be8a;
 
     --color-danger: #e36a5b;
     --color-danger-hover: #f07c6e;
@@ -257,7 +257,8 @@ body {
 }
 
 .btn--sync:disabled {
-  opacity: 0.5;
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
 }
 
@@ -294,12 +295,16 @@ body {
   padding: 14px 20px;
   border-radius: var(--radius-md);
   font-size: 14px;
-  background-color: var(--color-status-bg);
-  color: var(--color-status-text);
-  border: 1px solid var(--color-status-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
+/* Synk er informasjon og bruker vanlig flate. Gult er for feil og manglende innlogging. */
 .status--login {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: transparent;
   padding: 32px;
   text-align: center;
   display: flex;
@@ -318,7 +323,6 @@ body {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: var(--color-text);
 }
 
 .status__action {
@@ -326,17 +330,17 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background-color: var(--color-link);
-  color: #fff;
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
-  transition: filter 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .status__action:hover {
-  filter: brightness(1.1);
+  background-color: var(--color-accent-hover);
 }
 
 /* Prøv igjen-knappen ved synkfeil */
@@ -717,7 +721,7 @@ body {
 }
 
 .comparison__verdict--more {
-  color: var(--color-secondary);
+  color: var(--color-warning-text);
   background-color: var(--color-warning-bg);
 }
 
@@ -1169,9 +1173,8 @@ a:focus-visible {
 
 .dev-warning {
   font-size: 13px;
-  background-color: var(--color-status-bg);
-  border: 1px solid var(--color-status-border);
-  color: var(--color-status-text);
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   margin-bottom: 20px;

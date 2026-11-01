@@ -4,15 +4,16 @@
   --color-border: #e2e5ea;
   --color-text: #1a1d23;
   --color-text-secondary: #5f6672;
-  --color-accent: #4a90d9;
-  --color-accent-hover: #3a7bc4;
+  --color-accent: #2a66ab;
+  --color-accent-hover: #1f5592;
   --color-accent-text: #ffffff;
-  --color-status-bg: #fff8e6;
-  --color-status-text: #7a6520;
-  --color-status-border: #f0dfa0;
+  --color-warning-bg: #f5e4d3;
+  --color-warning-text: #7a3f0a;
   --color-btn-secondary-bg: #f0f2f5;
   --color-btn-secondary-hover: #e4e7ec;
-  --color-btn-secondary-text: #4a90d9;
+  --color-btn-secondary-text: #2a66ab;
+  --color-disabled-bg: #e4e7ec;
+  --color-disabled-text: #555b66;
   --color-tertiary: #4caf7c;
   --color-shadow: rgba(0, 0, 0, 0.06);
 }
@@ -27,12 +28,13 @@
     --color-accent: #5a9de6;
     --color-accent-hover: #6db0f5;
     --color-accent-text: #1a1d23;
-    --color-status-bg: #2e2a1a;
-    --color-status-text: #d4c576;
-    --color-status-border: #4a4328;
+    --color-warning-bg: #3a2c1f;
+    --color-warning-text: #f0be8a;
     --color-btn-secondary-bg: #2a2d35;
     --color-btn-secondary-hover: #33373f;
-    --color-btn-secondary-text: #5a9de6;
+    --color-btn-secondary-text: #6aa8ee;
+    --color-disabled-bg: #2a2d35;
+    --color-disabled-text: #a3a7b2;
     --color-tertiary: #6fd092;
     --color-shadow: rgba(0, 0, 0, 0.2);
   }
@@ -77,9 +79,9 @@ body {
   margin-bottom: 12px;
   border-radius: 6px;
   font-size: 13px;
-  background-color: var(--color-status-bg);
-  color: var(--color-status-text);
-  border: 1px solid var(--color-status-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .status__text {
@@ -92,7 +94,11 @@ body {
   margin-bottom: 4px;
 }
 
+/* Synk er informasjon og bruker vanlig flate. Gult er for feil og manglende innlogging. */
 .status--login {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: transparent;
   padding: 16px;
   text-align: center;
 }
@@ -256,7 +262,8 @@ body {
 }
 
 .btn--sync:disabled {
-  opacity: 0.6;
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
 }
 
