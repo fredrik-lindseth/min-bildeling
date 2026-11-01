@@ -1,7 +1,7 @@
 import { filterDriven } from "./stats.js";
 
 // Alle tall er årlige kroner. Hver forutsetning har kilde og dato, og alt står
-// også i OWNERSHIP_METHOD, som er «Slik beregner vi» i bilregnestykket.
+// også i OWNERSHIP_METHOD, som er «Slik beregnes det» i bilregnestykket.
 //
 // Hovedkilde: OFV, «Kostnader ved bilhold – eksempler på beregning 2026»,
 // publisert 16.06.2026 (datagrunnlag desember 2025 – mai 2026). Vi bruker
@@ -115,7 +115,7 @@ const VOLVO_EX40 = {
   fuelCostPerKm: fuelCostPerKm("Elektrisitet", volvoOfv.kWhPerKm),
 };
 
-// Tekst og kilder til «Slik beregner vi» ved eierkostnad og sparetall.
+// Tekst og kilder til «Slik beregnes det» ved eierkostnad og sparetall.
 // Tallene hentes fra konstantene over, så teksten følger med når de endres.
 const kr = (n) => `${new Intl.NumberFormat("nb-NO").format(n)} kr`;
 const roundedThousands = (n) => Math.round(n / 1000) * 1000;
@@ -124,7 +124,7 @@ export const OWNERSHIP_METHOD = {
   note: "Eierkostnaden er et anslag for en ny bil i bilkategorien du bruker mest, " +
     "over tre års eiertid: verditap, forsikring, trafikkforsikringsavgift (tidligere årsavgift), " +
     "vedlikehold med dekk og service, parkering og drivstoff for kilometerne du kjørte. " +
-    "Tallene er OFVs eksempler for 10 000 km i året. Vi har satt Minibil og Småbil " +
+    "Tallene er OFVs eksempler for 10 000 km i året. Minibil og Småbil er satt " +
     `lik en bil til ${kr(CATEGORY_PRICE.Småbil)}, Kombi ${kr(CATEGORY_PRICE.Kombi)} og ` +
     `Stasjonsvogn, SUV og Varebil ${kr(CATEGORY_PRICE.SUV)}. ` +
     "Forsikringen er snittpris i Oslo-området med 75 % bonus. " +
@@ -152,7 +152,10 @@ export const OWNERSHIP_METHOD = {
       text: "Oslo kommune: priser for beboerparkeringstillatelse 2026",
       url: "https://www.oslo.kommune.no/gate-transport-og-parkering/parkering/beboerparkering/priser-for-beboerparkeringstillatelse/",
     },
-    { text: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)" },
+    {
+      text: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)",
+      url: "https://www.finn.no/bilguiden/nyheter/volvo-ex40-oppdatert-norske-priser-er-klare",
+    },
   ],
 };
 

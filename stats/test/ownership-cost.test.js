@@ -60,7 +60,7 @@ test("Volvo EX40 interpoleres mellom OFVs 400 000- og 550 000-eksempel", () => {
   assert.ok(v.ownershipCost > 90000 && v.ownershipCost < 95000, `${v.ownershipCost}`);
 });
 
-test("«Slik beregner vi» daterer hver kilde og navngir Bergen-forutsetningen", () => {
+test("«Slik beregnes det» daterer hver kilde og navngir Bergen-forutsetningen", () => {
   for (const source of OWNERSHIP_METHOD.sources) {
     assert.match(source.text, /\d{4}/, `kilden mangler år: ${source.text}`);
     if (source.url) assert.match(source.url, /^https:\/\//, source.text);

@@ -22,7 +22,7 @@ Er du medlem i Bildeleringen eller en annen Bilparaplyen-organisasjon på dele.n
 
 Logg inn på app.dele.no som vanlig, og åpne utvidelsen. Første gang henter den alle turene dine, og det tar noen minutter hvis du har mange. Etterpå hentes bare nye turer.
 
-Utvidelsen leser bare dine egne reservasjoner, med innloggingen du alt har på app.dele.no. Alt lagres i nettleseren din. Ingenting sendes til oss eller til andre, og det finnes ingen sporing.
+Utvidelsen leser bare dine egne reservasjoner, med innloggingen du alt har på app.dele.no. Alt lagres i nettleseren din. Ingenting sendes til utvikleren eller til andre, og det finnes ingen sporing.
 
 Utvidelsen er laget av et medlem og er ikke tilknyttet eller godkjent av Dele AS.
 

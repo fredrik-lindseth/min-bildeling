@@ -71,4 +71,4 @@ Utviklerpanelet i utvidelsen viser antall kall (listekall, detaljkall, nye fors�
 
 ## Kontakt
 
-Ser dere noe dere vil at vi endrer, for eksempel pauser, grenser eller en header, tar vi gjerne imot beskjed via kontaktadressen på utvidelsens side på addons.mozilla.org.
+Ser dere noe dere vil ha endret, for eksempel pauser, grenser eller en header, tar jeg gjerne imot beskjed via kontaktadressen på utvidelsens side på addons.mozilla.org.

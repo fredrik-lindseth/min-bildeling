@@ -67,7 +67,7 @@ Alt lagres lokalt i nettleseren. Den eneste trafikken er API-kall til dele.no me
 
 ## Estimater
 
-Eierkostnader og CO₂ er estimater fra norske kilder (NAF, Miljødirektoratet, TØI). «Slik beregner vi» i dashboardet viser utregningen og kildene.
+Eierkostnader og CO₂ er estimater fra norske kilder (NAF, Miljødirektoratet, TØI). «Slik beregnes det» i dashboardet viser utregningen og kildene.
 
 ## Varemerke
 
