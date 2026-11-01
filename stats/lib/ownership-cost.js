@@ -43,8 +43,8 @@ const TRAFFIC_INSURANCE_TAX = {
 };
 
 // OFV tar ikke med parkering. Vi bruker boligsoneparkering i Bergen sone 1–8,
-// 582 kr/mnd (Bergen kommune, priser fra 01.01.2025, fryst for 2026 ifølge
-// byrådets budsjettforslag 22.10.2025). Det er en Bergen-pris: i Oslo indre by
+// bil 1, 582 kr/mnd (Bergen kommune, «Boligsoneparkering», side oppdatert
+// 15.10.2026). Det er en Bergen-pris: i Oslo indre by
 // koster beboerparkering 3 850 kr (elbil 1 300 kr), i ytre by 0 kr (Oslo
 // kommune, 2026-priser), og leid plass i Bergen kommunes beboeranlegg koster
 // 1 257 kr/mnd (side oppdatert 13.10.2026). Med egen plass er den 0 kr.
@@ -131,7 +131,7 @@ export const OWNERSHIP_METHOD = {
   sources: [
     "OFV: Kostnader ved bilhold – eksempler på beregning 2026 (16.06.2026)",
     "NAF: Avgifter og kostnader for bil 2026 (oppdatert 02.10.2026)",
-    "Bergen kommune: boligsoneparkering, priser fra 01.01.2025, fryst for 2026 (22.10.2025)",
+    "Bergen kommune: Boligsoneparkering, sone 1–8 (side oppdatert 15.10.2026)",
     "Oslo kommune: priser for beboerparkeringstillatelse 2026",
     "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)",
   ],
