@@ -30,10 +30,9 @@ Mozilla gir to valg når du sender inn en versjon på [addons.mozilla.org/develo
 
 ### Før offentlig oppføring (listed) er greit
 
-Ikke publiser listed før disse er ryddet:
+Ikke publiser listed før dette er ryddet:
 
 - **Ikon.** Ikonene i `icons/` er avledet av Dele sin offisielle logo. Greit for privat sideloading, men listed krever eget symbol. Den lilla `#51289D` er fri.
-- **Personlige nøkkelord.** `stats/lib/categories.js` har Fredriks egne keywords (hyttenavn, stedsnavn osv.). De må strippes/generaliseres før en offentlig utgivelse.
 
 ## 3. Signer og last ned (self-distribution)
 

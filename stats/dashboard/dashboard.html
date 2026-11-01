@@ -371,6 +371,30 @@
         <span class="card__label">Ukategoriserte turer med forslag</span>
         <div class="suggestion-list" id="suggestion-list"></div>
       </div>
+
+      <details class="card card--list keyword-card" id="keyword-card">
+        <summary class="keyword-card__summary">
+          <span class="card__label">Egne n&oslash;kkelord</span>
+          <span class="keyword-card__total" id="keyword-total"></span>
+        </summary>
+        <p class="keyword-card__help">
+          Turer kategoriseres etter ord i turnotatet. Standardlisten dekker kjeder, h&oslash;ytider og vanlige ord.
+          Legg til egne ord som stedsnavn og personer, kommaseparert. Ordene lagres bare i denne nettleseren
+          og slettes ikke ved synkronisering. Kategoriene sjekkes i rekkef&oslash;lgen under, og f&oslash;rste treff vinner.
+        </p>
+        <form id="keyword-form" class="keyword-form">
+          <div id="keyword-fields"></div>
+          <div class="transport-form__actions">
+            <button type="submit" class="btn btn--save">Lagre</button>
+            <button type="button" id="keyword-export" class="btn btn--reset">Eksporter JSON</button>
+            <label class="btn btn--reset keyword-import">
+              Importer JSON
+              <input type="file" id="keyword-import" accept="application/json,.json" class="visually-hidden">
+            </label>
+            <span id="keyword-status" class="transport-save-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </details>
     </section>
 
     <!-- Section 7: Klimaregnskap -->
