@@ -1,60 +1,58 @@
 # Bildeleringen Stats
 
-Nettleserutvidelse som gir deg oversikt over ditt bildeleforbruk, transportkostnader og klimaavtrykk. For medlemmer av [Bildeleringen / dele.no](https://dele.no).
+Nettleserutvidelse som viser hva bildelingen koster deg, hvordan du bruker den og hvor mye CO₂ den slipper ut. For alle som er medlem i en Bilparaplyen-organisasjon på [dele.no](https://dele.no), ikke bare Bildeleringen. Prosjektet er laget av en bruker og er ikke tilknyttet eller godkjent av Dele AS.
 
-> Dette prosjektet er ikke tilknyttet Bildeleringen / Dele AS. Det er laget av en ivrig bruker som ville ha bedre innsikt i eget bildeleforbruk.
-
-> **Monorepo:** dette repoet har to utvidelser. `stats/` (denne) for statistikk og analyse, og [`flex/`](flex/README.md) for fleksibelt booking-søk (finn når en bil faktisk er ledig).
+Repoet har to utvidelser: `stats/` for statistikk og [`flex/`](flex/README.md) for å finne når en bil er ledig.
 
 ## Funksjoner
 
-- **Popup**: månedlig forbruk, snittpris, mest brukte bil og besparelse
-- **Dashboard**: fullstendig statistikk med grafer:
+- **Popup**: månedsforbruk, snittpris, mest brukte bil og besparelse.
+- **Dashboard** med grafer:
   - Kostnader (måned, år, per tur, per km)
   - Bruksmønster (heatmap, turer per måned, mest brukte biler)
-  - Bookingmønster (forhåndsvarsel, topp stasjoner, andel siste-liten)
+  - Bookingmønster (forhåndsvarsel, mest brukte stasjoner, andel siste liten)
   - Kilometer (distanse, per bil, lengste tur)
-  - Trender (år-over-år, rullerende snitt, sesong)
-  - Bilregnestykket (bildeling vs. bileierskap, inkl. Volvo EX C40 2026)
-  - Turkategorier (auto-kategorisering fra turnotater)
+  - Trender (år mot år, rullerende snitt, sesong)
+  - Bilregnestykket (bildeling mot egen bil, også Volvo EX C40 2026)
+  - Turkategorier (sortert automatisk etter turnotatene)
   - Klimaregnskap (CO₂ per drivstofftype og bil)
   - Transportkalkulator (taxi, leiebil, buss, fly, sykkel, totalbilde)
-- **Årsoppsummering**: visuell "year in review"
-- **PNG-eksport** av hver seksjon
-
-All data forblir i nettleseren. Ingen eksterne servere, ingen sporing.
+- **Årsoppsummering**: året ditt, én side per tall.
+- **PNG-eksport** av hver seksjon.
 
 ## Installasjon
 
 Last ned `.zip` fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases).
 
-**Firefox:**
+I Firefox:
+
 1. Gå til `about:debugging#/runtime/this-firefox`
 2. Klikk «Last inn midlertidig tillegg...»
 3. Velg `.zip`-filen
 
-**Chrome:**
+I Chrome:
+
 1. Pakk ut zip-filen
-2. Gå til `chrome://extensions` → Utviklermodus
-3. Klikk «Last inn upakket» → velg mappen
+2. Gå til `chrome://extensions` og slå på Utviklermodus
+3. Klikk «Last inn upakket» og velg mappen
 
 Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar 1–2 minutter.
 
 ## Personvern
 
-All data lagres lokalt i nettleseren din. Eneste nettverkstrafikk er API-kall til dele.no med din eksisterende innlogging. Ingen tredjeparter. Hvilke kall som gjøres, hvor ofte og med hvilke grenser, står i [docs/api-bruk.md](docs/api-bruk.md).
+Alt lagres lokalt i nettleseren. Den eneste trafikken er API-kall til dele.no med innloggingen du alt har. Ingen tredjeparter, ingen sporing. Hvilke kall som gjøres og hvor ofte, står i [docs/api-bruk.md](docs/api-bruk.md).
 
 ## Estimater
 
-Eierkostnader og CO₂ er estimater basert på norske kilder (NAF, Miljødirektoratet, TØI). Klikk «Slik beregner vi» i dashboardet for utregning og kilder.
+Eierkostnader og CO₂ er estimater fra norske kilder (NAF, Miljødirektoratet, TØI). «Slik beregner vi» i dashboardet viser utregningen og kildene.
 
 ## Varemerke
 
-Stats-ikonet er tegnet for prosjektet, en bil som bærer et stolpediagram, og bruker ingenting fra Dele AS sitt logo. Bare fargen, lilla `#51289D`, er felles med dele.no. Utvidelsen er ikke tilknyttet eller godkjent av Dele AS. Flex-utvidelsen bruker fortsatt Dele-symbolet og trenger eget ikon før den kan publiseres.
+Stats-ikonet er tegnet for prosjektet, en bil som bærer et stolpediagram, og låner bare fargen fra dele.no, lilla `#51289D`. Flex bruker fortsatt Dele-symbolet og trenger eget ikon før den kan publiseres.
 
 ## Utvikling
 
-Se [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for prosjektstruktur, teknologi og hvordan bidra.
+Se [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Lisens
 

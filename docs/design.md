@@ -1,6 +1,6 @@
 # Design for stats
 
-Spesifikasjon for den visuelle retningen i `stats/`: dashboard, popup og årsoppsummering. Den skal godkjennes før CSS-en skrives om. `docs/design-skisse.html` viser tokenene i bruk (åpne den direkte i nettleseren, legg til `#lys` eller `#mork` for å tvinge en modus). Alle tall i skissen er oppdiktet.
+Spesifikasjon for den visuelle retningen i `stats/`: dashboard, popup og årsoppsummering. Den skal godkjennes før CSS-en skrives om, og den omskrivingen kalles del 2 under. `docs/design-skisse.html` viser tokenene i bruk (åpne den direkte i nettleseren, legg til `#lys` eller `#mork` for å tvinge en modus). Alle tall i skissen er oppdiktet.
 
 ## Hva det er, og for hvem
 
@@ -34,70 +34,70 @@ Konsekvenser som del 2 må ta:
 - `light-dark()` krever minst Firefox 120, så `strict_min_version` i `manifest.json` må være minst 120. I Chromium kom støtten i Chrome 123, og skal utvidelsen lastes der, settes `minimum_chrome_version` til minst 123.
 - `getComputedStyle().getPropertyValue("--color-x")` gir tilbake selve `light-dark(...)`-teksten, som Chart.js ikke forstår. `chart-helpers.js` må løse fargen gjennom et skjult måleelement: sett `style.color = "var(--color-x)"` og les `getComputedStyle(el).color`, som da er en ferdig `rgb()`.
 - Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Det er ikke testet ennå. Del 2 verifiserer «Last ned bilde» i begge moduser før noe annet bygges på mekanismen. Feiler det, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk pluss en `:root.scheme-dark`-blokk med de samme verdiene for årsoppsummeringen.
-- Kontrastscriptet fra sync-banner-saken må kunne lese `light-dark(a, b)` og sjekke a mot a og b mot b.
+- Kontrastscriptet (se Sjekker som håndhever reglene) må kunne lese `light-dark(a, b)` og sjekke a mot a og b mot b.
 
 ### Token-settet
 
-| Token | Lys | Mørk | Brukes til |
-|---|---|---|---|
-| `--color-bg` | `#ECEAE6` | `#1F1F21` | sidebakgrunn |
-| `--color-surface` | `#F7F6F3` | `#28282B` | header, nav, paneler, banner |
-| `--color-sunken` | `#E3E0DB` | `#323236` | hover på sekundærknapp, progress-spor, skjelett |
-| `--color-border` | `#D3CFC8` | `#3B3B3F` | 1 px skillelinjer og panelkant |
-| `--color-border-strong` | `#8A847B` | `#7C7C83` | kant på knapper og skjemafelt, x-akse |
-| `--color-grid` | `#DEDAD4` | `#333337` | rutenett i diagrammer |
-| `--color-text` | `#1E1C19` | `#ECEBE8` | brødtekst og tall |
-| `--color-text-secondary` | `#57524B` | `#B5B3AE` | etiketter, forklarende setninger |
-| `--color-text-tertiary` | `#6B665E` | `#9A9893` | aksetekst, «Beregnes …», tidsstempel |
-| `--color-accent` | `#51289D` | `#B39AEB` | primærknapp, lenker, aktiv fane, fokusring, fremdrift |
-| `--color-accent-hover` | `#41207F` | `#C6B3F1` | hover på primærknapp |
-| `--color-on-accent` | `#FFFFFF` | `#1F1F21` | tekst på aksentflate |
-| `--color-accent-soft` | `#E4DDF0` | `#352D48` | valgt årsknapp, rangeringsnummer |
-| `--color-warning-bg` | `#F5E4D3` | `#3A2C1F` | feil og «ikke innlogget» |
-| `--color-warning-text` | `#7A3F0A` | `#F0BE8A` | tekst på warning-bg |
-| `--color-danger` | `#A12F28` | `#F08A80` | «Nullstill alt», destruktive handlinger |
-| `--color-disabled-bg` | `#E3E0DB` | `#323236` | deaktivert knapp |
-| `--color-disabled-text` | `#5E5952` | `#A3A19C` | tekst på deaktivert knapp |
-| `--color-chart-1` | `#51289D` | `#B39AEB` | lilla, bildeling og hovedserien |
-| `--color-chart-2` | `#A45C09` | `#FDD57E` | oker, den varme kontrasten |
-| `--color-chart-3` | `#4B86C2` | `#3E79B3` | blå, sammenligningsserien |
-| `--color-chart-4` | `#5B0233` | `#FFA5C1` | bær (lys) og rosa (mørk) |
-| `--color-chart-5` | `#0D6460` | `#3B9C97` | blågrønn |
+| Token                    | Lys       | Mørk      | Brukes til                                            |
+| ------------------------ | --------- | --------- | ----------------------------------------------------- |
+| `--color-bg`             | `#ECEAE6` | `#1F1F21` | sidebakgrunn                                          |
+| `--color-surface`        | `#F7F6F3` | `#28282B` | header, nav, paneler, banner                          |
+| `--color-sunken`         | `#E3E0DB` | `#323236` | hover på sekundærknapp, progress-spor, skjelett       |
+| `--color-border`         | `#D3CFC8` | `#3B3B3F` | 1 px skillelinjer og panelkant                        |
+| `--color-border-strong`  | `#8A847B` | `#7C7C83` | kant på knapper og skjemafelt, x-akse                 |
+| `--color-grid`           | `#DEDAD4` | `#333337` | rutenett i diagrammer                                 |
+| `--color-text`           | `#1E1C19` | `#ECEBE8` | brødtekst og tall                                     |
+| `--color-text-secondary` | `#57524B` | `#B5B3AE` | etiketter, forklarende setninger                      |
+| `--color-text-tertiary`  | `#6B665E` | `#9A9893` | aksetekst, «Beregnes …», tidsstempel                  |
+| `--color-accent`         | `#51289D` | `#B39AEB` | primærknapp, lenker, aktiv fane, fokusring, fremdrift |
+| `--color-accent-hover`   | `#41207F` | `#C6B3F1` | hover på primærknapp                                  |
+| `--color-on-accent`      | `#FFFFFF` | `#1F1F21` | tekst på aksentflate                                  |
+| `--color-accent-soft`    | `#E4DDF0` | `#352D48` | valgt årsknapp, rangeringsnummer                      |
+| `--color-warning-bg`     | `#F5E4D3` | `#3A2C1F` | feil og «ikke innlogget»                              |
+| `--color-warning-text`   | `#7A3F0A` | `#F0BE8A` | tekst på warning-bg                                   |
+| `--color-danger`         | `#A12F28` | `#F08A80` | «Nullstill alt», destruktive handlinger               |
+| `--color-disabled-bg`    | `#E3E0DB` | `#323236` | deaktivert knapp                                      |
+| `--color-disabled-text`  | `#5E5952` | `#A3A19C` | tekst på deaktivert knapp                             |
+| `--color-chart-1`        | `#51289D` | `#B39AEB` | lilla, bildeling og hovedserien                       |
+| `--color-chart-2`        | `#A45C09` | `#FDD57E` | oker, den varme kontrasten                            |
+| `--color-chart-3`        | `#4B86C2` | `#3E79B3` | blå, sammenligningsserien                             |
+| `--color-chart-4`        | `#5B0233` | `#FFA5C1` | bær (lys) og rosa (mørk)                              |
+| `--color-chart-5`        | `#0D6460` | `#3B9C97` | blågrønn                                              |
 
 Aksenten i mørk modus er en lysere lilla fordi `#51289D` gir 1,6:1 mot den mørke flaten. Primærknappen i mørk modus får derfor mørk tekst på lys lilla, slik skissen viser.
 
-Tokenene som forsvinner: `--color-accent-light`, `--color-header-*`, `--color-nav-*`, `--color-status-*` (banneret bruker surface og border), `--color-progress-*`, `--color-btn-sync-*`, `--color-btn-secondary-*`, `--color-card-shadow`, `--color-shadow`, `--color-heatmap-text`, `--color-empty-text`, `--color-link`, `--color-rank-*`, `--color-section-divider`, `--color-secondary`, `--color-tertiary`, `--color-saving-bg`, `--color-danger-hover`, `--color-danger-bg`, alle `--shadow-*`, `--radius-sm/md/lg` og alle `--sum-*`. Grønn som «sparing»-farge går ut. Sparing vises med aksenten, så grønt ikke blir et eget signal som bare finnes ett sted.
+Tokenene som forsvinner: `--color-accent-light`, `--color-header-*`, `--color-nav-*`, `--color-status-*` (banneret bruker surface og border), `--color-progress-*`, `--color-btn-sync-*`, `--color-btn-secondary-*`, `--color-card-shadow`, `--color-shadow`, `--color-heatmap-text`, `--color-empty-text`, `--color-link`, `--color-rank-*`, `--color-section-divider`, `--color-secondary`, `--color-tertiary`, `--color-saving-bg`, `--color-danger-hover`, `--color-danger-bg`, alle `--shadow-*`, `--radius-sm/md/lg` og alle `--sum-*`. Grønn som «sparing»-farge går ut. Sparing vises med aksenten, så grønt ikke blir et eget signal som bare finnes ett sted, og rød mot grønn faller bort for fargeblinde.
 
 ### Kontrast
 
 Målt med WCAG 2-formelen i et lite `python3 -I`-script. Kontrastscriptet som kommer i del 2, skal gi de samme tallene. Krav: 4,5:1 for tekst, 3:1 for kanter på kontroller og diagramelementer.
 
-| Par | Lys | Mørk | Krav |
-|---|---|---|---|
-| text på bg | 14,15 | 13,80 | 4,5 |
-| text på surface | 15,73 | 12,33 | 4,5 |
-| text-secondary på bg | 6,44 | 7,85 | 4,5 |
-| text-secondary på surface | 7,16 | 7,02 | 4,5 |
-| text-secondary på sunken | 5,88 | 6,09 | 4,5 |
-| text-tertiary på bg | 4,74 | 5,71 | 4,5 |
-| text-tertiary på surface | 5,27 | 5,10 | 4,5 |
-| accent på bg | 8,17 | 6,85 | 4,5 |
-| accent på surface | 9,08 | 6,12 | 4,5 |
-| accent på accent-soft | 7,43 | 5,39 | 4,5 |
-| on-accent på accent | 9,81 | 6,85 | 4,5 |
-| on-accent på accent-hover | 12,08 | 8,71 | 4,5 |
-| warning-text på warning-bg | 6,65 | 7,97 | 4,5 |
-| danger på surface | 6,58 | 6,06 | 4,5 |
-| danger på bg | 5,92 | 6,78 | 4,5 |
-| disabled-text på disabled-bg | 5,27 | 4,95 | 4,5 |
-| border-strong på surface | 3,43 | 3,55 | 3 |
-| border-strong på bg | 3,08 | 3,97 | 3 |
-| chart-1 på surface | 9,08 | 6,12 | 3 |
-| chart-2 på surface | 4,72 | 10,50 | 3 |
-| chart-3 på surface | 3,54 | 3,21 | 3 |
-| chart-4 på surface | 12,94 | 7,98 | 3 |
-| chart-5 på surface | 6,46 | 4,47 | 3 |
-| chart-3 på bg | 3,18 | 3,60 | 3 |
+| Par                          | Lys   | Mørk  | Krav |
+| ---------------------------- | ----- | ----- | ---- |
+| text på bg                   | 14,15 | 13,80 | 4,5  |
+| text på surface              | 15,73 | 12,33 | 4,5  |
+| text-secondary på bg         | 6,44  | 7,85  | 4,5  |
+| text-secondary på surface    | 7,16  | 7,02  | 4,5  |
+| text-secondary på sunken     | 5,88  | 6,09  | 4,5  |
+| text-tertiary på bg          | 4,74  | 5,71  | 4,5  |
+| text-tertiary på surface     | 5,27  | 5,10  | 4,5  |
+| accent på bg                 | 8,17  | 6,85  | 4,5  |
+| accent på surface            | 9,08  | 6,12  | 4,5  |
+| accent på accent-soft        | 7,43  | 5,39  | 4,5  |
+| on-accent på accent          | 9,81  | 6,85  | 4,5  |
+| on-accent på accent-hover    | 12,08 | 8,71  | 4,5  |
+| warning-text på warning-bg   | 6,65  | 7,97  | 4,5  |
+| danger på surface            | 6,58  | 6,06  | 4,5  |
+| danger på bg                 | 5,92  | 6,78  | 4,5  |
+| disabled-text på disabled-bg | 5,27  | 4,95  | 4,5  |
+| border-strong på surface     | 3,43  | 3,55  | 3    |
+| border-strong på bg          | 3,08  | 3,97  | 3    |
+| chart-1 på surface           | 9,08  | 6,12  | 3    |
+| chart-2 på surface           | 4,72  | 10,50 | 3    |
+| chart-3 på surface           | 3,54  | 3,21  | 3    |
+| chart-4 på surface           | 12,94 | 7,98  | 3    |
+| chart-5 på surface           | 6,46  | 4,47  | 3    |
+| chart-3 på bg                | 3,18  | 3,60  | 3    |
 
 Alle par holder, også alle fem chart-fargene mot bg (laveste er chart-3 over). Deaktivert tekst er unntatt i WCAG, men holdes over 4,5 fordi synk-knappen står deaktivert i minutter under første henting.
 
@@ -105,8 +105,8 @@ Alle par holder, også alle fem chart-fargene mot bg (laveste er chart-3 over). 
 
 De fem chart-fargene ligger på hvert sitt lyshetstrinn i begge moduser, så de kan skilles også av en leser med nedsatt fargesyn og i gråtoneutskrift. Rekkefølgen fra mørkest til lysest er chart-4, 1, 5, 2, 3 i lys modus og chart-3, 5, 1, 4, 2 i mørk. Lysheten er valgt med OKLCH og målt med WCAG-formelen. Kontrast mellom hvert par av chart-farger:
 
-| Par | Lys | Mørk |
-|---|---|---|
+| Par               | Lys  | Mørk |
+| ----------------- | ---- | ---- |
 | chart-1 / chart-2 | 1,92 | 1,72 |
 | chart-1 / chart-3 | 2,56 | 1,90 |
 | chart-1 / chart-4 | 1,43 | 1,31 |
@@ -128,15 +128,15 @@ Lyshet alene er likevel ikke nok til å bære en serie, så fargen bærer aldri 
 
 `font-variant-numeric: tabular-nums` settes på `body`, så alle tall i alle flater står i like brede sifre og kolonner flukter. Det er den viktigste typografiske endringen.
 
-| Token | Størrelse | Bruk |
-|---|---|---|
-| `--text-xs` | 12 px | aksetekst, tidsstempel, metadata i header |
-| `--text-sm` | 14 px | brødtekst i popup (350 px bred), hjelpetekst i skjemakort |
-| `--text-base` | 15 px | brødtekst, nav, knapper, nøkkeltall-lister |
-| `--text-md` | 18 px | forklarende setning under hovedtall, sidetittel, regnestykket |
-| `--text-lg` | 24 px | seksjonsoverskrift |
-| `--text-xl` | 32 px | hovedtall i popup |
-| `--text-hero` | 44 px (34 px under 720 px bredde) | hovedtallet i Kostnader og Bilregnestykket |
+| Token         | Størrelse                         | Bruk                                                          |
+| ------------- | --------------------------------- | ------------------------------------------------------------- |
+| `--text-xs`   | 12 px                             | aksetekst, tidsstempel, metadata i header                     |
+| `--text-sm`   | 14 px                             | brødtekst i popup (350 px bred), hjelpetekst i skjemakort     |
+| `--text-base` | 15 px                             | brødtekst, nav, knapper, nøkkeltall-lister                    |
+| `--text-md`   | 18 px                             | forklarende setning under hovedtall, sidetittel, regnestykket |
+| `--text-lg`   | 24 px                             | seksjonsoverskrift                                            |
+| `--text-xl`   | 32 px                             | hovedtall i popup                                             |
+| `--text-hero` | 44 px (34 px under 720 px bredde) | hovedtallet i Kostnader og Bilregnestykket                    |
 
 Bare to vekter: 400 og 600. Tall i lister og regnestykker står i 600. Hovedtall har `letter-spacing: -0.01em` og `line-height: 1.1`, alt annet har normal sperring og `line-height: 1.5`. Ingen store bokstaver, ingen sperrede etiketter, ingen små overskrifter over overskrifter. Alt i sentence case. Brødtekst holdes under 68 tegn bredde (`--measure`).
 
@@ -180,7 +180,7 @@ Slik beregner vi
 
 Kostnader-hovedtallet står uten «ca.» fordi det er summen av faktiske beløp (`price.total`). «ca.» står bare foran estimater: Bilregnestykket, egen bil-kostnaden og CO₂-tallene.
 
-Bilregnestykket settes som et faktisk regnestykke, med strek over summen og summen i aksentfarge. Det er det ene grepet i designet som skal huskes, og det kommer rett fra seksjonens navn. Sammenligningen mot Volvo EX C40 blir et andre, mindre regnestykke under det første, uten eget hovedtall.
+Bilregnestykket settes som et faktisk regnestykke, med strek over summen og summen i aksentfarge. Det er det ene grepet i designet som skal huskes, og det kommer rett fra seksjonens navn. Brukeren spør «lønner det seg?», og et regnestykke med strek over summen svarer slik folk regner selv. Sammenligningen mot Volvo EX C40 blir et andre, mindre regnestykke under det første, uten eget hovedtall.
 
 Støtteseksjonene (Bruksmønster, Bookingmønster, Kilometer, Trender, Turkategorier, Klima, Transport) har ikke hovedtall. De får seksjonsoverskrift, diagram i panel og nøkkeltall som en to-kolonners liste (`<dl>`) med etikett til venstre og tall til høyre, delt med 1 px linjer. Kortrutenettet (`.cards--2`, `.cards--3`) går ut. Rangerte lister (mest brukte biler, stasjoner) er nummererte lister der nummeret står i tekstfarge tertiary, ikke i en farget sirkel.
 
@@ -210,7 +210,15 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 
 **Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary og forsvinner ikke av seg selv.
 
-**Egne nøkkelord** (Turkategorier). Et panel bygd på `<details>`/`<summary>`, lukket som standard. Summary-linjen er en `h3`-lik tittel i 15 px vekt 600 med totalen («24 ord i 6 kategorier») i tekst-secondary etter, og nettleserens egen markør beholdes, så det trengs ingen tegnet pil og ingen `::-webkit-details-marker`-regel. Fokus på summary følger fokusregelen over, uten egen radius. Under står hjelpeteksten i `--text-sm` og tekst-secondary, maks 68 tegn bredde. Hver kategori er en rad i et rutenett: etikett, tekstfelt (skjemafeltregelen, venstrejustert fordi det er tekst) og antall treff i tekst-secondary høyrejustert, med 1 px linje mellom radene. Under 480 px stables raden. Knapperaden har «Lagre» som sekundærknapp og «Eksporter JSON» og «Importer JSON» som stille knapper, siden primærknappen er brukt på «Synkroniser». Importknappen er en `<label>` rundt et visuelt skjult filfelt og får fokusringen via `:focus-within`. Statusmeldingen («Lagret», «Importerte 24 ord», feil ved ugyldig fil) står etter knappene med `role="status"` i tekst-secondary, og feil i danger. Hele kortet bruker `--radius`. `--radius-sm` og hover-regelen `.keyword-card:hover` går ut.
+**Egne nøkkelord** (Turkategorier). Et panel bygd på `<details>`/`<summary>`, lukket som standard.
+
+- Summary-linjen er en `h3`-lik tittel i 15 px vekt 600 med totalen («24 ord i 6 kategorier») i tekst-secondary etter. Nettleserens egen markør beholdes, så det trengs ingen tegnet pil og ingen `::-webkit-details-marker`-regel. Fokus følger fokusregelen over, uten egen radius.
+- Hjelpeteksten står under i `--text-sm` og tekst-secondary, maks 68 tegn bredde.
+- Hver kategori er en rad i et rutenett: etikett, tekstfelt (skjemafeltregelen, men venstrejustert fordi det er tekst) og antall treff i tekst-secondary høyrejustert, med 1 px linje mellom radene. Under 480 px stables raden.
+- Knapperaden har «Lagre» som sekundærknapp og «Eksporter JSON» og «Importer JSON» som stille knapper, siden primærknappen er brukt på «Synkroniser». Importknappen er en `<label>` rundt et visuelt skjult filfelt og får fokusringen via `:focus-within`.
+- Statusmeldingen («Lagret», «Importerte 24 ord», feil ved ugyldig fil) står etter knappene med `role="status"` i tekst-secondary, og feil i danger.
+
+`--radius-sm` og hover-regelen `.keyword-card:hover` går ut.
 
 ## Synk, fremdrift og feil
 
@@ -267,17 +275,6 @@ Ingen bevegelse som ikke svarer på noe brukeren gjør. Ingen hover-løft på ko
 
 ## Mot en generisk dashboard-prompt
 
-Ber man om «et moderne dashboard for bildelingsstatistikk», får man nesten nøyaktig det som står i dag: hvit flate, blå eller lilla-til-blå aksent, avrundede kort med myk skygge i et tre-kolonners rutenett, et tall per kort med en etikett i sperrede store bokstaver over, grønt for sparing og rødt for kostnad, ikoner på alle knapper, hover-løft og inntoning ved scroll. Mørk modus blir blåsvart med samme kort. Årsoppsummeringen blir en «Wrapped»-kopi med gradienter.
-
-Det som er valgt annerledes, og hvorfor:
-
-- **Ett regnestykke i stedet for to kort med «vs» imellom.** Brukeren spør «lønner det seg?», og et regnestykke med strek over summen svarer på den måten folk regner selv. Det er det eneste stedet designet tar en sjanse.
-- **Hovedtall bare der det er fortjent.** To seksjoner har ett stort tall med en setning. De andre har nøkkeltall i en liste. Ni like seksjoner sier at alt er like viktig, og det stemmer ikke.
-- **Lister i stedet for kortrutenett.** Seks kort med ett tall hver er seks bokser rundt seks tall. En liste med høyrejusterte tabellsifre kan leses nedover og sammenlignes.
-- **Lilla fra Dele, ikke blå.** Aksenten kommer fra tjenesten tallene handler om. Det binder stats til flex og til dele.no uten å bruke logoen.
-- **Varm grå og nøytral mørk.** Ikke hvitt (sterilt), ikke krem (en kjent AI-signatur), ikke blåsvart. Den varme grå tonen gjør flaten litt papiraktig uten å late som den er papir.
-- **2 px hjørner, 1 px linjer, ingen skygger.** Hierarkiet kommer fra størrelse og plassering, ikke fra dybde.
-- **Tabellsifre overalt.** Det mest generiske i et tall-UI er proporsjonale sifre som hopper når tallene endrer seg under synk.
-- **Ingen grønn for sparing.** Rød/grønn gjør et regnskap til et trafikklys og faller bort for fargeblinde. Aksenten og ordet «mindre» bærer budskapet.
+Ber man om «et moderne dashboard for bildelingsstatistikk», får man nesten nøyaktig det som står i dag: hvit flate, blå eller lilla-til-blå aksent, avrundede kort med myk skygge i et tre-kolonners rutenett, et tall per kort med en etikett i sperrede store bokstaver over, grønt for sparing og rødt for kostnad, ikoner på alle knapper, hover-løft og inntoning ved scroll. Mørk modus blir blåsvart med samme kort. Årsoppsummeringen blir en «Wrapped»-kopi med gradienter. Valgene over går bevisst mot hvert av disse punktene.
 
 Valgt bort: bundlet webfont, ikoner som pynt, gradienter, glassmorfisme, emoji i seksjonsoverskrifter, `01 / 02 / 03`-nummerering av seksjonene (de er ikke en rekkefølge), metastrenger med midtprikk, `→` etter lenker, og en egen dekorert «hero» øverst. Det øverste på siden er selve kostnaden.
