@@ -590,12 +590,12 @@ function formatLeadDuration(hours) {
   return days === 1 ? "1 dag" : `${days} dager`;
 }
 
-const formatTripDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+const formatLongDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric" });
 
 function leadContext(extreme) {
   // Stasjonsnavnet har ofte komma selv («Regnbuetorget, Bergen»), så bilen
   // knyttes til stasjonen med «fra».
-  return `${formatTripDate.format(new Date(extreme.start))}, ${extreme.carModel} fra ${extreme.station}`;
+  return `${formatLongDate.format(new Date(extreme.start))}, ${extreme.carModel} fra ${extreme.station}`;
 }
 
 function renderBookingPatterns(reservations) {
