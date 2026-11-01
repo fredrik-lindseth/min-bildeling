@@ -20,15 +20,15 @@ Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rund
 
 Alt ligger i `browser.storage.local`.
 
-| Nøkkel           | Struktur                                                                                    | Skrives av                         |
-| ---------------- | ------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `reservations`   | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms)           | `lib/sync.js`                      |
-| `lastSync`       | Tidspunkt (ms) for siste fullførte synk                                                     | `lib/sync.js`                      |
-| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js`                      |
-| `syncLock`       | `{ owner, expiresAt }` eller null                                                           | `lib/sync.js`                      |
-| `syncHistory`    | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }`    | `lib/sync.js`                      |
-| `tripCategories` | `{ reservationId: categoryKey }`                                                            | dashbordet (brukerens valg)        |
-| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                  | dashbordet (brukerens valg)        |
+| Nøkkel           | Struktur                                                                                    | Skrives av                          |
+| ---------------- | ------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `reservations`   | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms)           | `lib/sync.js`                       |
+| `lastSync`       | Tidspunkt (ms) for siste fullførte synk                                                     | `lib/sync.js`                       |
+| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js`                       |
+| `syncLock`       | `{ owner, expiresAt }` eller null                                                           | `lib/sync.js`                       |
+| `syncHistory`    | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }`    | `lib/sync.js`                       |
+| `tripCategories` | `{ reservationId: categoryKey }`                                                            | dashbordet (brukerens valg)         |
+| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                  | dashbordet (brukerens valg)         |
 | `userKeywords`   | `{ categoryKey: ["ord", ...] }`                                                             | dashbordet (egne nøkkelord, import) |
 
 `reservations`, `lastSync` og sync-nøklene er API-data som bare synken skriver. `tripCategories`, `transportData` og `userKeywords` er brukerdata og slettes aldri av synken.
