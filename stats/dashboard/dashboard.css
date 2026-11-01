@@ -560,10 +560,6 @@ a:focus-visible,
   color: var(--color-accent);
 }
 
-.ledger--small {
-  font-size: var(--text-base);
-}
-
 .ledger__note {
   max-width: var(--measure);
   margin-top: var(--space-3);

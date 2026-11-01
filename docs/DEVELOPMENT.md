@@ -59,7 +59,8 @@ lib/
   chart-helpers.js         # Chart.js-hjelpere
   co2.js                   # CO₂ per drivstofftype og kategori
   formatters.js            # NOK- og datoformatering
-  ownership-cost.js        # Eierkostnader og Volvo EX40
+  ownership-cost.js        # Bilregnestykket mot referansebilen
+  referansebil.js          # Volvo EX40: forutsetningene med kilde og dato
   stats.js                 # Statistikk (rene funksjoner)
   sync.js                  # Synkmotoren
   sync-page.js             # Kobler synken til popup og dashboard
@@ -84,9 +85,9 @@ icons/
 
 | Estimat               | Kilde                                                   |
 | --------------------- | ------------------------------------------------------- |
-| Eierkostnader         | OFV kalkyle 2026, NAF                                   |
+| Eierkostnader         | OFV kalkyle 2026 (elbil, 10 000 km), NAF                |
 | Parkering             | Bergen eller Trondheim kommune, etter organisasjonen    |
-| Volvo EX40            | Finn-pris 10.09.2026, OFV                               |
+| Volvo EX40            | Volvo Norge-pris 10.09.2026 (Elbil24, Finn)             |
 | CO₂ bildeling         | Miljødirektoratet (per biltype)                         |
 | CO₂ buss              | SSB, buss 2019 (~59 g/passasjer-km)                     |
 | CO₂ taxi              | 0 g/km i eksos, nullutslippskrav Vestland og Trøndelag  |

@@ -13,11 +13,6 @@ function trips(n) {
   return n === 1 ? "1 tur" : `${n} turer`;
 }
 
-// «en kombi», men «en SUV»: kategoriene fra Dele har stor forbokstav.
-function categoryPhrase(category) {
-  return category === "SUV" ? "en SUV" : `en ${category.toLowerCase()}`;
-}
-
 const MONTH_NAMES = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
 
 async function init() {
@@ -87,7 +82,7 @@ function renderYear(reservations, year) {
     const saved = ownership.savings > 0;
     document.getElementById("savings-label").textContent = saved ? "Spart mot å eie bil" : "Dyrere enn å eie bil";
     document.getElementById("savings").textContent = `ca. ${formatNOK.format(Math.abs(ownership.savings))}`;
-    document.getElementById("savings-vs").textContent = `regnet mot ${categoryPhrase(ownership.category)}`;
+    document.getElementById("savings-vs").textContent = `regnet mot en ${ownership.carName}`;
   } else {
     document.getElementById("savings").textContent = "\u2013";
     document.getElementById("savings-vs").textContent = "";

@@ -23,7 +23,7 @@ import {
 
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 
-import { estimateOwnershipCost, estimateVolvoComparison, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
+import { estimateOwnershipCost, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
 import {
   CATEGORIES,
@@ -921,8 +921,8 @@ function renderOwnership(reservations) {
   setText(
     "ownership-savings-text",
     result.savings > 0
-      ? "mindre per år enn å eie en tilsvarende bil."
-      : "mer per år enn å eie en tilsvarende bil."
+      ? `mindre per år enn å eie en ${result.carName}.`
+      : `mer per år enn å eie en ${result.carName}.`
   );
   setLedger("ledger", result.ownershipCost, result.sharingCost, result.savings);
 
@@ -934,7 +934,8 @@ function renderOwnership(reservations) {
     "Trafikkforsikringsavgift",
     "Vedlikehold",
     "Parkering",
-    "Drivstoff",
+    "Dekk",
+    "Strøm",
   ];
   const breakdownData = [
     bd.depreciation,
@@ -942,7 +943,8 @@ function renderOwnership(reservations) {
     bd.tax,
     bd.maintenance,
     bd.parking,
-    bd.fuel,
+    bd.tyres,
+    bd.energy,
   ];
   // Én serie, én farge. Etikettene på aksen sier hva søylene er.
   draw("ownershipBreakdown", $("ownership-breakdown-chart"), {
@@ -973,16 +975,8 @@ function renderOwnership(reservations) {
     },
   });
 
-  // Volvo EX40, som et mindre regnestykke under det første
-  const volvo = estimateVolvoComparison(reservations);
-  if (volvo) {
-    setLedger("volvo", volvo.ownershipCost, volvo.sharingCost, volvo.savings);
-  }
-
-  // Note text
-  const categoryName = result.category || "ukjent";
-  const noteEl = $("comparison-note");
-  noteEl.textContent = `Regnet mot din mest brukte bilkategori (${categoryName}) og Volvo EX40.`;
+  $("comparison-note").textContent =
+    `Regnet mot en ny ${COMPARISON_CAR.name} ${COMPARISON_CAR.variant} til ${formatNOK.format(COMPARISON_CAR.price)}.`;
 
   // Ownership methodology detail
   const ownershipMethodDetail = $("ownership-method-detail");
@@ -990,7 +984,7 @@ function renderOwnership(reservations) {
     const bd = result.breakdownOwnership;
     ownershipMethodDetail.innerHTML = `
       <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
-      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering i ${escapeHtml(result.parkingCity)} ${formatNOK.format(bd.parking)} + drivstoff ${formatNOK.format(bd.fuel)} = ${formatNOK.format(result.ownershipCost)}</code></p>
+      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering i ${escapeHtml(result.parkingCity)} ${formatNOK.format(bd.parking)} + dekk ${formatNOK.format(bd.tyres)} + strøm ${formatNOK.format(bd.energy)} = ${formatNOK.format(result.ownershipCost)}</code></p>
       <p>Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
       ${sourcesHtml(OWNERSHIP_METHOD.sources)}
     `;

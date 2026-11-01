@@ -1,22 +1,36 @@
 // Tallene her er regnet for hånd fra OFVs «Kostnader ved bilhold 2026»,
-// kolonnen 10 000 km/år. Endres en forutsetning i ownership-cost.js, skal
-// både kildekommentaren og forventningen her endres.
+// elbil eksempel 2 og 3, kolonnen 10 000 km/år. Endres en forutsetning i
+// referansebil.js, skal forventningen her endres med.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   estimateOwnershipCost,
-  estimateVolvoComparison,
-  VOLVO_EX40,
+  COMPARISON_CAR,
   OWNERSHIP_METHOD,
   homeOrganizationId,
   regionForOrganization,
 } from "../lib/ownership-cost.js";
+import { REFERENCE_CAR, SOURCES } from "../lib/referansebil.js";
 
 const BILDELERINGEN = "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0";
 const TRONDHEIM = "8dba8f19-c438-f278-ed7c-912ec6537cb9";
 // Etter årsskiftet er 2026 et helt år, så faste kostnader telles fullt.
 const DONE = { now: new Date(2027, 0, 1) };
+
+// Volvo EX40 P5 Core til 439 900 kr ligger 0,266 av veien fra OFVs
+// elbileksempel til 400 000 kr mot eksempelet til 550 000 kr.
+const T = (439900 - 400000) / (550000 - 400000);
+const ofv = (lo, hi) => lo + T * (hi - lo);
+const DEPRECIATION = Math.round(ofv(49653, 65741));
+const INSURANCE = Math.round(ofv(2674, 3228)) + Math.round(ofv(11007, 11720));
+const MAINTENANCE = Math.round(ofv(5822, 7687)) + Math.round(ofv(3566, 3694));
+const TAX = 3343;
+const FIXED_WITHOUT_PARKING = DEPRECIATION + INSURANCE + TAX + MAINTENANCE;
+// Dekk og strøm per km: OFV post 8, og forbruk i kWh/mil delt på 10 ganger
+// 80 % hjemmelading til 1,05 kr og 20 % hurtiglading til 5,47 kr.
+const TYRES_PER_KM = 0.433;
+const ENERGY_PER_KM = 0.159 * (0.8 * 1.05 + 0.2 * 5.47);
 
 function trip({ start, category = "Småbil", fuel = "Elektrisitet", km = 50, total = 500, org }) {
   return {
@@ -30,63 +44,113 @@ function trip({ start, category = "Småbil", fuel = "Elektrisitet", km = 50, tot
   };
 }
 
-test("Småbil-elbil regnes som OFVs elbil til 300 000 kr", () => {
-  const r = [trip({ start: "2026-03-01T10:00:00Z" }), trip({ start: "2026-04-01T10:00:00Z" })];
+test("referansebilen er interpolert mellom OFVs elbileksempler", () => {
+  assert.equal(Math.round(ofv(4079, 5019)) / 10000, 0.4329);
+  assert.equal(Math.round(ofv(0.156, 0.168) * 1000) / 1000, 0.159);
+  assert.deepEqual(COMPARISON_CAR.costs, {
+    depreciation: DEPRECIATION,
+    insurance: INSURANCE,
+    tax: TAX,
+    maintenance: MAINTENANCE,
+  });
+  assert.equal(COMPARISON_CAR.name, "Volvo EX40");
+  assert.equal(COMPARISON_CAR.price, 439900);
+  assert.equal(COMPARISON_CAR.tyresPerKm, TYRES_PER_KM);
+  assert.ok(Math.abs(COMPARISON_CAR.energyPerKm - ENERGY_PER_KM) < 1e-9);
+});
+
+test("hver forutsetning har kilde og dato", () => {
+  const values = Object.entries(REFERENCE_CAR).filter(([, v]) => v && typeof v === "object" && "value" in v);
+  assert.ok(values.length >= 12, `${values.length}`);
+  const entries = [...values, ...Object.entries(REFERENCE_CAR.parking)];
+  for (const [key, v] of entries) {
+    assert.ok(SOURCES[v.source], `${key} mangler kilde`);
+    assert.match(v.date, /^\d{4}-\d{2}-\d{2}$/, `${key} mangler dato`);
+  }
+  for (const source of Object.values(SOURCES)) {
+    assert.match(source.text, /\d{2}\.\d{2}\.\d{4}/, `kilden mangler dato: ${source.text}`);
+    assert.match(source.url, /^https:\/\//, source.text);
+  }
+});
+
+test("bilkategori og drivstoff på turene endrer ikke sammenligningen", () => {
+  const small = estimateOwnershipCost([trip({ start: "2026-03-01T10:00:00Z", km: 500 })], 2026, DONE);
+  const suv = estimateOwnershipCost(
+    [trip({ start: "2026-03-01T10:00:00Z", km: 500, category: "SUV", fuel: "Diesel" })], 2026, DONE);
+  assert.equal(small.ownershipCost, suv.ownershipCost);
+  assert.equal(suv.carName, "Volvo EX40");
+  assert.equal(suv.breakdownOwnership.tax, 3343);
+});
+
+test("faste kostnader for et helt år, dekk og strøm per kjørte km", () => {
+  const r = [trip({ start: "2026-03-01T10:00:00Z", km: 60 }), trip({ start: "2026-04-01T10:00:00Z", km: 40 })];
   const own = estimateOwnershipCost(r, 2026, DONE);
   assert.deepEqual(own.breakdownOwnership, {
-    depreciation: 40495,
-    insurance: 2045 + 8322,
-    tax: 3343,
-    maintenance: 3958 + 3189 + 3366,
+    depreciation: DEPRECIATION,
+    insurance: INSURANCE,
+    tax: TAX,
+    maintenance: MAINTENANCE,
     parking: 582 * 12,
-    // 100 km × 0,152 kWh/km × (0,8 × 1,05 + 0,2 × 5,47) kr/kWh
-    fuel: Math.round(100 * 0.152 * (0.8 * 1.05 + 0.2 * 5.47)),
+    tyres: Math.round(100 * TYRES_PER_KM),
+    energy: Math.round(100 * ENERGY_PER_KM),
   });
   assert.equal(own.sharingCost, 1000);
-  const fixed = 40495 + 10367 + 3343 + 10513 + 6984;
-  assert.equal(own.ownershipCost, Math.round(fixed + 100 * 0.152 * 1.934));
-  assert.equal(own.savings, own.ownershipCost - 1000);
+  assert.equal(own.totalKm, 100);
+  assert.equal(own.ownershipCost,
+    Math.round(FIXED_WITHOUT_PARKING + 582 * 12 + 100 * (TYRES_PER_KM + ENERGY_PER_KM)));
 });
 
-test("bensinbil betaler lavere trafikkforsikringsavgift og bensinpris per km", () => {
-  const r = [trip({ start: "2026-05-01T10:00:00Z", category: "SUV", fuel: "Bensin", km: 1000 })];
-  const own = estimateOwnershipCost(r, 2026, DONE);
-  assert.equal(own.breakdownOwnership.tax, 2380);
-  assert.equal(own.breakdownOwnership.depreciation, 65741);
-  assert.equal(own.breakdownOwnership.fuel, Math.round(1000 * 20.72 * 0.061));
-});
-
-test("Volvo EX40 interpoleres mellom OFVs 400 000- og 550 000-eksempel", () => {
-  const t = (439900 - 400000) / 150000;
-  assert.equal(VOLVO_EX40.name, "Volvo EX40");
-  assert.equal(VOLVO_EX40.costs.depreciation, Math.round(49653 + t * (65741 - 49653)));
-  assert.equal(VOLVO_EX40.costs.tax, 3343);
-  const r = [trip({ start: "2026-06-01T10:00:00Z", km: 1000, total: 2000 })];
-  const v = estimateVolvoComparison(r, 2026, DONE);
-  assert.equal(v.carName, "Volvo EX40");
-  assert.equal(v.sharingCost, 2000);
-  assert.ok(v.ownershipCost > 90000 && v.ownershipCost < 95000, `${v.ownershipCost}`);
-});
-
-test("«Slik beregner vi» daterer hver kilde og navngir begge byene", () => {
-  for (const source of OWNERSHIP_METHOD.sources) {
-    assert.match(source.text, /\d{4}/, `kilden mangler år: ${source.text}`);
-    if (source.url) assert.match(source.url, /^https:\/\//, source.text);
+test("«spart i år» for et realistisk medlem per 1. november", () => {
+  // Stasjonsvogn på bensin, 20 turer à 100 km og 835 kr fra januar til
+  // oktober: 2 000 km og 16 700 kr. Bilen på turene spiller ingen rolle.
+  const r = [];
+  for (let i = 0; i < 20; i++) {
+    const month = String(1 + Math.floor(i / 2)).padStart(2, "0");
+    r.push(trip({
+      start: `2026-${month}-1${i % 2}T10:00:00Z`,
+      category: "Stasjonsvogn", fuel: "Bensin", km: 100, total: 835, org: BILDELERINGEN,
+    }));
   }
-  assert.match(OWNERSHIP_METHOD.note, /Bergen/);
-  assert.match(OWNERSHIP_METHOD.note, /Trondheim/);
-  assert.ok(OWNERSHIP_METHOD.sources.some((s) => /Trondheim kommune/.test(s.text)));
-  assert.doesNotMatch(OWNERSHIP_METHOD.note, /EX C40/);
+  const now = new Date(2026, 10, 1);
+  const own = estimateOwnershipCost(r, 2026, { now });
+
+  const fullYearFixed = FIXED_WITHOUT_PARKING + 582 * 12;
+  const fraction = (now - new Date(2026, 0, 1)) / (new Date(2027, 0, 1) - new Date(2026, 0, 1));
+  const variable = 2000 * (TYRES_PER_KM + ENERGY_PER_KM);
+  assert.equal(own.sharingCost, 16700);
+  assert.equal(own.totalKm, 2000);
+  assert.ok(own.yearFraction > 0.83 && own.yearFraction < 0.84, `${own.yearFraction}`);
+  assert.equal(own.ownershipCost, Math.round(fullYearFixed * fraction + variable));
+  assert.equal(own.ownershipCost, 74937);
+  assert.equal(own.savings, 58237);
+
+  const done = estimateOwnershipCost(r, 2026, DONE);
+  assert.equal(done.yearFraction, 1);
+  assert.equal(done.ownershipCost, Math.round(fullYearFixed + variable));
 });
 
-test("teksten bruker tallene fra beregningen", () => {
+test("uten år regnes kilometer og bildeling om til ett år", () => {
+  const r = [
+    trip({ start: "2025-01-01T00:00:00Z", km: 1000, total: 5000 }),
+    trip({ start: "2027-01-01T00:00:00Z", km: 1000, total: 5000 }),
+  ];
+  const own = estimateOwnershipCost(r, null);
+  // To år mellom første og siste tur: 1 000 km og 5 000 kr per år.
+  assert.ok(Math.abs(own.totalKm - 1000) <= 1, `${own.totalKm}`);
+  assert.ok(Math.abs(own.sharingCost - 5000) <= 5, `${own.sharingCost}`);
+  assert.equal(own.breakdownOwnership.depreciation, DEPRECIATION);
+});
+
+test("«Slik beregnes det» navngir bilen, OFVs 10 000 km og begge byene", () => {
   const nb = (n) => new Intl.NumberFormat("nb-NO").format(n);
-  const monthly = (org) =>
-    estimateVolvoComparison([trip({ start: "2026-06-01T10:00:00Z", org })], 2026, DONE)
-      .breakdownOwnership.parking / 12;
-  assert.ok(OWNERSHIP_METHOD.note.includes(`${nb(VOLVO_EX40.price)} kr`));
-  assert.ok(OWNERSHIP_METHOD.note.includes(`${nb(monthly(BILDELERINGEN))} kr i måneden i Bergen`));
-  assert.ok(OWNERSHIP_METHOD.note.includes(`${nb(monthly(TRONDHEIM))} kr i måneden i Trondheim`));
+  const { note, sources } = OWNERSHIP_METHOD;
+  assert.ok(note.includes(`Volvo EX40 P5 Core til ${nb(439900)} kr`));
+  assert.ok(note.includes(`${nb(10000)} km i året`));
+  assert.ok(note.includes(`${nb(582)} kr i måneden i Bergen`));
+  assert.ok(note.includes(`${nb(785)} kr i måneden i Trondheim`));
+  assert.doesNotMatch(note, /\bvi\b|EX C40|kategori/i);
+  assert.ok(sources.some((s) => /^OFV/.test(s.text)));
+  assert.ok(sources.some((s) => /Trondheim kommune/.test(s.text)));
 });
 
 test("parkeringen følger organisasjonen i reservasjonene", () => {
@@ -104,9 +168,7 @@ test("organizationId fra medlemskapet overstyrer reservasjonene", () => {
   const r = [trip({ start: "2026-03-01T10:00:00Z", org: BILDELERINGEN })];
   const own = estimateOwnershipCost(r, 2026, { ...DONE, organizationId: TRONDHEIM });
   assert.equal(own.breakdownOwnership.parking, 785 * 12);
-  const v = estimateVolvoComparison(r, 2026, { ...DONE, organizationId: TRONDHEIM });
-  assert.equal(v.breakdownOwnership.parking, 785 * 12);
-  assert.equal(v.parkingCity, "Trondheim");
+  assert.equal(own.parkingCity, "Trondheim");
 });
 
 test("ukjent organisasjon regnes som Bergen", () => {
@@ -126,30 +188,7 @@ test("hjemmeorganisasjonen er den flest reservasjoner hører til", () => {
   assert.equal(homeOrganizationId([trip({ start: "2026-03-01T10:00:00Z" })]), null);
 });
 
-test("«spart i år» tar eierkostnaden for samme del av året som turene", () => {
-  // Typisk medlem per 1. november: stasjonsvogn på bensin, 20 turer à 100 km
-  // og 835 kr fra januar til oktober, ca. 20 000 kr i året.
-  const r = [];
-  for (let i = 0; i < 20; i++) {
-    const month = String(1 + Math.floor(i / 2)).padStart(2, "0");
-    r.push(trip({
-      start: `2026-${month}-1${i % 2}T10:00:00Z`,
-      category: "Stasjonsvogn", fuel: "Bensin", km: 100, total: 835, org: BILDELERINGEN,
-    }));
-  }
-  const now = new Date(2026, 10, 1);
-  const own = estimateOwnershipCost(r, 2026, { now });
-
-  const fullYearFixed = 65741 + (3228 + 11720) + 2380 + (7687 + 5019 + 3694) + 582 * 12;
-  const fraction = (now - new Date(2026, 0, 1)) / (new Date(2027, 0, 1) - new Date(2026, 0, 1));
-  const fuel = 2000 * 20.72 * 0.061;
-  assert.equal(own.sharingCost, 16700);
-  assert.equal(own.ownershipCost, Math.round(fullYearFixed * fraction + fuel));
-  assert.ok(own.yearFraction > 0.83 && own.yearFraction < 0.84, `${own.yearFraction}`);
-  // Hele årets faste kostnader mot ti måneders bildeling ga ca. 92 000 kr spart.
-  assert.ok(own.savings < 76000, `${own.savings}`);
-
-  const done = estimateOwnershipCost(r, 2026, DONE);
-  assert.equal(done.yearFraction, 1);
-  assert.equal(done.ownershipCost, Math.round(fullYearFixed + fuel));
+test("ingen kjørte turer i året gir null", () => {
+  assert.equal(estimateOwnershipCost([trip({ start: "2025-03-01T10:00:00Z" })], 2026, DONE), null);
+  assert.equal(estimateOwnershipCost([], null), null);
 });
