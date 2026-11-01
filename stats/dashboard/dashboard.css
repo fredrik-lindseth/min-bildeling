@@ -348,6 +348,16 @@ body {
   filter: brightness(1.1);
 }
 
+/* Prøv igjen-knappen ved synkfeil */
+.status__action--retry {
+  margin-left: 12px;
+  padding: 6px 14px;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .progress {
   margin-top: 8px;
   height: 4px;

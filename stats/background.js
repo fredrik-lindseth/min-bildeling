@@ -1,11 +1,10 @@
 import { browserAPI, storage } from "./lib/browser-polyfill.js";
-import { fetchAllReservations, fetchAllDetails } from "./lib/api.js";
 
-const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+// Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle,
+// også midt i en lang synk, og da gikk alt i minnet tapt. Synken kjører i
+// utvidelsessiden som ber om den (lib/sync.js via lib/sync-page.js). Her
+// ligger bare innloggingen og lesing av lagrede data.
 let currentAuth = null;
-// Single-flight lock: hvis sync allerede kjører, returner samme promise til
-// alle som spør (popup + dashboard kan trigge samtidig).
-let syncInFlight = null;
 
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Returner true KUN for meldinger som faktisk svarer async. Ellers tror
@@ -16,16 +15,14 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message.type === "REQUEST_SYNC") {
-    if (syncInFlight) {
-      syncInFlight.then(sendResponse);
-      return true;
-    }
-    syncInFlight = handleSync(message.force).finally(() => {
-      syncInFlight = null;
-    });
-    syncInFlight.then(sendResponse);
+  if (message.type === "GET_SYNC_AUTH") {
+    getAuth().then(sendResponse);
     return true;
+  }
+
+  if (message.type === "CLEAR_AUTH") {
+    currentAuth = null;
+    return false;
   }
 
   if (message.type === "GET_DATA") {
@@ -50,19 +47,9 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Andre meldinger (f.eks. SYNC_PROGRESS som vi broadcaster til oss selv)
-  // har ingen response, viktig å returnere false.
+  // Andre meldinger har ingen response, viktig å returnere false.
   return false;
 });
-
-function broadcastProgress(phase, current, total) {
-  browserAPI.runtime.sendMessage({
-    type: "SYNC_PROGRESS",
-    phase,
-    current,
-    total,
-  }).catch(() => {}); // Ignore if no listener (popup closed)
-}
 
 async function getAuth() {
   if (currentAuth) {
@@ -136,49 +123,4 @@ async function getAuth() {
   }
 
   return null;
-}
-
-async function handleSync(force = false) {
-  const auth = await getAuth();
-  if (!auth) return { error: "NOT_LOGGED_IN" };
-
-  const cached = await storage.get(["reservations", "lastSync"]);
-  const now = Date.now();
-
-  if (!force && cached.lastSync && now - cached.lastSync < SYNC_INTERVAL_MS) {
-    return { status: "CACHED", count: (cached.reservations || []).length };
-  }
-
-  try {
-    broadcastProgress("FETCHING_LIST", 0, 0);
-    const reservations = await fetchAllReservations(auth.token, auth.membershipId);
-
-    const existingDetails = cached.reservations || [];
-    const existingIds = new Set(existingDetails.map((r) => r.id));
-    const newReservations = reservations.filter((r) => !existingIds.has(r.id));
-
-    let allDetails;
-    if (newReservations.length > 0) {
-      broadcastProgress("FETCHING_DETAILS", 0, newReservations.length);
-      const newDetails = await fetchAllDetails(newReservations, auth.token, (current, total) => {
-        broadcastProgress("FETCHING_DETAILS", current, total);
-      });
-      allDetails = [...newDetails, ...existingDetails];
-    } else {
-      allDetails = existingDetails;
-    }
-
-    await storage.set({
-      reservations: allDetails,
-      lastSync: now,
-    });
-
-    return { status: "SYNCED", count: allDetails.length, newCount: newReservations.length };
-  } catch (e) {
-    if (e.message === "AUTH_EXPIRED") {
-      currentAuth = null;
-      return { error: "AUTH_EXPIRED" };
-    }
-    return { error: e.message };
-  }
 }

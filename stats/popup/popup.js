@@ -2,6 +2,12 @@ import { currentMonthStats, monthlyCosts, usagePatterns } from "../lib/stats.js"
 import { createSparkline } from "../lib/chart-helpers.js";
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 import { estimateOwnershipCost } from "../lib/ownership-cost.js";
+import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
+
+// Popupen lukkes så snart brukeren klikker et annet sted, og da stopper synken.
+// Den henter derfor bare et lite antall detaljer om gangen og ber om dashbordet
+// for resten. Det som er hentet, står i storage uansett.
+const POPUP_MAX_DETAILS = 25;
 
 const browserAPI = typeof browser !== "undefined" ? browser : chrome;
 
@@ -65,8 +71,16 @@ function removeStatusAction() {
   if (existing) existing.remove();
 }
 
-function isAuthError(error) {
-  return error === "NOT_LOGGED_IN" || error === "AUTH_EXPIRED";
+// Feil og delvise resultater vises med en Prøv igjen-knapp.
+function showSyncMessage(message) {
+  showStatus(message);
+  const action = document.createElement("button");
+  action.type = "button";
+  action.id = "status-action";
+  action.className = "status__action status__action--retry";
+  action.textContent = "Prøv igjen";
+  action.addEventListener("click", () => syncAndRender(true));
+  statusEl.appendChild(action);
 }
 
 function hideStatus() {
@@ -75,19 +89,6 @@ function hideStatus() {
   statusEl.hidden = true;
   progressEl.hidden = true;
 }
-
-// Listen for progress updates from background
-browserAPI.runtime.onMessage.addListener((message) => {
-  if (message.type === "SYNC_PROGRESS") {
-    const { phase, current, total } = message;
-    if (phase === "FETCHING_LIST") {
-      showStatus("Henter reservasjonsliste...");
-    } else if (phase === "FETCHING_DETAILS" && total > 0) {
-      const pct = Math.round((current / total) * 100);
-      showStatus(`Henter detaljer: ${current} av ${total}`, pct);
-    }
-  }
-});
 
 function renderStats(reservations) {
   const stats = currentMonthStats(reservations);
@@ -160,6 +161,54 @@ async function sendMessage(msg, timeoutMs = 10000) {
   ]);
 }
 
+function showProgress({ phase, current, total }) {
+  const pct = phase === "details" && total > 0 ? Math.round((current / total) * 100) : null;
+  showStatus(describeProgress({ phase, current, total }), pct);
+}
+
+async function renderStored() {
+  const data = await sendMessage({ type: "GET_DATA" });
+  if (!data || !data.reservations || data.reservations.length === 0) return false;
+  renderStats(data.reservations);
+  lastSyncedEl.textContent = formatSyncTime(data.lastSync);
+  return true;
+}
+
+// Kjør synken fra popupen og vis resultatet. Feil vises og blir stående.
+async function syncAndRender(force) {
+  syncBtn.disabled = true;
+  if (force) showStatus("Synkroniserer…");
+
+  const result = await startSync({
+    force,
+    maxDetails: POPUP_MAX_DETAILS,
+    onProgress: showProgress,
+  });
+  syncBtn.disabled = false;
+
+  let hasData = false;
+  try {
+    hasData = await renderStored();
+  } catch (e) {
+    console.error("[popup] GET_DATA etter sync feilet:", e);
+    showStatus(`Klarte ikke å lese lagrede data: ${e.message}`);
+    return;
+  }
+
+  if (isAuthError(result.error)) {
+    showLoginRequired();
+    return;
+  }
+  const message = describeSyncResult(result);
+  if (message) {
+    showSyncMessage(message);
+  } else if (hasData) {
+    hideStatus();
+  } else {
+    showStatus("Ingen data funnet");
+  }
+}
+
 async function init() {
   // Vis "Laster…" som standard så popup aldri ser tom ut. hideStatus()
   // kalles eksplisitt når vi har data å rendere.
@@ -174,113 +223,28 @@ async function init() {
     return;
   }
 
-  if (!authStatus || !authStatus.hasAuth) {
-    showLoginRequired();
-  }
-
-  let data;
+  let hasData = false;
   try {
-    data = await sendMessage({ type: "GET_DATA" });
+    hasData = await renderStored();
+    if (hasData) hideStatus();
   } catch (e) {
     console.error("[popup] GET_DATA feilet:", e);
     showStatus("Klarte ikke å lese lagrede data.");
     return;
   }
 
-  if (data && data.reservations && data.reservations.length > 0) {
-    hideStatus();
-    try {
-      renderStats(data.reservations);
-      lastSyncedEl.textContent = formatSyncTime(data.lastSync);
-    } catch (e) {
-      console.error("[popup] renderStats feilet:", e);
-      showStatus(`Feil ved opptegning: ${e.message}`);
-    }
+  if (!authStatus || !authStatus.hasAuth) {
+    // Med lagrede data er tallene viktigere enn login-boksen.
+    if (!hasData) showLoginRequired();
     return;
   }
 
-  if (!authStatus || !authStatus.hasAuth) return;
-
-  // Ingen data, men innlogget. Start sync.
-  showStatus("Synkroniserer…");
-  syncBtn.disabled = true;
-
-  let result;
-  try {
-    // Sync kan ta 30+ sek for første gangs synk. Egen timeout for denne.
-    result = await sendMessage({ type: "REQUEST_SYNC" }, 120000);
-  } catch (e) {
-    console.error("[popup] REQUEST_SYNC feilet:", e);
-    showStatus(`Sync feilet: ${e.message}`);
-    syncBtn.disabled = false;
-    return;
-  }
-  syncBtn.disabled = false;
-
-  if (result && result.error) {
-    if (isAuthError(result.error)) {
-      showLoginRequired();
-    } else {
-      showStatus(`Feil: ${result.error}`);
-    }
-    return;
-  }
-
-  if (result && result.count > 0) {
-    hideStatus();
-    try {
-      const freshData = await sendMessage({ type: "GET_DATA" });
-      if (freshData && freshData.reservations) {
-        renderStats(freshData.reservations);
-        lastSyncedEl.textContent = formatSyncTime(freshData.lastSync);
-      }
-    } catch (e) {
-      console.error("[popup] freshData feilet:", e);
-      showStatus(`Feil: ${e.message}`);
-    }
-    return;
-  }
-
-  showStatus("Ingen data funnet");
+  // Synker bare hvis det er over en time siden sist, eller en synk er uferdig.
+  if (!hasData) showStatus("Synkroniserer…");
+  await syncAndRender(false);
 }
 
-// Sync button handler
-syncBtn.addEventListener("click", async () => {
-  syncBtn.disabled = true;
-  showStatus("Synkroniserer…");
-
-  let result;
-  try {
-    result = await sendMessage({ type: "REQUEST_SYNC", force: true }, 120000);
-  } catch (e) {
-    console.error("[popup] sync-knapp feilet:", e);
-    showStatus(`Sync feilet: ${e.message}`);
-    syncBtn.disabled = false;
-    return;
-  }
-  syncBtn.disabled = false;
-
-  if (result && result.error) {
-    if (isAuthError(result.error)) {
-      showLoginRequired();
-    } else {
-      showStatus(`Feil: ${result.error}`);
-    }
-    return;
-  }
-
-  hideStatus();
-  try {
-    const freshData = await sendMessage({ type: "GET_DATA" });
-    if (freshData && freshData.reservations) {
-      renderStats(freshData.reservations);
-      lastSyncedEl.textContent = formatSyncTime(freshData.lastSync);
-    }
-  } catch (e) {
-    console.error("[popup] GET_DATA etter sync feilet:", e);
-    showStatus(`Feil: ${e.message}`);
-  }
-});
+syncBtn.addEventListener("click", () => syncAndRender(true));
 
 // Dashboard link — open in new tab
 dashboardLink.addEventListener("click", () => {

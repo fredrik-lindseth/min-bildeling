@@ -1,0 +1,465 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  runSync,
+  needsDetail,
+  mergeReservations,
+  DETAIL_BATCH_SIZE,
+  PAUSE_INITIAL_MS,
+  PAUSE_INCREMENTAL_MS,
+  SETTLE_WINDOW_MS,
+  DETAIL_REFRESH_MS,
+  LOCK_LEASE_MS,
+} from "../lib/sync.js";
+import { parseRetryAfter, PAGE_SIZE } from "../lib/api.js";
+
+const DAY = 24 * 60 * 60 * 1000;
+const NOW = Date.parse("2026-11-01T12:00:00Z");
+
+// ---------- Stubs ----------
+
+function makeStorage(initial = {}) {
+  const data = structuredClone(initial);
+  const writes = [];
+  return {
+    data,
+    writes,
+    async get(keys) {
+      const out = {};
+      for (const k of keys) if (k in data) out[k] = structuredClone(data[k]);
+      return out;
+    },
+    async set(items) {
+      writes.push(Object.keys(items));
+      Object.assign(data, structuredClone(items));
+    },
+  };
+}
+
+// n reservasjoner, nyeste først, slik /reservations/historic sorterer.
+function makeReservations(n, { endDaysAgo = 30 } = {}) {
+  return Array.from({ length: n }, (_, i) => {
+    const end = NOW - (endDaysAgo + i) * DAY;
+    return {
+      id: `r${String(n - i).padStart(4, "0")}`,
+      start: new Date(end - 3 * 60 * 60 * 1000).toISOString(),
+      end: new Date(end).toISOString(),
+    };
+  });
+}
+
+function makeApi(reservations, { failures = {} } = {}) {
+  const calls = [];
+  const json = (body, status = 200, headers = {}) =>
+    new Response(JSON.stringify(body), { status, headers });
+
+  async function fetch(url, init) {
+    calls.push({ url, headers: init.headers });
+    const u = new URL(url);
+    const key = u.pathname.endsWith("/historic") ? `list:${u.searchParams.get("page")}` : `detail:${u.pathname.split("/").pop()}`;
+    const queue = failures[key];
+    if (queue && queue.length > 0) {
+      const f = queue.shift();
+      if (f === "network") throw new TypeError("NetworkError when attempting to fetch resource.");
+      return json({ error: "fail" }, f.status, f.headers || {});
+    }
+    if (u.pathname.endsWith("/historic")) {
+      const page = Number(u.searchParams.get("page"));
+      const size = Number(u.searchParams.get("size"));
+      // Listen er slank: ingen pris, km eller canceled.
+      const items = reservations
+        .slice(page * size, page * size + size)
+        .map(({ id, start, end }) => ({ id, start, end, state: "PAST", location: "Et sted" }));
+      return json(items, 200, { "x-totalelements": String(reservations.length) });
+    }
+    const id = u.pathname.split("/").pop();
+    const r = reservations.find((x) => x.id === id);
+    if (!r) return json({ error: "not found" }, 404);
+    return json({ ...r, state: "PAST", canceled: null, noTrips: false, drivenKm: 12, price: { total: 100, lines: [] } });
+  }
+
+  const count = (kind) =>
+    calls.filter((c) => (kind === "list" ? c.url.includes("/historic") : !c.url.includes("/historic"))).length;
+  return { fetch, calls, count };
+}
+
+function harness(storage, api, overrides = {}) {
+  const sleeps = [];
+  let clock = NOW;
+  const opts = {
+    fetch: api.fetch,
+    storage,
+    getAuth: async () => ({ token: "Bearer test", membershipId: "m-1" }),
+    clientId: "bildeleringen-stats/test",
+    owner: "side-a",
+    now: () => clock,
+    sleep: async (ms) => {
+      sleeps.push(ms);
+      clock += ms;
+    },
+    random: () => 0.5,
+    ...overrides,
+  };
+  return { opts, sleeps, run: (extra = {}) => runSync({ ...opts, ...extra }) };
+}
+
+// ---------- Førstegangssync og lagring ----------
+
+test("førstegangssync henter liste og alle detaljer og lagrer fortløpende i batcher", async () => {
+  const all = makeReservations(250);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const { run, sleeps } = harness(storage, api);
+
+  const result = await run();
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(result.count, 250);
+  assert.equal(api.count("list"), 3); // 100 + 100 + 50
+  assert.equal(api.count("detail"), 250);
+  assert.deepEqual(result.calls, { list: 3, detail: 250, retries: 0, failed: 0 });
+  assert.equal(storage.data.reservations.length, 250);
+  assert.ok(storage.data.reservations.every((r) => r.detailFetchedAt != null && r.price));
+  assert.ok(storage.data.lastSync);
+  assert.equal(storage.data.syncState.phase, "done");
+  assert.equal(storage.data.syncLock, null);
+
+  // Listen lagres før første detalj, deretter én skriving per batch.
+  const reservationWrites = storage.writes.filter((w) => w.includes("reservations")).length;
+  assert.ok(reservationWrites >= Math.ceil(250 / DETAIL_BATCH_SIZE));
+
+  // Pausen mellom kall er den romslige ved førstegangssync.
+  assert.ok(sleeps.filter((ms) => ms === PAUSE_INITIAL_MS).length >= 250);
+});
+
+test("alle kall bærer X-Client og authorization", async () => {
+  const api = makeApi(makeReservations(3));
+  const { run } = harness(makeStorage(), api);
+  await run();
+  for (const c of api.calls) {
+    assert.equal(c.headers["X-Client"], "bildeleringen-stats/test");
+    assert.equal(c.headers.authorization, "Bearer test");
+  }
+});
+
+test("andre sync rett etter full sync gir ett listekall og null detaljkall", async () => {
+  const all = makeReservations(250);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  await h.run();
+  api.calls.length = 0;
+
+  const second = await h.run({ force: true });
+
+  assert.equal(second.status, "SYNCED");
+  assert.deepEqual(second.calls, { list: 1, detail: 0, retries: 0, failed: 0 });
+  assert.equal(storage.data.syncHistory.length, 2);
+  assert.equal(storage.data.syncHistory[0].calls.list, 1);
+});
+
+test("uten force og innenfor timen gjøres ingen kall", async () => {
+  const api = makeApi(makeReservations(5));
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  await h.run();
+  api.calls.length = 0;
+  const again = await h.run();
+  assert.equal(again.status, "CACHED");
+  assert.equal(api.calls.length, 0);
+});
+
+test("ny reservasjon på side 0 hentes, pagineringen stopper ved første kjente id", async () => {
+  const all = makeReservations(250);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  await h.run();
+
+  const fresh = { id: "r9999", start: new Date(NOW - DAY).toISOString(), end: new Date(NOW - DAY + 3600000).toISOString() };
+  all.unshift(fresh);
+  api.calls.length = 0;
+  const result = await h.run({ force: true });
+
+  assert.equal(api.count("list"), 1);
+  assert.equal(api.count("detail"), 1);
+  assert.equal(result.count, 251);
+  assert.equal(storage.data.reservations[0].id, "r9999");
+});
+
+test("hull lenger bak i listen fanges via x-totalelements", async () => {
+  const all = makeReservations(250);
+  const api = makeApi(all);
+  // Lagret mangler én reservasjon på side 2, men har de nyeste.
+  const missing = all[230].id;
+  const stored = all.filter((r) => r.id !== missing).map((r) => ({ ...r, detailFetchedAt: NOW }));
+  const storage = makeStorage({ reservations: stored, lastSync: NOW - 2 * DAY });
+  const h = harness(storage, api);
+
+  await h.run({ force: true });
+  assert.equal(api.count("list"), 3);
+  assert.equal(api.count("detail"), 1);
+  assert.ok(storage.data.reservations.some((r) => r.id === missing));
+});
+
+test("full:true paginerer helt til slutten", async () => {
+  const all = makeReservations(250);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  await h.run();
+  api.calls.length = 0;
+  await h.run({ force: true, full: true });
+  assert.equal(api.count("list"), 3);
+  assert.equal(api.count("detail"), 0);
+});
+
+test("inkrementell sync bruker kort pause", async () => {
+  const all = makeReservations(5);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  await h.run();
+  all.unshift({ id: "rNY", start: new Date(NOW).toISOString(), end: new Date(NOW + 3600000).toISOString() });
+  h.sleeps.length = 0;
+  await h.run({ force: true });
+  assert.ok(h.sleeps.includes(PAUSE_INCREMENTAL_MS));
+  assert.ok(!h.sleeps.includes(PAUSE_INITIAL_MS));
+});
+
+// ---------- Feil per detalj ----------
+
+test("en detalj som gir 404 hoppes over, resten lagres, og den prøves igjen neste sync", async () => {
+  const all = makeReservations(30);
+  const bad = all[5].id;
+  const api = makeApi(all, { failures: { [`detail:${bad}`]: [{ status: 404 }] } });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const first = await h.run();
+  assert.equal(first.status, "SYNCED");
+  assert.equal(first.failedThisRun, 1);
+  assert.equal(first.count, 29);
+  assert.ok(storage.data.syncState.failed[bad]);
+
+  api.calls.length = 0;
+  const second = await h.run({ force: true });
+  assert.equal(second.failedThisRun, 0);
+  assert.equal(api.count("detail"), 1);
+  assert.equal(second.count, 30);
+  assert.equal(storage.data.syncState.failed[bad], undefined);
+});
+
+// ---------- Retry-After, backoff og bryter ----------
+
+test("parseRetryAfter tolker sekunder og HTTP-dato", () => {
+  assert.equal(parseRetryAfter("3", NOW), 3000);
+  assert.equal(parseRetryAfter(new Date(NOW + 5000).toUTCString(), NOW), 5000);
+  assert.equal(parseRetryAfter(null, NOW), null);
+  assert.equal(parseRetryAfter("tull", NOW), null);
+});
+
+test("503 med Retry-After: 3 gir én ventetid på 3 s før nytt forsøk", async () => {
+  const all = makeReservations(3);
+  const id = all[1].id;
+  const api = makeApi(all, {
+    failures: { [`detail:${id}`]: [{ status: 503, headers: { "Retry-After": "3" } }] },
+  });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  const result = await h.run();
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(h.sleeps.filter((ms) => ms === 3000).length, 1);
+  assert.equal(result.calls.retries, 1);
+  assert.equal(result.count, 3);
+});
+
+test("429 uten Retry-After gir backoff med jitter", async () => {
+  const all = makeReservations(2);
+  const api = makeApi(all, { failures: { "list:0": [{ status: 429 }] } });
+  const h = harness(makeStorage(), api, { random: () => 0.9 });
+  await h.run();
+  // 2000 ms base × (0,5 + 0,9)
+  assert.ok(h.sleeps.includes(2800));
+});
+
+test("tre 503 på rad stopper synken, det hentede er lagret, og neste sync fortsetter", async () => {
+  const all = makeReservations(60);
+  const id = all[45].id;
+  const api = makeApi(all, {
+    failures: { [`detail:${id}`]: [{ status: 503 }, { status: 503 }, { status: 503 }] },
+  });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const first = await h.run();
+  assert.equal(first.status, "PAUSED");
+  assert.equal(first.error, "SERVICE_UNAVAILABLE");
+  assert.equal(storage.data.reservations.length, 45);
+  assert.equal(storage.data.syncState.phase, "paused");
+  assert.equal(storage.data.syncState.pendingIds[0], id);
+  assert.equal(storage.data.lastSync, undefined);
+  assert.equal(storage.data.syncLock, null);
+
+  // Automatisk synk venter til pausen er over.
+  api.calls.length = 0;
+  const auto = await h.run();
+  assert.equal(auto.status, "PAUSED");
+  assert.equal(api.calls.length, 0);
+
+  // Brukeren trykker Synkroniser: fortsetter fra pendingIds, uten listekall.
+  const resumed = await h.run({ force: true });
+  assert.equal(resumed.status, "SYNCED");
+  assert.equal(api.count("list"), 0);
+  assert.equal(api.count("detail"), 15);
+  assert.equal(storage.data.reservations.length, 60);
+});
+
+test("nettverksfeil teller som forbigående feil", async () => {
+  const all = makeReservations(2);
+  const api = makeApi(all, { failures: { "list:0": ["network", "network", "network"] } });
+  const h = harness(makeStorage(), api);
+  const result = await h.run();
+  assert.equal(result.error, "SERVICE_UNAVAILABLE");
+  assert.equal(result.calls.list, 3);
+});
+
+test("Retry-After over to minutter stopper synken i stedet for å vente", async () => {
+  const all = makeReservations(2);
+  const api = makeApi(all, { failures: { "list:0": [{ status: 429, headers: { "Retry-After": "600" } }] } });
+  const h = harness(makeStorage(), api);
+  const result = await h.run();
+  assert.equal(result.error, "SERVICE_UNAVAILABLE");
+  assert.ok(!h.sleeps.includes(600000));
+});
+
+test("401 avbryter med AUTH_EXPIRED og lagrer det som er hentet", async () => {
+  const all = makeReservations(30);
+  const api = makeApi(all, { failures: { [`detail:${all[25].id}`]: [{ status: 401 }] } });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  const result = await h.run();
+  assert.equal(result.error, "AUTH_EXPIRED");
+  assert.equal(storage.data.reservations.length, 25);
+  assert.equal(storage.data.syncState.pendingIds.length, 5);
+});
+
+test("uten innlogging gjøres ingen kall", async () => {
+  const api = makeApi(makeReservations(2));
+  const h = harness(makeStorage(), api, { getAuth: async () => null });
+  const result = await h.run();
+  assert.equal(result.error, "NOT_LOGGED_IN");
+  assert.equal(api.calls.length, 0);
+});
+
+// ---------- Avbrudd, budsjett og lås ----------
+
+test("en avbrutt synk (siden lukket) fortsetter fra pendingIds", async () => {
+  const all = makeReservations(50);
+  const api = makeApi(all);
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const partial = await h.run({ maxDetails: 20 });
+  assert.equal(partial.status, "PARTIAL");
+  assert.equal(storage.data.reservations.length, 20);
+  assert.equal(storage.data.syncState.pendingIds.length, 30);
+
+  // Uten force: en uferdig synk fortsetter selv om timen ikke er gått.
+  api.calls.length = 0;
+  const resumed = await h.run();
+  assert.equal(resumed.status, "SYNCED");
+  assert.equal(api.count("list"), 0);
+  assert.equal(api.count("detail"), 30);
+  assert.equal(resumed.done, 50);
+  assert.equal(resumed.total, 50);
+});
+
+test("en annen side med gyldig lås gir BUSY uten kall", async () => {
+  const api = makeApi(makeReservations(2));
+  const storage = makeStorage({ syncLock: { owner: "side-b", expiresAt: NOW + 10000 } });
+  const h = harness(storage, api);
+  const result = await h.run();
+  assert.equal(result.status, "BUSY");
+  assert.equal(api.calls.length, 0);
+});
+
+test("en utløpt lås fra en lukket side tas over", async () => {
+  const api = makeApi(makeReservations(2));
+  const storage = makeStorage({ syncLock: { owner: "side-b", expiresAt: NOW - 1 } });
+  const result = await harness(storage, api).run();
+  assert.equal(result.status, "SYNCED");
+});
+
+test("leasen forlenges over en lang Retry-After-ventetid", async () => {
+  const all = makeReservations(2);
+  const api = makeApi(all, { failures: { "list:0": [{ status: 503, headers: { "Retry-After": "90" } }] } });
+  const storage = makeStorage();
+  const leases = [];
+  const origSet = storage.set.bind(storage);
+  storage.set = async (items) => {
+    if (items.syncLock) leases.push(items.syncLock.expiresAt);
+    return origSet(items);
+  };
+  await harness(storage, api).run();
+  assert.ok(leases.some((t) => t >= NOW + 90000 + LOCK_LEASE_MS));
+});
+
+test("syncHistory beholder de tre siste synkene", async () => {
+  const api = makeApi(makeReservations(2));
+  const storage = makeStorage();
+  const h = harness(storage, api);
+  for (let i = 0; i < 5; i++) await h.run({ force: true });
+  assert.equal(storage.data.syncHistory.length, 3);
+});
+
+// ---------- Fryst-regelen ----------
+
+test("needsDetail: ny reservasjon uten detalj hentes", () => {
+  assert.equal(needsDetail({ id: "a", end: new Date(NOW).toISOString() }, NOW, null), true);
+});
+
+test("needsDetail: hentet minst sju dager etter slutt er fryst for alltid", () => {
+  const end = NOW - 400 * DAY;
+  const r = { end: new Date(end).toISOString(), detailFetchedAt: end + SETTLE_WINDOW_MS };
+  assert.equal(needsDetail(r, NOW, null), false);
+});
+
+test("needsDetail: nylig avsluttet hentes på nytt høyst én gang i døgnet", () => {
+  const end = NOW - 2 * DAY;
+  const fetchedRecently = { end: new Date(end).toISOString(), detailFetchedAt: NOW - 3 * 60 * 60 * 1000 };
+  const fetchedYesterday = { end: new Date(end).toISOString(), detailFetchedAt: NOW - DETAIL_REFRESH_MS };
+  assert.equal(needsDetail(fetchedRecently, NOW, null), false);
+  assert.equal(needsDetail(fetchedYesterday, NOW, null), true);
+});
+
+test("needsDetail: hentet før vinduet var over gir én siste henting", () => {
+  const end = NOW - 30 * DAY;
+  const r = { end: new Date(end).toISOString(), detailFetchedAt: end + DAY };
+  assert.equal(needsDetail(r, NOW, null), true);
+  assert.equal(needsDetail({ ...r, detailFetchedAt: NOW }, NOW, null), false);
+});
+
+test("needsDetail: pågående og kommende reservasjoner oppdateres daglig", () => {
+  const r = { end: new Date(NOW + 2 * DAY).toISOString(), detailFetchedAt: NOW - DETAIL_REFRESH_MS - 1 };
+  assert.equal(needsDetail(r, NOW, null), true);
+});
+
+test("needsDetail: gamle data uten detailFetchedAt bruker lastSync", () => {
+  const old = { end: new Date(NOW - 100 * DAY).toISOString() };
+  assert.equal(needsDetail(old, NOW, NOW - 2 * DAY), false);
+});
+
+test("mergeReservations erstatter på id og sorterer nyeste først", () => {
+  const merged = mergeReservations(
+    [{ id: "a", start: "2026-01-01T10:00:00", v: 1 }, { id: "b", start: "2026-03-01T10:00:00" }],
+    [{ id: "a", start: "2026-01-01T10:00:00", v: 2 }, { id: "c", start: "2026-02-01T10:00:00" }]
+  );
+  assert.deepEqual(merged.map((r) => r.id), ["b", "c", "a"]);
+  assert.equal(merged.find((r) => r.id === "a").v, 2);
+});
+
+test("PAGE_SIZE er 100 (dokumentert i docs/api-bruk.md)", () => {
+  assert.equal(PAGE_SIZE, 100);
+});

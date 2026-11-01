@@ -61,19 +61,35 @@ Alt i `browser.storage.local`:
 
 | Nøkkel | Struktur | Oppdateres av |
 |---|---|---|
-| `reservations` | Array av fulle reservasjonsobjekter | background.js (sync) |
-| `lastSync` | Timestamp (ms) | background.js (sync) |
+| `reservations` | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms) | `lib/sync.js` |
+| `lastSync` | Timestamp (ms) for siste fullførte synk | `lib/sync.js` |
+| `syncState` | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js` |
+| `syncLock` | `{ owner, expiresAt }` eller null | `lib/sync.js` |
+| `syncHistory` | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }` | `lib/sync.js` |
 | `tripCategories` | `{ reservationId: categoryKey }` | dashboard (bruker-input) |
 | `transportData` | `{ "2025": { taxi: {...}, buss: {...} } }` | dashboard (bruker-input) |
 
-Reservasjoner og lastSync er API-data. Rør dem ikke direkte. tripCategories og transportData er bruker-data. Slett aldri ved sync.
+Reservasjoner, lastSync og sync-nøklene er API-data. Rør dem ikke direkte. tripCategories og transportData er bruker-data. Slett aldri ved sync.
+
+`reservations` inneholder bare detaljsvar, aldri listeelementer. Listesvaret fra `/reservations/historic` er en slank variant uten `price`, `drivenKm`, `canceled`, `noTrips`, `car` og `created`, og `location` er en streng der detaljen har et objekt. Et listeelement i `reservations` ville fått stats-funksjonene til å regne feil uten synlig feil. Id-er som venter på detalj, står i `syncState.pendingIds`.
 
 ## API-regler
 
-- **Rate-limiting:** `lib/api.js` legger inn 50ms delay mellom kall. 429-svar → eksponentiell backoff (2^attempt × 1000ms). Endre ikke uten grunn.
-- **Sync-intervall:** Maks én gang per time (`SYNC_INTERVAL_MS`). Manuell sync trigges av brukeren.
-- **Inkrementell sync:** Henter kun nye reservasjoner (sammenligner ID-er mot cache). Eksisterende data oppdateres IKKE ved re-sync.
-- **Single-flight sync-lock:** `background.js` holder én `syncInFlight`-promise. Parallelle SYNC_NOW-meldinger (f.eks. popup + dashboard åpne samtidig) deler samme promise. Uten dette gikk progress-telleren baklengs.
+Integrasjonen skal tåle innsyn fra Dele. `docs/api-bruk.md` beskriver API-bruken for dem og må stemme med koden. Endrer du tallene under, oppdater den også.
+
+- **Hvem kjører synken:** utvidelsessiden som ber om den (dashbordet eller popupen), via `lib/sync-page.js` → `lib/sync.js`. Ikke background. Firefox avslutter MV3-event-pagen på idle (ca. 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så test synk uten DevTools. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`) og `GET_DATA`.
+- **Lås mellom sider:** `syncLock` med lease på 45 s, fornyet ved hver batch og forlenget over Retry-After-ventetider. En side som lukkes midt i, slipper låsen når leasen går ut. En annen side får `BUSY` i mellomtiden.
+- **Lagre fortløpende:** etter listefasen skrives `syncState` med `pendingIds`. Detaljer hentes ett kall om gangen og lagres i batcher på 20. En avbrutt synk fortsetter fra `pendingIds` neste gang en side åpnes, uten nytt listekall og uten å vente på timegrensen.
+- **Paginering:** listen er sortert `start,desc`. Synken stopper på siden der den møter en kjent id, så sant kjente pluss nye id-er dekker `x-totalelements` fra svaret. Førstegangssync går til siste side. `full: true` tvinger full paginering.
+- **Hvilke detaljer hentes:** nye reservasjoner, og lagrede som kan ha endret seg. En reservasjon hentes på nytt høyst én gang i døgnet (`DETAIL_REFRESH_MS`) til detaljen er hentet minst sju dager etter `end` (`SETTLE_WINDOW_MS`). Deretter er den fryst og hentes aldri igjen. Data fra før `detailFetchedAt` fantes, bruker `lastSync` som hentetidspunkt. Dele sender verken ETag eller Last-Modified (sjekket autentisert 2026-11-01), så betingede kall er ikke mulig.
+- **Pause:** 250 ms mellom kall ved førstegangssync, 100 ms ellers.
+- **Feil:** 429, 5xx og nettverksfeil venter så lenge `Retry-After` sier (sekunder eller dato), ellers backoff 2 s × 2^n med ±50 % jitter. Tre slike feil på rad (bryteren) stopper synken med `SERVICE_UNAVAILABLE`, lagrer det som er hentet, og automatiske synker venter ti minutter. Ber serveren om over to minutters pause, stopper synken med en gang. 401 gir `AUTH_EXPIRED`. 404 eller annen 4xx på en detalj markerer id-en i `syncState.failed` og hopper over den. Den prøves igjen ved de neste synkene, maks tre ganger.
+- **Sync-intervall:** automatisk synk (side åpnes) høyst én gang i timen (`SYNC_INTERVAL_MS`). Synkroniser-knappen og Prøv igjen tvinger synk. Ingen bakgrunnspolling.
+- **Popupen** henter maks 25 detaljer per synk, siden den lukkes så fort brukeren klikker utenfor. Resten tar dashbordet.
+- **X-Client:** alle kall har `X-Client: bildeleringen-stats/<versjon fra manifest>` så Dele kan kjenne oss igjen.
+- **Telling:** `calls = { list, detail, retries, failed }` per synk, vist i `?dev=1`-panelet fra `syncHistory`.
+- **Feil i UI:** synkfeil og delvise resultater vises i statusfeltet med Prøv igjen-knapp og overskrives ikke av tom-tilstanden.
+- **Tester:** `cd stats && node --test` (ingen avhengigheter, `stats/package.json` er bare `{"type":"module"}`). `test/sync.test.js` kjører motoren mot fetch- og storage-stubs.
 - **Token:** Kan utløpe (401). background.js spør først content script via `tabs.sendMessage`. Hvis content-scriptet ikke er injisert (Firefox MV3-begrensning ved oppstart), faller den tilbake til `scripting.executeScript` som leser `localStorage("persist:data")` direkte. Derfor `scripting`-permission i `manifest.json`. Feiler stille hvis ingen app.dele.no-fane er åpen.
 
 Endepunkter:

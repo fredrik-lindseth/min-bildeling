@@ -27,6 +27,7 @@ import {
 } from "../lib/categories.js";
 
 import { storage } from "../lib/browser-polyfill.js";
+import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
 
 import { totalCO2, monthlyCO2 } from "../lib/co2.js";
 
@@ -206,8 +207,16 @@ function removeStatusAction() {
   if (existing) existing.remove();
 }
 
-function isAuthError(error) {
-  return error === "NOT_LOGGED_IN" || error === "AUTH_EXPIRED";
+// Feil og delvise resultater vises med en Prøv igjen-knapp og blir stående.
+function showSyncMessage(message) {
+  showStatus(message);
+  const action = document.createElement("button");
+  action.type = "button";
+  action.id = "status-action";
+  action.className = "status__action status__action--retry";
+  action.textContent = "Prøv igjen";
+  action.addEventListener("click", () => syncAndRender(true));
+  statusEl.appendChild(action);
 }
 
 function hideStatus() {
@@ -1414,59 +1423,9 @@ function escapeHtml(str) {
 
 // ---------- Sync ----------
 
-async function handleSync(force = false) {
-  syncBtn.disabled = true;
-  syncBtn.classList.add("is-syncing");
-  showStatus("Synkroniserer...");
-  showProgress(30);
-
-  const result = await sendMessage({ type: "REQUEST_SYNC", force });
-
-  syncBtn.disabled = false;
-  syncBtn.classList.remove("is-syncing");
-  progressBar.hidden = true;
-
-  if (result && result.error) {
-    if (isAuthError(result.error)) {
-      showLoginRequired();
-    } else {
-      showStatus(`Feil: ${result.error}`);
-    }
-    return false;
-  }
-
-  return true;
-}
-
-// ---------- Init ----------
-
-async function init() {
-  showStatus("Laster data...");
-
-  // Try to get cached data first
-  let data = await sendMessage({ type: "GET_DATA" });
-
-  if (!data || !data.reservations || data.reservations.length === 0) {
-    // No data — try a sync
-    showStatus("Ingen data funnet. Synkroniserer...");
-    showProgress(20);
-
-    const synced = await handleSync(false);
-    if (!synced) {
-      showEmpty();
-      return;
-    }
-
-    data = await sendMessage({ type: "GET_DATA" });
-    if (!data || !data.reservations || data.reservations.length === 0) {
-      showEmpty();
-      return;
-    }
-  }
-
-  // We have data — render everything
-  allReservations = data.reservations;
-  lastSyncedEl.textContent = formatSyncTime(data.lastSync);
+async function renderAll(reservations, lastSync) {
+  allReservations = reservations;
+  lastSyncedEl.textContent = formatSyncTime(lastSync);
   updateDataSummary(allReservations);
 
   buildYearSelector(allReservations);
@@ -1479,8 +1438,74 @@ async function init() {
   await renderCategories(allReservations);
   renderClimate(allReservations);
   await renderTransport(allReservations);
+}
 
+let hasRendered = false;
+
+async function loadStored() {
+  const data = await sendMessage({ type: "GET_DATA" });
+  if (!data || !data.reservations || data.reservations.length === 0) return false;
+  await renderAll(data.reservations, data.lastSync);
   showMain();
+  hasRendered = true;
+  return true;
+}
+
+function onSyncProgress(progress) {
+  showStatus(describeProgress(progress));
+  if (progress.phase === "details" && progress.total > 0) {
+    showProgress(Math.round((progress.current / progress.total) * 100));
+  }
+}
+
+// Synker (force: uansett tid siden sist) og tegner opp på nytt. Feil og delvise
+// resultater blir stående i statusfeltet. showEmpty() kalles bare når synken
+// gikk bra og det likevel ikke finnes data.
+async function syncAndRender(force) {
+  syncBtn.disabled = true;
+  syncBtn.classList.add("is-syncing");
+  if (force) showStatus("Synkroniserer...");
+
+  const result = await startSync({ force, onProgress: onSyncProgress });
+
+  syncBtn.disabled = false;
+  syncBtn.classList.remove("is-syncing");
+  progressBar.hidden = true;
+
+  // Tegn opp på nytt bare når synken faktisk hentet noe, eller ingenting vises ennå.
+  let hasData = hasRendered;
+  try {
+    if (result.fetched > 0 || !hasRendered) hasData = await loadStored();
+  } catch (e) {
+    console.error("[dashboard] Klarte ikke å lese lagrede data", e);
+    showStatus(`Klarte ikke å lese lagrede data: ${e.message}`);
+    return;
+  }
+  if (isDevMode()) refreshDevInfo();
+
+  if (isAuthError(result.error)) {
+    showLoginRequired();
+    return;
+  }
+  const message = describeSyncResult(result);
+  if (message) {
+    showSyncMessage(message);
+  } else if (!hasData) {
+    showEmpty();
+  } else {
+    hideStatus();
+  }
+}
+
+// ---------- Init ----------
+
+async function init() {
+  showStatus("Laster data...");
+  const hasData = await loadStored();
+  if (!hasData) showStatus("Ingen data funnet. Synkroniserer...");
+  // Uten force synker den bare når det er over en time siden sist, eller når
+  // en tidligere synk ble avbrutt.
+  await syncAndRender(false);
 }
 
 // Summary button
@@ -1488,33 +1513,7 @@ $("summary-btn").addEventListener("click", () => {
   browserAPI.tabs.create({ url: browserAPI.runtime.getURL("summary/summary.html") });
 });
 
-// Sync button
-syncBtn.addEventListener("click", async () => {
-  const synced = await handleSync(true);
-  if (!synced) return;
-
-  const data = await sendMessage({ type: "GET_DATA" });
-  if (data && data.reservations && data.reservations.length > 0) {
-    allReservations = data.reservations;
-    lastSyncedEl.textContent = formatSyncTime(data.lastSync);
-    updateDataSummary(allReservations);
-
-    buildYearSelector(allReservations);
-    renderCosts(allReservations);
-    renderUsage(allReservations);
-    renderBookingPatterns(allReservations);
-    renderMileage(allReservations);
-    renderTrends(allReservations);
-    renderOwnership(allReservations);
-    await renderCategories(allReservations);
-    renderClimate(allReservations);
-    await renderTransport(allReservations);
-
-    showMain();
-  } else {
-    showEmpty();
-  }
-});
+syncBtn.addEventListener("click", () => syncAndRender(true));
 
 // ---------- PNG Export ----------
 
@@ -1567,6 +1566,9 @@ const DEV_STORAGE_KEYS = [
   "tripCategories",
   "transportData",
   "userKeywords",
+  "syncState",
+  "syncLock",
+  "syncHistory",
 ];
 
 function isDevMode() {
