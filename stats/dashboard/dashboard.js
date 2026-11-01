@@ -1016,8 +1016,8 @@ async function renderCategories(reservations) {
       listEl.appendChild(item);
     }
 
-    // onclick, ikke addEventListener: renderCategories kj\u00f8res p\u00e5 nytt ved
-    // sync og lagring av n\u00f8kkelord, og lyttere ville ellers hopet seg opp.
+    // onclick, ikke addEventListener: renderCategories kjøres på nytt ved
+    // sync og lagring av nøkkelord, og lyttere ville ellers hopet seg opp.
     listEl.onclick = async (e) => {
       const btn = e.target.closest(".suggestion-item__btn");
       if (!btn) return;
@@ -1029,12 +1029,12 @@ async function renderCategories(reservations) {
     $("uncategorized-section").hidden = true;
   }
 
-  // 8. Egne n\u00f8kkelord
+  // 8. Egne nøkkelord
   renderKeywordCard(reservations, userKeywords, keywords);
 }
 
-// Rekkef\u00f8lgen i skjemaet er den samme som suggestCategory() sjekker i, s\u00e5
-// brukeren ser hvilken kategori som vinner n\u00e5r et notat treffer flere.
+// Rekkefølgen i skjemaet er den samme som suggestCategory() sjekker i, så
+// brukeren ser hvilken kategori som vinner når et notat treffer flere.
 function keywordCategoryOrder() {
   const order = Object.keys(DEFAULT_KEYWORDS);
   for (const key of Object.keys(CATEGORIES)) {
@@ -1090,8 +1090,8 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     const next = {};
     for (const key of keywordCategoryOrder()) {
       const words = parseKeywordInput($(`keyword-${key}`).value);
-      // JSON-import kan gi ord med kantmellomrom (\u00abtur \u00bb), som ville g\u00e5tt
-      // tapt om de ble trimmet her. Behold dem n\u00e5r teksten er uendret.
+      // JSON-import kan gi ord med kantmellomrom («tur »), som ville gått
+      // tapt om de ble trimmet her. Behold dem når teksten er uendret.
       const previous = userKeywords[key] || [];
       next[key] = words.join(", ") === previous.map((w) => w.trim()).join(", ")
         ? previous
