@@ -197,7 +197,8 @@ code {
 a:focus-visible,
 .field:focus-visible,
 .keyword-card__summary:focus-visible,
-.keyword-import:focus-within {
+.keyword-import:focus-within,
+.dev-sample:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
