@@ -33,7 +33,12 @@ const browser = spawn(
 // Firefox skriver adressen til stderr når BiDi lytter.
 const wsUrl = await new Promise((resolve, reject) => {
   let log = "";
-  const timer = setTimeout(() => reject(new Error(`Firefox startet ikke BiDi:\n${log}`)), 30_000);
+  // Firefox drepes ved tidsavbrudd, ellers blir den hengende igjen og
+  // holder på profilen etter at scriptet har gitt opp.
+  const timer = setTimeout(() => {
+    browser.kill();
+    reject(new Error(`Firefox startet ikke BiDi:\n${log}`));
+  }, 30_000);
   browser.stderr.on("data", (chunk) => {
     log += chunk;
     const match = log.match(/WebDriver BiDi listening on (ws:\/\/\S+)/);
@@ -42,13 +47,23 @@ const wsUrl = await new Promise((resolve, reject) => {
       resolve(match[1]);
     }
   });
-  browser.on("exit", (code) => reject(new Error(`Firefox avsluttet (${code}):\n${log}`)));
+  browser.on("exit", (code) => {
+    clearTimeout(timer);
+    reject(new Error(`Firefox avsluttet (${code}):\n${log}`));
+  });
 });
 
 const ws = new WebSocket(`${wsUrl}/session`);
 await new Promise((resolve, reject) => {
   ws.addEventListener("open", resolve, { once: true });
-  ws.addEventListener("error", () => reject(new Error(`Fikk ikke koblet til ${wsUrl}`)), { once: true });
+  ws.addEventListener(
+    "error",
+    () => {
+      browser.kill();
+      reject(new Error(`Fikk ikke koblet til ${wsUrl}`));
+    },
+    { once: true }
+  );
 });
 
 let nextId = 1;
