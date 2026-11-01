@@ -16,6 +16,15 @@ echo "Packaging Bildeleringen Stats v${VERSION}..."
 rm -rf "$OUTDIR"
 mkdir -p "$OUTDIR"
 
+# Kontrastbrudd stopper pakkingen før noe bygges. dist/ er tømt først, så en
+# gammel zip ikke blir liggende og ser gyldig ut.
+if ! ./scripts/kontrast.sh; then
+  echo "" >&2
+  echo "Kontrastsjekken feilet. Rett fargene over og pakk på nytt." >&2
+  exit 1
+fi
+echo ""
+
 # Files to include in the release
 cp ../LICENSE ../README.md .
 zip -r "$OUTDIR/$ZIPNAME" \
