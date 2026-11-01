@@ -10,7 +10,7 @@ To tall er grunnen til at folk åpner siden: hva de har brukt (Kostnader) og hva
 
 ## Utgangspunktet
 
-Slik står det i dag: systemfont uten bevisst skala, blå aksent `#4a90d9` som ikke har noe med Dele å gjøre, radius 6, 10 og 14 px, grå skygge under hvert kort, og identiske kort i rutenett i alle ni seksjoner. Etiketter står i store bokstaver med sperring. Popup og dashboard har hvert sitt `:root` med litt ulike verdier, og årsoppsummeringen har et tredje tokensett (`--sum-*`) som er hardkodet mørkt. `debug.html` har hex-farger inline.
+Slik står det i dag: systemfont uten bevisst skala, blå aksent (`#2a66ab` i lys modus, `#5a9de6` i mørk) som ikke har noe med Dele å gjøre, radius 6, 10 og 14 px, grå skygge under hvert kort, og identiske kort i rutenett i alle ni seksjoner. Etiketter står i store bokstaver med sperring. Popup og dashboard har hvert sitt `:root` med litt ulike verdier, og årsoppsummeringen har et tredje tokensett (`--sum-*`) som er hardkodet mørkt. `debug.html` har hex-farger inline.
 
 ## Farger
 
