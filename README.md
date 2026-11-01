@@ -20,6 +20,27 @@ Repoet har to utvidelser: `stats/` for statistikk og [`flex/`](flex/README.md) f
 - **Årsoppsummering**: året ditt, én side per tall.
 - **PNG-eksport** av hver seksjon.
 
+## Slik ser det ut
+
+Tallene er demodata fra `?demo=1`, ikke ekte turer. Bildene følger lys eller mørk modus hos deg.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/dashboard-kostnader-mork.png">
+  <img src="skjermbilder/dashboard-kostnader-lys.png" alt="Dashboardet med kostnader per måned og nøkkeltall" width="1280">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/dashboard-bruksmonster-mork.png">
+  <img src="skjermbilder/dashboard-bruksmonster-lys.png" alt="Bruksmønster med turer per ukedag og klokkeslett" width="1280">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/popup-mork.png">
+  <img src="skjermbilder/popup-lys.png" alt="Popupen med forbruket denne måneden" width="350">
+</picture>
+
+<img src="skjermbilder/summary-mork.png" alt="Årsoppsummeringen, første side" width="640">
+
 ## Installasjon
 
 Last ned `.zip` fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases).
