@@ -1,6 +1,6 @@
 # Slik bruker Bildeleringen Stats API-et til dele.no
 
-Bildeleringen Stats er en nettleserutvidelse som viser et medlem statistikk over sin egen bruk av Bildeleringen: kostnader, kilometer, bilvalg og CO₂. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dette dokumentet er skrevet for utviklerne hos Dele, så dere kan se nøyaktig hva utvidelsen gjør mot API-et og hvor ofte. Tallene under er hentet fra koden (`stats/lib/sync.js` og `stats/lib/api.js`), og de endres samtidig med den.
+Bildeleringen Stats er en nettleserutvidelse som viser et medlem statistikk over sin egen bruk av Bildeleringen: kostnader, kilometer, bilvalg og CO₂. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dette dokumentet er skrevet for utviklerne hos Dele, så dere kan se nøyaktig hva utvidelsen gjør mot API-et og hvor ofte. Tallene under er hentet fra koden (`stats/lib/sync.js` og `stats/lib/api.js`), og en test i utvidelsen feiler hvis de to skiller lag.
 
 ## Endepunkter
 

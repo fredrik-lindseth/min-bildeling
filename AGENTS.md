@@ -76,7 +76,7 @@ Reservasjoner, lastSync og sync-nøklene er API-data. Rør dem ikke direkte. tri
 
 ## API-regler
 
-Integrasjonen skal tåle innsyn fra Dele. `docs/api-bruk.md` beskriver API-bruken for dem og må stemme med koden. Endrer du tallene under, oppdater den også.
+Integrasjonen skal tåle innsyn fra Dele. `docs/api-bruk.md` beskriver API-bruken for dem og må stemme med koden. `stats/test/docs.test.js` binder tallene der (pauser, batch, lease, bryter, fryst-regel, popupens grense, backoff for feilede id-er) til konstantene i `sync.js` og `api.js`, så endrer du en konstant, feiler testen til dokumentet er rettet.
 
 - **Hvem kjører synken:** utvidelsessiden som ber om den (dashbordet eller popupen), via `lib/sync-page.js` → `lib/sync.js`. Ikke background. Firefox avslutter MV3-event-pagen på idle (ca. 30 s uten WebExtension-API-aktivitet), også midt i en synk med åpne `fetch`-kall, og da gikk alt i minnet tapt. Med DevTools koblet til utvidelsen skjer det ikke, så test synk uten DevTools. Background eier bare innloggingen (`GET_SYNC_AUTH`, `CLEAR_AUTH`) og `GET_DATA`.
 - **Lås mellom sider:** `syncLock` med lease på 45 s (`LOCK_LEASE_MS`), fornyet etter tid før et kall når en tredjedel er brukt (`LOCK_RENEW_MS`), og forlenget over Retry-After-ventetider. Eierskapet sjekkes før hvert kall og hver skriving. Har en annen side tatt over (et svar brukte hele leasen), stopper synken med `BUSY` uten å skrive. Per batch holdt ikke: med trege svar gikk leasen ut og to sider synket parallelt. En side som lukkes midt i, slipper låsen når leasen går ut.
@@ -91,7 +91,7 @@ Integrasjonen skal tåle innsyn fra Dele. `docs/api-bruk.md` beskriver API-bruke
 - **X-Client:** alle kall har `X-Client: bildeleringen-stats/<versjon fra manifest>` så Dele kan kjenne oss igjen.
 - **Telling:** `calls = { list, detail, retries, failed }` per synk, vist i `?dev=1`-panelet fra `syncHistory`.
 - **Feil i UI:** synkfeil og delvise resultater vises i statusfeltet med Prøv igjen-knapp og overskrives ikke av tom-tilstanden.
-- **Tester:** `cd stats && node --test` (ingen avhengigheter, `stats/package.json` er bare `{"type":"module"}`). `test/sync.test.js` kjører motoren mot fetch- og storage-stubs.
+- **Tester:** `cd stats && node --test` (ingen avhengigheter, `stats/package.json` er bare `{"type":"module"}`). `test/sync.test.js` kjører motoren mot fetch- og storage-stubs. `test/docs.test.js` sjekker `docs/api-bruk.md` mot konstantene.
 - **Token:** Kan utløpe (401). background.js spør først content script via `tabs.sendMessage`. Hvis content-scriptet ikke er injisert (Firefox MV3-begrensning ved oppstart), faller den tilbake til `scripting.executeScript` som leser `localStorage("persist:data")` direkte. Derfor `scripting`-permission i `manifest.json`. Feiler stille hvis ingen app.dele.no-fane er åpen.
 
 Endepunkter:

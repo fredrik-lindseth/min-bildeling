@@ -3,11 +3,10 @@ import { createSparkline } from "../lib/chart-helpers.js";
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 import { estimateOwnershipCost } from "../lib/ownership-cost.js";
 import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
-
 // Popupen lukkes så snart brukeren klikker et annet sted, og da stopper synken.
 // Den henter derfor bare et lite antall detaljer om gangen og ber om dashbordet
 // for resten. Det som er hentet, står i storage uansett.
-const POPUP_MAX_DETAILS = 25;
+import { POPUP_MAX_DETAILS } from "../lib/sync.js";
 
 const browserAPI = typeof browser !== "undefined" ? browser : chrome;
 
