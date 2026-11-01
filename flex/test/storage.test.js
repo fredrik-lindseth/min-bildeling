@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mergePlaces, DEFAULT_PLACES } from "../lib/storage.js";
 
-test("DEFAULT_PLACES inneholder Eksempelveien (hjem)", () => {
-  assert.ok(DEFAULT_PLACES.some((p) => /eksempelveien/i.test(p.name)));
+test("DEFAULT_PLACES er tom, ingen personlige steder i koden", () => {
+  assert.deepEqual(DEFAULT_PLACES, []);
 });
 
 test("mergePlaces overstyrer default med lagret på samme id", () => {

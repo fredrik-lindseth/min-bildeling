@@ -1,9 +1,9 @@
 import { storage } from "./browser-polyfill.js";
 
-// Eksempelveien (hjem), midtpunkt av gatas LineString fra /api/locations.
-export const DEFAULT_PLACES = [
-  { id: "home", name: "Eksempelveien (hjem)", point: { lng: 5.32415, lat: 60.39299 } },
-];
+// Ingen innebygde steder. Koden er offentlig, så brukerens egne steder
+// (hjem og lignende) bor bare i storage. Finderen tilbyr stasjoner fra
+// /api/locations og geolokasjon når ingenting er lagret.
+export const DEFAULT_PLACES = [];
 
 const PLACES_KEY = "places";
 const FAV_KEY = "favoriteCarIds";

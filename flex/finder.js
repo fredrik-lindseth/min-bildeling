@@ -1,6 +1,7 @@
 import { solve, splitPairs, ORG_BILDELERINGEN } from "./lib/flex.js";
 import { parseLocalISO, toLocalISO } from "./lib/format.js";
-import { getPlaces } from "./lib/storage.js";
+import { getPlaces, savePlace } from "./lib/storage.js";
+import { stationPlaces } from "./lib/places.js";
 
 // "Uansett" avstand = hele regionen. Taket holder Bildeleringen sine
 // fjern-biler (beboer-restringerte biler i Tromsø, ~1200 km) ute av et
@@ -65,15 +66,26 @@ function fmtRange(a, b) {
     : `${fmtDay(a)} ${fmtTime(a)} – ${fmtDay(b)} ${fmtTime(b)}`;
 }
 
-let places = [];
+// Tre kilder til stedsvalg: brukerens lagrede steder (storage), nåværende
+// posisjon (geolokasjon, bare i minnet) og stasjonslisten fra /api/locations.
+// Koden har ingen innebygde steder.
+const GEO_ID = "geo";
+let savedPlaces = [];
+let stations = [];
+let geoPlace = null;
 let rangeStart = null;
 let rangeEnd = null;
 let calView = null;
 
+const allPlaces = () => [...savedPlaces, ...(geoPlace ? [geoPlace] : []), ...stations];
+
 async function init() {
-  places = await getPlaces();
+  savedPlaces = await getPlaces();
+  renderPlaceOptions(savedPlaces[0]?.id || "");
   const placeSel = document.getElementById("place");
-  for (const p of places) placeSel.append(el("option", { value: p.id, text: p.name }));
+  placeSel.addEventListener("change", onPlaceChange);
+  document.getElementById("placeSaveBtn").addEventListener("click", onPlaceSave);
+  loadStations();
 
   buildTimeOptions();
   document.getElementById("startTime").value = "09:00";
@@ -92,12 +104,93 @@ async function init() {
   document.getElementById("watch-save").addEventListener("click", onWatchSave);
 }
 
+function renderPlaceOptions(selectedId) {
+  const sel = document.getElementById("place");
+  const opts = [el("option", { value: "", text: "Velg posisjon…" })];
+  if (savedPlaces.length) {
+    const g = el("optgroup", { label: "Mine steder" });
+    for (const p of savedPlaces) g.append(el("option", { value: p.id, text: p.name }));
+    opts.push(g);
+  }
+  opts.push(el("option", { value: GEO_ID, text: geoPlace ? "Min posisjon (hentet)" : "Min posisjon" }));
+  if (stations.length) {
+    const g = el("optgroup", { label: "Stasjoner" });
+    for (const p of stations) g.append(el("option", { value: p.id, text: p.name }));
+    opts.push(g);
+  }
+  sel.replaceChildren(...opts);
+  sel.value = selectedId;
+  updatePlaceSave();
+}
+
+function selectedPlace() {
+  const id = document.getElementById("place").value;
+  return allPlaces().find((p) => p.id === id) || null;
+}
+
+// "Husk stedet" gir bare mening for steder som ikke alt er lagret.
+function updatePlaceSave() {
+  const place = selectedPlace();
+  const canSave = place && !savedPlaces.some((p) => p.id === place.id);
+  document.getElementById("placeSave").hidden = !canSave;
+  if (canSave) document.getElementById("placeLabel").value = place.id === GEO_ID ? "" : place.name;
+}
+
+async function loadStations() {
+  const res = await api.runtime.sendMessage({ type: "GET_LOCATIONS" }).catch(() => null);
+  if (!res || res.error) {
+    if (!savedPlaces.length) {
+      setMsg(document.getElementById("placeMsg"),
+        "Stasjonslisten kommer når du er innlogget på app.dele.no. Du kan bruke «Min posisjon» så lenge.", "");
+    }
+    return;
+  }
+  stations = stationPlaces(res.locations);
+  const current = document.getElementById("place").value;
+  renderPlaceOptions(current);
+  setMsg(document.getElementById("placeMsg"), "", "");
+}
+
+async function onPlaceChange() {
+  const sel = document.getElementById("place");
+  const msg = document.getElementById("placeMsg");
+  setMsg(msg, "", "");
+  if (sel.value === GEO_ID && !geoPlace) {
+    setMsg(msg, "Henter posisjon…", "");
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 15000, maximumAge: 300000 }));
+      geoPlace = { id: GEO_ID, name: "Min posisjon", point: { lng: pos.coords.longitude, lat: pos.coords.latitude } };
+      renderPlaceOptions(GEO_ID);
+      setMsg(msg, "", "");
+    } catch {
+      renderPlaceOptions("");
+      setMsg(msg, "Fikk ikke tak i posisjonen. Velg en stasjon i stedet.", "err");
+    }
+    return;
+  }
+  updatePlaceSave();
+}
+
+async function onPlaceSave() {
+  const place = selectedPlace();
+  const msg = document.getElementById("placeMsg");
+  const name = document.getElementById("placeLabel").value.trim();
+  if (!place) return;
+  if (!name) { setMsg(msg, "Gi stedet et navn.", "err"); return; }
+  const saved = { id: `saved:${Date.now()}`, name, point: place.point };
+  savedPlaces = await savePlace(saved);
+  renderPlaceOptions(saved.id);
+  setMsg(msg, `«${name}» er lagret og velges først neste gang.`, "ok");
+}
+
 async function onWatchSave() {
   const msg = document.getElementById("watch-msg");
   const wish = readWish();                                // earliestStart/latestEnd er Date
-  const placeName = document.getElementById("place").selectedOptions[0]?.text || "Sted";
+  const placeName = selectedPlace()?.name || "Sted";
   const minHours = Number(document.getElementById("watch-minhours").value);
   const windowHours = (wish.latestEnd - wish.earliestStart) / 3600000; // Date-diff i ms
+  if (!wish.point) { setMsg(msg, "Velg posisjon først.", "err"); return; }
   if (wish.latestEnd <= wish.earliestStart) { setMsg(msg, "Sluttidspunktet må være etter starten.", "err"); return; }
   if (!minHours || minHours <= 0) { setMsg(msg, "Sett et positivt timetall.", "err"); return; }
   if (minHours > windowHours) {
@@ -117,7 +210,8 @@ async function onWatchSave() {
 
 function setMsg(el, text, cls) {
   el.textContent = text;
-  el.className = `watch-msg ${cls}`;
+  el.classList.remove("ok", "err");
+  if (cls) el.classList.add(cls);
 }
 
 const atMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -257,7 +351,7 @@ function wireDurationToggle() {
 }
 
 function readWish() {
-  const place = places.find((p) => p.id === document.getElementById("place").value);
+  const place = selectedPlace();
   const { start: earliestStart, end: latestEnd } = readRange();
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const durationMinutes = mode === "duration" ? Number(document.getElementById("hours").value) * 60 : null;
@@ -271,7 +365,7 @@ function readWish() {
     fuels: fuels.length && fuels.length < FUELS.length ? fuels : undefined,
     maxDistanceM: distVal ? Number(distVal) : REGION_CEILING_M,
   };
-  return { point: place.point, earliestStart, latestEnd, durationMinutes, filters };
+  return { point: place ? place.point : null, earliestStart, latestEnd, durationMinutes, filters };
 }
 
 function onSearch(e) {
@@ -283,6 +377,11 @@ async function runSearch() {
   const results = document.getElementById("results");
   const wish = readWish();
 
+  if (!wish.point) {
+    results.replaceChildren(el("p", { class: "hint", text: "Velg posisjon først: et lagret sted, «Min posisjon» eller en stasjon." }));
+    document.getElementById("place").focus();
+    return;
+  }
   if (wish.latestEnd <= wish.earliestStart) {
     results.replaceChildren(el("p", { class: "hint", text: "Sluttidspunktet må være etter starten." }));
     return;
@@ -332,7 +431,11 @@ async function autoConnect(results) {
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 800));
     const s = await api.runtime.sendMessage({ type: "GET_AUTH_STATUS" }).catch(() => null);
-    if (s && s.hasAuth) { runSearch(); return; }
+    if (s && s.hasAuth) {
+      if (!stations.length) loadStations();
+      runSearch();
+      return;
+    }
   }
   // Timeout: sannsynligvis faktisk ikke innlogget. Gi en fokusert vei inn.
   const box = el("div", { class: "hint hint--action" }, [

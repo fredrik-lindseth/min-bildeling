@@ -14,7 +14,3 @@ docs/research/*.pdf
 # Local debug/data files
 *.pdf
 bildeleringen-*.json
-
-# Lokalt dogcats-verktøy (ikke del)
-.dogcatrc
-.dogcats/

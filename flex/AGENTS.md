@@ -32,10 +32,11 @@ Utvidelsen drives via `firefox-devtools`-MCP-en, som styrer en **egen, dedikert 
 - `content.js`: leser token fra `localStorage("persist:data")` på app.dele.no. Klassisk script. Pusher token til `storage.local` (`authToken`) ved hver sidelasting, så polleren har noe å gå på når ingen fane er åpen.
 - `background.js`: `getAuth()` (content script først, `scripting.executeScript` som fallback), `SEARCH`-proxy mot `/api/search`. Nuller `currentAuth` ved `AUTH_EXPIRED`. Eier også varsler: eneste skriver på `watches`, `alarms`-poller (`pollWatches`) og dispatcher (browser-varsel + relay-POST).
 - `lib/search-api.js`: `searchAvailability(point, start, end, token)`, `fetchLocations(token)`. 50ms delay + 429-backoff.
+- `lib/places.js`: rene hjelpere for stedsvalg. `stationPlaces` gjør `/api/locations` om til steder med ett punkt per stasjon (snitt av hjørnene i Point/LineString/Polygon). Finderen henter listen via `GET_LOCATIONS` i background og tilbyr i tillegg «Min posisjon» (geolokasjon) og «Husk stedet».
 - `lib/flex.js`: motoren, med `freeBlocks`, `fitCar`, `solve` (buckets whole/adjusted/siblings), `splitPairs`. Rene funksjoner. `matchesFilters`/`withinDistance` er eksportert så `watch.js` gjenbruker dem.
 - `lib/watch.js`: rene `detectHits(searchResult, watch, window)` (bil ledig ≥ terskel i vinduet) + `reconcile(hits, notified, now)` (de-dup på blokkslutt, rydding, relay-retry). Ingen browser-API.
 - `lib/format.js`: `parseLocalISO`/`toLocalISO`, naiv lokal ISO uten tidssone.
-- `lib/storage.js`: lagrede steder (Eksempelveien = hjem) + favoritter + overvåkninger (`getWatches`/`setWatches`) + varsel-innstillinger (`getSettings`/`saveSettings`).
+- `lib/storage.js`: brukerens lagrede steder (ingen innebygde, `DEFAULT_PLACES` er tom fordi koden er offentlig) + favoritter + overvåkninger (`getWatches`/`setWatches`) + varsel-innstillinger (`getSettings`/`saveSettings`).
 - `finder.html/js/css`: fullside-søk (med "Overvåk dette søket"). `watches.html/js`: overvåkninger + innstillinger. `popup/`: inngang til begge.
 
 ## API-fakta (`/api/search`)

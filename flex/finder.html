@@ -19,7 +19,12 @@
       <div class="wish__body">
       <div class="field">
         <label class="label" for="place">Posisjon</label>
-        <select id="place" class="control"></select>
+        <select id="place" class="control" aria-describedby="placeMsg"></select>
+        <div class="place-save" id="placeSave" hidden>
+          <input type="text" id="placeLabel" class="control" placeholder="Navn, f.eks. Hjem" aria-label="Navn på stedet" />
+          <button type="button" id="placeSaveBtn" class="place-save__btn">Husk stedet</button>
+        </div>
+        <p id="placeMsg" class="place-msg" role="status"></p>
       </div>
 
       <div class="field">
