@@ -1,5 +1,5 @@
 import { currentMonthStats, monthlyCosts, usagePatterns } from "../lib/stats.js";
-import { createSparkline } from "../lib/chart-helpers.js";
+import { createMonthBars } from "../lib/chart-helpers.js";
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 import { estimateOwnershipCost } from "../lib/ownership-cost.js";
 import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
@@ -18,14 +18,15 @@ const spendLastMonth = document.getElementById("spend-last-month");
 const tripsThisMonth = document.getElementById("trips-this-month");
 const avgCost = document.getElementById("avg-cost");
 const mostUsedCar = document.getElementById("most-used-car");
-const sparklineCanvas = document.getElementById("sparkline-canvas");
+const monthsCanvas = document.getElementById("months-chart");
 const syncBtn = document.getElementById("sync-btn");
 const lastSyncedEl = document.getElementById("last-synced");
 const dashboardLink = document.getElementById("dashboard-link");
-const emptyNote = document.getElementById("empty-note");
 
-// Track chart instance to avoid leaks on re-render
-let sparklineChart = null;
+const MONTH_SHORT = ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"];
+const formatAmount = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
+
+let monthsChart = null;
 
 const statusText = document.getElementById("status-text");
 const progressEl = document.getElementById("progress");
@@ -48,13 +49,13 @@ function showStatus(message, progress = null) {
 
 function showLoginRequired() {
   statusEl.classList.add("status--login");
-  statusText.innerHTML = `<strong>Du må logge inn på Bildeleringen</strong><br>Vi henter dataene dine så snart du er innlogget.`;
+  statusText.innerHTML = `<strong>Ikke innlogget</strong><br>Logg inn på app.dele.no og trykk Synkroniser.`;
   removeStatusAction();
 
   const action = document.createElement("a");
   action.id = "status-action";
   action.className = "status__action";
-  action.textContent = "Åpne app.dele.no →";
+  action.textContent = "Åpne app.dele.no";
   action.href = "https://app.dele.no";
   action.target = "_blank";
   action.rel = "noopener";
@@ -106,38 +107,23 @@ function renderStats(reservations) {
   // Trips this month
   tripsThisMonth.textContent = stats.tripsThisMonth;
 
-  // Average cost per trip
   avgCost.textContent = stats.thisMonth
     ? formatNOK.format(stats.thisMonth.average)
-    : "–";
-
-  // Show empty note if no trips this month
-  emptyNote.hidden = !(stats.tripsThisMonth === 0 && stats.thisMonth === null);
+    : "Ingen turer";
 
   // Most used car (across all data)
   const patterns = usagePatterns(reservations);
   const topCar = patterns.topCars[0];
   mostUsedCar.textContent = topCar ? topCar.name : "–";
 
-  // Sparkline: last 6 months (destroy previous instance to avoid leak)
-  if (sparklineChart) {
-    sparklineChart.destroy();
-    sparklineChart = null;
-  }
-  const last6 = monthly.slice(-6);
-  if (last6.length > 1) {
-    sparklineChart = createSparkline(
-      sparklineCanvas,
-      last6.map((m) => m.total)
-    );
-  }
+  renderLastSixMonths(monthly);
 
   // Savings vs car ownership this year
   const currentYear = new Date().getFullYear();
   const ownership = estimateOwnershipCost(reservations, currentYear);
   const savingsEl = document.getElementById("yearly-savings");
   if (ownership && ownership.savings > 0) {
-    savingsEl.textContent = formatNOK.format(ownership.savings);
+    savingsEl.textContent = `ca. ${formatNOK.format(ownership.savings)}`;
   } else if (ownership) {
     savingsEl.textContent = "0 kr";
     savingsEl.classList.remove("card__value--tertiary");
@@ -146,6 +132,30 @@ function renderStats(reservations) {
   }
 
   statsSection.hidden = false;
+}
+
+// De seks siste kalendermånedene, med 0 for måneder uten turer, så søylene
+// står for faktiske måneder og ikke bare dem som har data.
+function renderLastSixMonths(monthly) {
+  if (monthsChart) {
+    monthsChart.destroy();
+    monthsChart = null;
+  }
+  const totals = new Map(monthly.map((m) => [m.month, m.total]));
+  const now = new Date();
+  const labels = [];
+  const values = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    labels.push(MONTH_SHORT[d.getMonth()]);
+    values.push(Math.round(totals.get(key) || 0));
+  }
+  monthsCanvas.setAttribute(
+    "aria-label",
+    `Siste 6 måneder: ${labels.map((l, i) => `${l} ${formatAmount.format(values[i])} kr`).join(", ")}`
+  );
+  monthsChart = createMonthBars(monthsCanvas, labels, values, (v) => formatAmount.format(v));
 }
 
 // Wrap sendMessage med timeout + tydelig feil. Background-scriptet kan være
@@ -190,7 +200,7 @@ async function syncAndRender(force) {
     hasData = await renderStored();
   } catch (e) {
     console.error("[popup] GET_DATA etter sync feilet:", e);
-    showStatus(`Klarte ikke å lese lagrede data: ${e.message}`);
+    showStatus("Klarte ikke å lese lagrede turer. Åpne popupen på nytt.");
     return;
   }
 
@@ -204,7 +214,7 @@ async function syncAndRender(force) {
   } else if (hasData) {
     hideStatus();
   } else {
-    showStatus("Ingen data funnet");
+    showStatus("Ingen turer lagret ennå.");
   }
 }
 
@@ -218,7 +228,7 @@ async function init() {
     authStatus = await sendMessage({ type: "GET_AUTH_STATUS" });
   } catch (e) {
     console.error("[popup] GET_AUTH_STATUS feilet:", e);
-    showStatus("Kunne ikke kontakte utvidelsen. Prøv å åpne popup-en på nytt.");
+    showStatus("Fikk ikke kontakt med utvidelsen. Åpne popupen på nytt.");
     return;
   }
 
@@ -228,7 +238,7 @@ async function init() {
     if (hasData) hideStatus();
   } catch (e) {
     console.error("[popup] GET_DATA feilet:", e);
-    showStatus("Klarte ikke å lese lagrede data.");
+    showStatus("Klarte ikke å lese lagrede turer. Åpne popupen på nytt.");
     return;
   }
 
@@ -245,11 +255,18 @@ async function init() {
 
 syncBtn.addEventListener("click", () => syncAndRender(true));
 
-// Dashboard link — open in new tab
-dashboardLink.addEventListener("click", () => {
+function openDashboard(hash = "") {
   browserAPI.tabs.create({
-    url: browserAPI.runtime.getURL("dashboard/dashboard.html"),
+    url: browserAPI.runtime.getURL(`dashboard/dashboard.html${hash}`),
   });
+}
+
+dashboardLink.addEventListener("click", () => openDashboard());
+
+// Metoden og kildene for sparetallet står i bilregnestykket i dashboardet.
+document.getElementById("savings-method").addEventListener("click", (e) => {
+  e.preventDefault();
+  openDashboard("#bilregnestyket");
 });
 
 // Initialize

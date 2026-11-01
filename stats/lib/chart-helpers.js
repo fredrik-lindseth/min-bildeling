@@ -68,25 +68,44 @@ export function createLineChart(canvas, labels, data, label = "", { unit = "", y
   });
 }
 
-export function createSparkline(canvas, data) {
+/**
+ * Søyler per måned med beløpet skrevet over hver søyle, så tallene kan leses
+ * uten hover. Ingen glatting: hver søyle er én måneds faktiske sum.
+ */
+export function createMonthBars(canvas, labels, data, formatValue) {
   const accent = cssVar("--color-accent");
+  const textColor = cssVar("--color-text-secondary");
+  const valueLabels = {
+    id: "valueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.fillStyle = textColor;
+      ctx.font = `11px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        ctx.fillText(formatValue(data[i]), bar.x, bar.y - 2);
+      });
+      ctx.restore();
+    },
+  };
   return new Chart(canvas, {
-    type: "line",
+    type: "bar",
     data: {
-      labels: data.map((_, i) => i),
-      datasets: [{
-        data,
-        borderColor: accent,
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.3,
-      }],
+      labels,
+      datasets: [{ data, backgroundColor: accent }],
     },
     options: {
       responsive: true,
+      aspectRatio: 2.5,
+      layout: { padding: { top: 16 } },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: { x: { display: false }, y: { display: false } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+        y: { display: false, beginAtZero: true },
+      },
     },
+    plugins: [valueLabels],
   });
 }

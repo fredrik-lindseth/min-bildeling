@@ -27,7 +27,7 @@
         </div>
         <div class="card">
           <span class="card__label">Forrige måned</span>
-          <span class="card__value card__value--secondary" id="spend-last-month">–</span>
+          <span class="card__value" id="spend-last-month">–</span>
         </div>
         <div class="card">
           <span class="card__label">Turer denne mnd.</span>
@@ -44,14 +44,13 @@
         <div class="card card--highlight card--wide">
           <span class="card__label">Spart i år</span>
           <span class="card__value card__value--tertiary" id="yearly-savings">–</span>
+          <a class="card__method" id="savings-method" href="#">Slik beregner vi</a>
         </div>
       </div>
 
-      <p class="stats__empty-note" id="empty-note" hidden>Ingen turer denne måneden enda</p>
-
-      <div class="sparkline-container">
-        <span class="sparkline-label">Siste 6 måneder</span>
-        <canvas id="sparkline-canvas" width="300" height="60"></canvas>
+      <div class="months">
+        <span class="months__label" id="months-label">Siste 6 måneder, kr</span>
+        <canvas id="months-chart" role="img" aria-label="Siste 6 måneder"></canvas>
       </div>
     </section>
 
