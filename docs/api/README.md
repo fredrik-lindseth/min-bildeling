@@ -86,15 +86,32 @@ Stasjonene som GeoJSON (Point, LineString eller Polygon). Flex gjør dem om til 
 - En `location`-parameter i lenken ignoreres, appen faller tilbake til sitt standardpunkt. Bare tiden følger med.
 - «Skjul opptatte biler» er ren klientfiltrering og kan ikke settes via lenken (sjekket i nettverksloggen).
 
-## Organisasjoner (dele.no er en flerorg-plattform)
+## Organisasjoner og Bilparaplyen
 
-dele.no hoster flere bilkollektiv. `GET /search` returnerer biler fra alle organisasjoner. Hver bil har `organizationId`, mens `organizationName` er `null` på bilen og navnet bare står i søkesvarets `messages[]`. Filtrer på `organizationId` for å få bare én organisasjon.
+dele.no hoster flere bilkollektiv i Bilparaplyen. Sjekket mot ekte API 2026-11-01 med et medlemskap i Bildeleringen:
 
-| Organisasjon           | organizationId                         |
-| ---------------------- | -------------------------------------- |
-| Bildeleringen (Bergen) | `3212bcbe-8e34-4c28-9439-a44e6d5cf9c0` |
-| Trondheim Bilkollektiv | `8dba8f19-c438-f278-ed7c-912ec6537cb9` |
+| Organisasjon           | organizationId                         | `key`            |
+| ---------------------- | -------------------------------------- | ---------------- |
+| Bildeleringen          | `3212bcbe-8e34-4c28-9439-a44e6d5cf9c0` | `bildeleringen`  |
+| Trondheim Bilkollektiv | `8dba8f19-c438-f278-ed7c-912ec6537cb9` | `bilkollektivet` |
+
+- `GET /organizations` gir de to organisasjonene med `id` (lik `organizationId`), `name`, `key`, `supportUrl`, `priceListUrl`, `logoSvg` og supportkontakt. app.dele.no kaller den uten `authorization`, så listen er hele plattformen, ikke det medlemmet har tilgang til.
+- `GET /users/whoami` gir `memberships[]`, og hvert medlemskap hører til nøyaktig én organisasjon (`organizationId`, `organizationName`, `membershipType.organizationId`). `membershipType.grantedByMembership` var `null`. Ingen felt sier hvilke andre organisasjoner medlemskapet gir tilgang til.
+- `GET /search` gir biler fra begge organisasjonene for alle medlemmer, 231 fra Bildeleringen og 88 fra Trondheim Bilkollektiv. Bilene har `organizationId`, men ikke noe felt for om medlemmet kan booke dem, og `organizationName` mangler på bilen. `location.distance` regnes fra punktet i søket: fra Bergen ligger Trondheim-bilene 424–435 km unna, fra Trondheim ligger alle Trondheim-bilene innenfor 8 km.
+- app.dele.no filtrerer ikke søkesvaret på organisasjon, og bookingen (`POST /reservations`) sender bare `membershipId`, `carId`, `start` og `end`.
+
+Flex følger appen: alle biler i søkesvaret er med, og regionen avgjøres av avstanden fra stedet brukeren velger. Om backend avviser en booking på tvers av organisasjoner for noen medlemskapstyper, er ukjent.
+
+### persist:data
+
+`localStorage("persist:data")` på app.dele.no er et redux-persist-objekt der hver verdi er en JSON-streng: `authentication` (tokenet), `admin`, `userName`, `whoamiResponse` (samme som `/users/whoami`: `person`, `memberships[]`, `organizationPermissions[]`), `selectedMembership` (ett element fra `memberships[]`, med blant annet `id`, `organizationId`, `organizationName`, `membershipType`, `isOwner`, `defaultMembership`, `canCreateReservation`), `organizations` (samme som `/organizations`) og `_persist`. Origin har også `persist:reservations`, `persist:search` og `persist:searchData`.
+
+Medlemskapsvelgeren i app.dele.no setter `selectedMembership`. Hvordan den ser ut med flere medlemskap i ulike organisasjoner, er ikke sjekket.
+
+### Biltyper
+
+`GET /search/filters` har biltypene Stasjonsvogn, Småbil, SUV, Varebil, 8/9-seter, Kombi og Kompakt SUV, mens Minibil ikke er med. Hvilke organisasjoner som bruker hvilke, er ikke sjekket.
 
 ### Tromsø
 
-Organisasjonsfilteret er ikke nok alene. Bildeleringen administrerer noen biler i Tromsø, ca. 1 200 km fra Bergen, som bare beboerne kan bruke, for eksempel «Inga Sparboes veg» og «Malmvegen 99», med meldingen «Bilen kan kun brukes av beboere i Eierseksjonssameiet …». De har Bildeleringens `organizationId`, men hører ikke hjemme i et søk i Bergen. Flex luker dem ut med et avstandstak på 100 km framfor å tolke meldingene.
+Organisasjonen alene sier ikke hvor bilen står. Bildeleringen administrerer noen biler i Tromsø, ca. 1 200 km fra Bergen, som bare beboerne kan bruke, for eksempel «Inga Sparboes veg» og «Malmvegen 99», med meldingen «Bilen kan kun brukes av beboere i …» i `messages[]`. De har Bildeleringens `organizationId`. Flex luker dem ut med et avstandstak på 100 km fra stedet brukeren har valgt framfor å tolke meldingene.
