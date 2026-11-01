@@ -614,7 +614,7 @@ function renderBookingPatterns(reservations) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx) => `${ctx.parsed.x} turer`,
+            label: (ctx) => `${formatKm.format(ctx.parsed.x)} turer`,
           },
         },
       },
@@ -1489,7 +1489,7 @@ function renderTransportSummary(reservations, savedData, year) {
               label: (ctx) => {
                 const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                 const pct = Math.round((ctx.parsed / total) * 100);
-                return `${ctx.label}: ca. ${ctx.parsed} kg (${pct} %)`;
+                return `${ctx.label}: ca. ${formatKm.format(ctx.parsed)} kg (${pct} %)`;
               },
             },
           },

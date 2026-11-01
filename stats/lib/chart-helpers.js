@@ -5,6 +5,10 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+// Chart.js formaterer akser og tooltips med nettleserens språk, som kan være
+// engelsk selv om resten av siden er norsk.
+Chart.defaults.locale = "nb-NO";
+
 const defaultTooltip = {
   callbacks: {
     label: (ctx) => {
