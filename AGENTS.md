@@ -4,7 +4,7 @@ Repoet har to selvstendige utvidelser: `stats/` (statistikk) og `flex/` (fleksib
 
 ## Les først
 
-- `docs/DEVELOPMENT.md`: oppsett, tester, innlasting i Firefox via MCP og fallgruvene der.
+- `docs/DEVELOPMENT.md`: bygg zip-en, last den inn i Firefox og kjør testene. MCP-fallgruvene står under «Mer».
 - `docs/arkitektur.md`: storage-nøkler, synk, filtrering, turkategorier og flex-varsler.
 - `docs/api/README.md`: feltnavn og endepunkter i dele.no-API-et. Feltene heter ikke det du gjetter (`price.total`, ikke `totalPrice`).
 - `docs/design.md`: visuell retning. `docs/publisering.md`: pakking og utgivelse.
