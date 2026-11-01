@@ -1,393 +1,50 @@
 [
   {
-    "id": "ab51ed04-52bc-4573-b7f4-f7edd18aa6cd",
-    "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-    "organizationName": "Bildeleringen",
-    "drivenKm": 117,
+    "id": "9c8a5747-56a6-41a6-8c21-3925ae44ad59",
+    "reservationNumber": "1000003",
     "membershipId": "00000000-0000-0000-0000-000000000001",
-    "start": "2024-05-22T11:45:36",
+    "start": "2024-05-22T11:45:00",
     "end": "2024-05-22T23:30:00",
-    "started": "2024-05-22T11:46:07",
-    "ended": "2024-05-23T09:08:32.314916",
-    "created": "2024-05-16T23:01:04.153091",
-    "lastRide": "2024-05-23T00:42:36",
-    "lastLogout": "2024-05-23T00:42:36",
-    "effectiveStart": "2024-05-22T11:45:36",
-    "effectiveEnd": "2024-05-23T00:42:36",
-    "pool": [
-      {
-        "id": "121ce60e-edcd-44ee-b0fe-54f9836057ea",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "licensePlate": "EK10001",
-        "carNumber": "1042",
-        "supportPhoneNumber": "+4753699010",
-        "iconUrl": "/car-icons/bildeleringen/toyota-rav4-black.webp",
-        "model": "Toyota RAV4",
-        "about": "Antall seter: 5. \nElektrisk bakluke:\nBakluken åpnes ved å trykke og holde bryteren inne i til det kommer en pipelyd. \nBruk enten bryteren på bakluken som du vanligvis ville åpnet den med eller egen bryter ved rattstammen, \nBakluken lukkes ved å trykke på bryteren på undersiden av bakluken.\nIkke bruk makt for å åpne eller lukke bakluken manuelt, det kan skade mekanismen.\n\nBilen har plug-in hybrid og kan lades for å kjøre elektrisk.",
-        "parkingDescription": null,
-        "chargingBay": null,
-        "category": "SUV",
-        "fuelInstructions": null,
-        "roadsideAssistancePhoneNo": "+4780033105",
-        "roadsideAssistanceAbroadPhoneNo": "+4722717105",
-        "chargingCableType": null,
-        "properties": [
-          {
-            "id": "9a2a6e16-e289-4504-9d07-c4aa05a4efd9",
-            "groupId": "6a8fbe59-3ec1-4824-a363-0c586b88f2c6",
-            "group": "Tilleggsutstyr",
-            "groupKey": null,
-            "name": "Hengerfeste",
-            "key": null
-          },
-          {
-            "id": "43ed377c-df71-4715-b3fd-65900404e5e0",
-            "groupId": "e4d16fa4-fcfd-4d6a-aa6c-daed6a619bee",
-            "group": "Drivstoff",
-            "groupKey": "FUEL_TYPE",
-            "name": "Bensin",
-            "key": "GASOLINE"
-          },
-          {
-            "id": "270b126a-f0fb-4a35-a2aa-d10bbfade51d",
-            "groupId": "5f461b70-6c1c-4c51-88f8-5850358620e6",
-            "group": "Hjuldrift",
-            "groupKey": "DRIVETRAIN",
-            "name": "Firehjulstrekk",
-            "key": "4WD"
-          },
-          {
-            "id": "9916a0b1-6874-4859-be7a-3d7913d774e0",
-            "groupId": "abd92946-2c62-42e4-9da6-1f7d69e0b791",
-            "group": "Dyr",
-            "groupKey": null,
-            "name": "Dyrefri",
-            "key": null
-          },
-          {
-            "id": "e0292b33-6689-4eae-8467-3141588816fa",
-            "groupId": "6a8fbe59-3ec1-4824-a363-0c586b88f2c6",
-            "group": "Tilleggsutstyr",
-            "groupKey": null,
-            "name": "Takbøyler",
-            "key": null
-          },
-          {
-            "id": "24089205-a21d-417b-84b0-d67c07f187a5",
-            "groupId": "945f539f-dcbf-4fa9-a53b-1f14a05e8a78",
-            "group": "Girkasse",
-            "groupKey": "TRANSMISSION",
-            "name": "Automatgir",
-            "key": "AUTOMATIC"
-          }
-        ],
-        "fuelCards": [
-          {
-            "name": "ST1",
-            "pin": "0000"
-          },
-          {
-            "name": "Circle K",
-            "pin": "0000"
-          }
-        ],
-        "damages": [
-          {
-            "reportedOnReservationId": "e6f6527b-09bd-4450-af16-c5761f7fca66",
-            "description": "Panser, forskjerm venstre, riper",
-            "pictures": [
-              {
-                "url": "/api/pictures/damage-pictures/cda284c9-d3a8-408a-87a6-d69ad98a880e"
-              }
-            ]
-          }
-        ],
-        "fuelLevel": null,
-        "state": "AVAILABLE"
-      }
-    ],
-    "car": {
-      "id": "121ce60e-edcd-44ee-b0fe-54f9836057ea",
-      "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-      "organizationName": "Bildeleringen",
-      "licensePlate": "EK10001",
-      "carNumber": "1042",
-      "supportPhoneNumber": "+4753699010",
-      "iconUrl": "/car-icons/bildeleringen/toyota-rav4-black.webp",
-      "model": "Toyota RAV4",
-      "about": "Antall seter: 5. \nElektrisk bakluke:\nBakluken åpnes ved å trykke og holde bryteren inne i til det kommer en pipelyd. \nBruk enten bryteren på bakluken som du vanligvis ville åpnet den med eller egen bryter ved rattstammen, \nBakluken lukkes ved å trykke på bryteren på undersiden av bakluken.\nIkke bruk makt for å åpne eller lukke bakluken manuelt, det kan skade mekanismen.\n\nBilen har plug-in hybrid og kan lades for å kjøre elektrisk.",
-      "parkingDescription": null,
-      "chargingBay": null,
-      "category": "SUV",
-      "fuelInstructions": null,
-      "roadsideAssistancePhoneNo": "+4780033105",
-      "roadsideAssistanceAbroadPhoneNo": "+4722717105",
-      "chargingCableType": null,
-      "properties": [
-        {
-          "id": "9a2a6e16-e289-4504-9d07-c4aa05a4efd9",
-          "groupId": "6a8fbe59-3ec1-4824-a363-0c586b88f2c6",
-          "group": "Tilleggsutstyr",
-          "groupKey": null,
-          "name": "Hengerfeste",
-          "key": null
-        },
-        {
-          "id": "43ed377c-df71-4715-b3fd-65900404e5e0",
-          "groupId": "e4d16fa4-fcfd-4d6a-aa6c-daed6a619bee",
-          "group": "Drivstoff",
-          "groupKey": "FUEL_TYPE",
-          "name": "Bensin",
-          "key": "GASOLINE"
-        },
-        {
-          "id": "270b126a-f0fb-4a35-a2aa-d10bbfade51d",
-          "groupId": "5f461b70-6c1c-4c51-88f8-5850358620e6",
-          "group": "Hjuldrift",
-          "groupKey": "DRIVETRAIN",
-          "name": "Firehjulstrekk",
-          "key": "4WD"
-        },
-        {
-          "id": "9916a0b1-6874-4859-be7a-3d7913d774e0",
-          "groupId": "abd92946-2c62-42e4-9da6-1f7d69e0b791",
-          "group": "Dyr",
-          "groupKey": null,
-          "name": "Dyrefri",
-          "key": null
-        },
-        {
-          "id": "e0292b33-6689-4eae-8467-3141588816fa",
-          "groupId": "6a8fbe59-3ec1-4824-a363-0c586b88f2c6",
-          "group": "Tilleggsutstyr",
-          "groupKey": null,
-          "name": "Takbøyler",
-          "key": null
-        },
-        {
-          "id": "24089205-a21d-417b-84b0-d67c07f187a5",
-          "groupId": "945f539f-dcbf-4fa9-a53b-1f14a05e8a78",
-          "group": "Girkasse",
-          "groupKey": "TRANSMISSION",
-          "name": "Automatgir",
-          "key": "AUTOMATIC"
-        }
-      ],
-      "fuelCards": [
-        {
-          "name": "ST1",
-          "pin": "0000"
-        },
-        {
-          "name": "Circle K",
-          "pin": "0000"
-        }
-      ],
-      "damages": [
-        {
-          "reportedOnReservationId": "e6f6527b-09bd-4450-af16-c5761f7fca66",
-          "description": "Panser, forskjerm venstre, riper",
-          "pictures": [
-            {
-              "url": "/api/pictures/damage-pictures/cda284c9-d3a8-408a-87a6-d69ad98a880e"
-            }
-          ]
-        }
-      ],
-      "fuelLevel": null
-    },
-    "iconUrl": "/car-icons/bildeleringen/toyota-rav4-black.webp",
-    "reservationNumber": "1597840",
-    "price": {
-      "currency": "Kr",
-      "total": 1609.8,
-      "lines": [
-        {
-          "price": 500,
-          "quantity": 1,
-          "total": 500,
-          "description": "Levert bil for sent >30m - Levert 23.05.2024 kl 00:42",
-          "unit": ""
-        },
-        {
-          "price": 10,
-          "quantity": 10,
-          "total": 100,
-          "description": "Egenandelsreduksjon",
-          "unit": ""
-        },
-        {
-          "price": 49,
-          "quantity": 1,
-          "total": 49,
-          "description": "Startavgift",
-          "unit": ""
-        },
-        {
-          "price": 2.4,
-          "quantity": 17,
-          "total": 40.8,
-          "description": "Over 100 km",
-          "unit": ""
-        },
-        {
-          "price": 2.4,
-          "quantity": 100,
-          "total": 240,
-          "description": "Første 100 km",
-          "unit": ""
-        },
-        {
-          "price": 68,
-          "quantity": 10,
-          "total": 680,
-          "description": "Timepris",
-          "unit": ""
-        }
-      ]
-    },
-    "superDamageWaiver": true,
-    "carWasDamaged": false,
-    "invoiced": true,
-    "freeIfNoTrips": false,
-    "noTrips": false,
-    "canStartNow": false,
-    "isStillDriving": false,
+    "effectiveStart": "2024-05-22T11:45:00",
+    "effectiveEnd": "2024-05-23T00:40:00",
+    "ended": "2024-05-23T09:05:12.104210",
     "state": "PAST",
     "notes": "Eksempel turkategori",
-    "reservedBy": {
-      "id": "00000000-0000-0000-0000-000000000000",
-      "name": "Ola Nordmann",
-      "email": "ola@example.com",
-      "phoneNo": "+4700000000",
-      "partners": [],
-      "oidcId": null,
-      "driversLicenseValid": true,
-      "verifiedSsn": false,
-      "notificationsPermitted": true
-    },
-    "invoiceLines": [
-      {
-        "id": "636e3b3d-f62a-434f-a494-6296719a3db1",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "341",
-        "productName": "Levert bil for sent >30m",
-        "description": "Levert bil for sent >30m - Levert 23.05.2024 kl 00:42",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "29c5aa11-b4e9-4e09-afcb-7584f4931529",
-        "total": 500,
-        "quantity": 1,
-        "price": 500
-      },
-      {
-        "id": "6de6b7d8-027b-4f32-a516-a6972403529c",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "240",
-        "productName": "Redusert egenandel",
-        "description": "Egenandelsreduksjon",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "42278399-b4b0-402f-862a-48199317ab80",
-        "total": 100,
-        "quantity": 10,
-        "price": 10
-      },
-      {
-        "id": "9141215a-f79a-47ae-beae-a4bef4e625bb",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "200",
-        "productName": "Startavgift",
-        "description": "Startavgift",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "2c2d59c7-9055-471f-9b46-83683cfed2d0",
-        "total": 49,
-        "quantity": 1,
-        "price": 49
-      },
-      {
-        "id": "e2e162ab-6bfd-4370-b650-9f306bacaf4e",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "221",
-        "productName": "Fra 101 km",
-        "description": "Over 100 km",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "b5063396-6389-433f-b337-2d940f0bc669",
-        "total": 40.8,
-        "quantity": 17,
-        "price": 2.4
-      },
-      {
-        "id": "1896c173-c890-4a7d-8004-d0574b951715",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "220",
-        "productName": "Inntil 100 km",
-        "description": "Første 100 km",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "54ee39cb-891b-4e02-b546-a7658d3f439e",
-        "total": 240,
-        "quantity": 100,
-        "price": 2.4
-      },
-      {
-        "id": "9e5bc5f2-82cc-4acb-a9af-2dbbbe6fe2f2",
-        "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-        "organizationName": "Bildeleringen",
-        "invoiceNumber": null,
-        "productNumber": "210",
-        "productName": "Omsetning time",
-        "description": "Timepris",
-        "reservationNumber": "1597840",
-        "memberNo": "100000",
-        "invoiceId": null,
-        "productId": "7513abe6-85ea-4f5d-8866-bf96fb2f1ebf",
-        "total": 680,
-        "quantity": 10,
-        "price": 68
-      }
-    ],
-    "location": {
-      "id": "bac2090b-e3cb-42d5-b292-c64b534bb25c",
-      "description": "Gateparkering ved Eksempelveien 1.",
-      "name": "Eksempelveien",
-      "canDialToOpen": false,
-      "hasDialToOpen": false
-    },
-    "canceled": null
+    "model": "Toyota RAV4",
+    "licensePlate": "EK10001",
+    "iconUrl": "/car-icons/bildeleringen/toyota-rav4-black.webp",
+    "location": "Eksempelveien"
   },
   {
-    "id": "10ed7126-ec82-4d40-b3ae-6562f4e43125",
-    "organizationId": "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0",
-    "organizationName": "Bildeleringen",
-    "drivenKm": 0,
+    "id": "90c3e96c-4c18-4cb1-ab27-33a4c9f4d6a5",
+    "reservationNumber": "1000002",
     "membershipId": "00000000-0000-0000-0000-000000000001",
-    "start": "2024-05-23T17:30:00",
-    "end": "2024-05-23T17:43:14.247093",
+    "start": "2024-04-30T12:00:00",
+    "end": "2024-04-30T21:00:00",
+    "effectiveStart": "2024-04-30T12:00:00",
+    "effectiveEnd": "2024-04-30T21:00:00",
+    "ended": null,
+    "state": "CANCELED",
+    "notes": null,
+    "model": "Toyota Corolla STV",
+    "licensePlate": "EK10002",
+    "iconUrl": "/car-icons/bildeleringen/toyota-corolla-black.webp",
+    "location": "Eksempelveien"
+  },
+  {
+    "id": "714de833-7751-4fd1-a596-a3c150442ba7",
+    "reservationNumber": "1000001",
+    "membershipId": "00000000-0000-0000-0000-000000000001",
+    "start": "2024-02-18T10:30:00",
+    "end": "2024-02-18T11:30:00",
+    "effectiveStart": "2024-02-18T10:30:00",
+    "effectiveEnd": "2024-02-18T11:30:00",
+    "ended": "2024-02-18T11:30:00",
     "state": "PAST",
-    "noTrips": true,
-    "price": {
-      "currency": "Kr",
-      "total": 0,
-      "lines": []
-    }
+    "notes": "Eksempel turkategori",
+    "model": "Toyota Corolla STV",
+    "licensePlate": "EK10002",
+    "iconUrl": "/car-icons/bildeleringen/toyota-corolla-black.webp",
+    "location": "Eksempelveien"
   }
 ]
