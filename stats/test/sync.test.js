@@ -587,17 +587,21 @@ test("500 på én detalj mellom vellykkede nullstiller telleren for ulike id-er"
   assert.equal(result.failed, 4);
 });
 
-test("brukeren får vite at reservasjoner mangler detaljer og prøves igjen", () => {
-  const synced = describeSyncResult({ status: "SYNCED", done: 30, total: 30, failedThisRun: 1, failed: 1 });
-  assert.match(synced, /Hentet 29 av 30/);
-  assert.match(synced, /1 reservasjon mangler detaljer/);
-  assert.match(synced, /prøves igjen/);
+test("brukeren får vite at turer mangler detaljer og prøves igjen", () => {
+  const one = describeSyncResult({ status: "SYNCED", done: 30, total: 30, failedThisRun: 1, failed: 1 });
+  assert.equal(one, "1 tur mangler detaljer. Den prøves igjen senere.");
 
-  const cached = describeSyncResult({ status: "CACHED", count: 30, failed: 3 });
-  assert.match(cached, /3 reservasjoner mangler detaljer/);
-  assert.match(cached, /prøves igjen/);
+  const many = describeSyncResult({ status: "CACHED", count: 30, failed: 3 });
+  assert.equal(many, "3 turer mangler detaljer. De prøves igjen senere.");
 
   assert.equal(describeSyncResult({ status: "CACHED", count: 30, failed: 0 }), null);
+});
+
+test("rå feiltekst når ikke brukeren", () => {
+  for (const error of ["API-feil 500", "Max retries exceeded", "NetworkError when attempting to fetch resource."]) {
+    const message = describeSyncResult({ status: "PAUSED", error, done: 5, total: 10 });
+    assert.equal(message, "Synkroniseringen stoppet. Prøv igjen om litt. Hentet 5 av 10.");
+  }
 });
 
 // ---------- Lease etter tid ----------
