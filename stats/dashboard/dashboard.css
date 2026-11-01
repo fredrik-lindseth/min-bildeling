@@ -10,14 +10,14 @@
   --color-text-secondary: #5f6672;
   --color-text-tertiary: #8a8f9a;
   --color-accent: #2a66ab;
-  --color-accent-light: rgba(74, 144, 217, 0.1);
+  --color-accent-light: rgba(42, 102, 171, 0.1);
   --color-accent-hover: #1f5592;
   --color-accent-text: #ffffff;
   --color-header-bg: #ffffff;
   --color-header-border: #e2e5ea;
   --color-nav-bg: #ffffff;
   --color-nav-border: #e2e5ea;
-  --color-nav-active-bg: rgba(74, 144, 217, 0.1);
+  --color-nav-active-bg: rgba(42, 102, 171, 0.1);
   --color-nav-active-text: #2a66ab;
   --color-progress-bg: #e2e5ea;
   --color-progress-fill: #2a66ab;
@@ -28,11 +28,11 @@
   --color-disabled-text: #555b66;
   --color-card-shadow: rgba(0, 0, 0, 0.04);
   --color-heatmap-empty: #f0f2f5;
-  --color-heatmap-fill: rgba(74, 144, 217, 1);
+  --color-heatmap-fill: rgba(42, 102, 171, 1);
   --color-heatmap-text: #5f6672;
   --color-empty-text: #8a8f9a;
   --color-link: #2a66ab;
-  --color-rank-bg: rgba(74, 144, 217, 0.08);
+  --color-rank-bg: rgba(42, 102, 171, 0.08);
   --color-rank-text: #2a66ab;
   --color-section-divider: #e2e5ea;
 
@@ -248,7 +248,7 @@ body {
   cursor: pointer;
   border: none;
   text-decoration: none;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease;
   font-family: var(--font-body);
 }
 
@@ -1015,10 +1015,6 @@ a:focus-visible {
 }
 
 /* ---- Egne nøkkelord ---- */
-.keyword-card:hover {
-  transform: none;
-}
-
 .keyword-card__summary {
   display: flex;
   align-items: baseline;
