@@ -24,8 +24,8 @@ function fmtWindow(w) {
 
 function status(w) {
   // latestEnd er naiv lokal ISO uten Z → new Date() tolker den som lokal tid.
-  if (new Date(w.latestEnd) <= new Date()) return "utløpt";
-  return w.active ? "aktiv" : "av";
+  if (new Date(w.latestEnd) <= new Date()) return " · utløpt";
+  return "";
 }
 
 function fmtTime(iso) {
@@ -38,13 +38,13 @@ async function render() {
   const ul = document.getElementById("watch-list");
   ul.innerHTML = "";
   if (!watches.length) {
-    ul.innerHTML = "<li>Ingen overvåkninger ennå. Lag en fra «Overvåk dette søket» i finneren.</li>";
+    ul.innerHTML = "<li>Ingen overvåkninger. Lag en med «Overvåk dette søket» i Fleksibelt søk.</li>";
   }
   for (const w of watches) {
     const li = document.createElement("li");
     const checked = w.active ? "checked" : "";
     li.innerHTML =
-      `<strong>${w.label}</strong> · ${status(w)}<br>` +
+      `<strong>${w.label}</strong>${status(w)}<br>` +
       `<span class="muted">${fmtWindow(w)} · minst ${w.minHours} t` +
       (w.lastChecked ? ` · sjekket ${fmtTime(w.lastChecked)}` : " · ikke sjekket") + `</span> ` +
       `<label><input type="checkbox" data-toggle="${w.id}" ${checked}> aktiv</label> ` +
@@ -59,7 +59,7 @@ async function render() {
   // En reinstallert utvidelse kan ha adressen i storage, men ha mistet tilgangen.
   const pattern = originPatternFor(savedBackendUrl);
   if (pattern && !(await api.permissions.contains({ origins: [pattern] }))) {
-    showMsg("Utvidelsen mangler tilgang til backend-URL-en. Trykk Lagre for å gi den.", true);
+    showMsg("Mangler tilgang til backend-URL-en. Trykk Lagre.", true);
   }
 }
 
@@ -89,7 +89,7 @@ document.getElementById("set-save").addEventListener("click", () => {
     : Promise.resolve(true);
   granted.then(async (ok) => {
     if (!ok) {
-      showMsg("Tilgang til backend-URL-en ble ikke gitt. Innstillingene er ikke lagret.", true);
+      showMsg("Tilgang avslått. Ingenting er lagret.", true);
       return;
     }
     const oldPattern = originPatternFor(savedBackendUrl);
@@ -104,7 +104,10 @@ document.getElementById("set-save").addEventListener("click", () => {
     savedBackendUrl = backend.url;
     document.getElementById("set-url").value = backend.url;
     showMsg("Lagret.");
-  }).catch((err) => showMsg(`Kunne ikke lagre: ${err.message}`, true));
+  }).catch((err) => {
+    console.warn("[watches] lagring feilet:", err);
+    showMsg("Kunne ikke lagre. Prøv igjen.", true);
+  });
 });
 
 render();

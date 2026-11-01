@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Bildeleringen Fleksibel",
   "version": "0.2.0",
-  "description": "Fleksibelt booking-søk for dele.no: finn når en bil faktisk er ledig",
+  "description": "Finn når en bil hos dele.no er ledig",
   "permissions": ["storage", "scripting", "alarms", "notifications"],
   "host_permissions": ["*://app.dele.no/*"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],

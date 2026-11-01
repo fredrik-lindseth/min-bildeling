@@ -14,5 +14,5 @@ api.runtime.sendMessage({ type: "GET_AUTH_STATUS" }).then((res) => {
   const status = document.getElementById("status");
   status.textContent = res && res.hasAuth
     ? "Innlogget på dele.no"
-    : "Åpne app.dele.no og logg inn først";
+    : "Logg inn på app.dele.no først";
 });

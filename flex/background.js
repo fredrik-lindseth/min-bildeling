@@ -200,9 +200,9 @@ ensureAlarm();
 function summaryText(watch, hits) {
   if (hits.length === 1) {
     const h = hits[0];
-    return `${h.model} ${h.carNumber} ledig ${Math.round(h.blockHours)} t ved ${h.location.name}`;
+    return `${h.model} #${h.carNumber} ledig ${Math.round(h.blockHours)} t ved ${h.location.name}`;
   }
-  return `${hits.length} biler ledige ≥ ${watch.minHours} t ved ${watch.placeName}`;
+  return `${hits.length} biler ledige minst ${watch.minHours} t ved ${watch.placeName}`;
 }
 
 function toPayloadHit(h) {

@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bildeleringen Fleksibel</title>
+  <title>Fleksibelt søk</title>
   <link rel="stylesheet" href="finder.css" />
 </head>
 <body>
   <header class="header">
     <div class="header__inner">
       <span class="header__title">Fleksibelt søk</span>
-      <span class="header__sub">Finn når bilen faktisk er ledig</span>
+      <span class="header__sub">Finn når en bil er ledig</span>
     </div>
   </header>
 
@@ -44,7 +44,7 @@
           </div>
           <div>
             <span class="mini">Til kl.</span>
-            <select id="endTime" class="control" aria-label="Slutttid"></select>
+            <select id="endTime" class="control" aria-label="Sluttid"></select>
           </div>
         </div>
         <div class="range-summary" id="rangeSummary" aria-live="polite"></div>
@@ -53,12 +53,12 @@
       <fieldset class="field duration">
         <legend>Varighet</legend>
         <div class="seg">
-          <label><input type="radio" name="mode" value="whole" checked /> Hele vinduet</label>
+          <label><input type="radio" name="mode" value="whole" checked /> Hele tidsrommet</label>
           <label><input type="radio" name="mode" value="duration" /> Bestemt lengde</label>
         </div>
         <div class="duration__hours is-disabled" id="hoursRow">
           <input type="number" id="hours" class="control" min="1" value="24" aria-label="Antall timer" />
-          <span>timer i vinduet</span>
+          <span>timer</span>
         </div>
       </fieldset>
 
@@ -94,15 +94,15 @@
       </div>
 
       <div class="watch-create">
-        <label for="watch-minhours">Varsle når ledig minst</label>
-        <input id="watch-minhours" type="number" min="1" step="1" value="24" aria-label="Minste sammenhengende timer" /> t
+        <label for="watch-minhours">Varsle når en bil er ledig minst</label>
+        <input id="watch-minhours" type="number" min="1" step="1" value="24" /> timer
         <button id="watch-save" type="button">Overvåk dette søket</button>
         <p id="watch-msg" class="watch-msg" role="status"></p>
       </div>
     </form>
 
     <section id="results" class="results" aria-live="polite">
-      <p class="hint">Velg tidsrom og trykk Søk.</p>
+      <p class="hint">Velg posisjon og tidsrom, og trykk Søk.</p>
     </section>
   </main>
 

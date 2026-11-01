@@ -15,7 +15,7 @@ function promisify(fn) {
     });
 }
 
-// Storage wrapper — always returns promises
+// Storage wrapper, always returns promises
 const storage = {
   async get(keys) {
     if (

@@ -15,18 +15,18 @@ export function parseBackendUrl(input) {
   try {
     u = new URL(raw);
   } catch {
-    throw new Error("Backend-URL er ikke en gyldig adresse.");
+    throw new Error("Ugyldig adresse.");
   }
 
   const isLocal = LOCAL_HOSTS.has(u.hostname);
   if (u.protocol !== "https:" && !(u.protocol === "http:" && isLocal)) {
-    throw new Error("Backend-URL må bruke https (http er bare lov mot localhost).");
+    throw new Error("Bruk https. http går bare mot localhost.");
   }
   if (u.username || u.password) {
-    throw new Error("Backend-URL kan ikke ha brukernavn eller passord. Bruk token-feltet.");
+    throw new Error("Fjern brukernavn og passord fra adressen. Bruk Token-feltet.");
   }
   if (u.search || u.hash) {
-    throw new Error("Backend-URL kan ikke ha ? eller #. Oppgi bare adressen til backenden.");
+    throw new Error("Fjern ? og # fra adressen.");
   }
 
   const path = u.pathname.replace(/\/+$/, "");

@@ -2,6 +2,7 @@ import { solve, splitPairs, ORG_BILDELERINGEN } from "./lib/flex.js";
 import { parseLocalISO, toLocalISO } from "./lib/format.js";
 import { getPlaces, savePlace } from "./lib/storage.js";
 import { stationPlaces } from "./lib/places.js";
+import { searchErrorText } from "./lib/search-api.js";
 
 // "Uansett" avstand = hele regionen. Taket holder Bildeleringen sine
 // fjern-biler (beboer-restringerte biler i Tromsø, ~1200 km) ute av et
@@ -141,7 +142,7 @@ async function loadStations() {
   if (!res || res.error) {
     if (!savedPlaces.length) {
       setMsg(document.getElementById("placeMsg"),
-        "Stasjonslisten kommer når du er innlogget på app.dele.no. Du kan bruke «Min posisjon» så lenge.", "");
+        "Logg inn på app.dele.no for å se stasjonene. Bruk «Min posisjon» så lenge.", "");
     }
     return;
   }
@@ -165,7 +166,7 @@ async function onPlaceChange() {
       setMsg(msg, "", "");
     } catch {
       renderPlaceOptions("");
-      setMsg(msg, "Fikk ikke tak i posisjonen. Velg en stasjon i stedet.", "err");
+      setMsg(msg, "Fant ikke posisjonen. Velg en stasjon.", "err");
     }
     return;
   }
@@ -181,7 +182,7 @@ async function onPlaceSave() {
   const saved = { id: `saved:${Date.now()}`, name, point: place.point };
   savedPlaces = await savePlace(saved);
   renderPlaceOptions(saved.id);
-  setMsg(msg, `«${name}» er lagret og velges først neste gang.`, "ok");
+  setMsg(msg, `Lagret «${name}».`, "ok");
 }
 
 async function onWatchSave() {
@@ -191,10 +192,10 @@ async function onWatchSave() {
   const minHours = Number(document.getElementById("watch-minhours").value);
   const windowHours = (wish.latestEnd - wish.earliestStart) / 3600000; // Date-diff i ms
   if (!wish.point) { setMsg(msg, "Velg posisjon først.", "err"); return; }
-  if (wish.latestEnd <= wish.earliestStart) { setMsg(msg, "Sluttidspunktet må være etter starten.", "err"); return; }
-  if (!minHours || minHours <= 0) { setMsg(msg, "Sett et positivt timetall.", "err"); return; }
+  if (wish.latestEnd <= wish.earliestStart) { setMsg(msg, "Sluttiden må være etter starten.", "err"); return; }
+  if (!minHours || minHours <= 0) { setMsg(msg, "Skriv minst 1 time.", "err"); return; }
   if (minHours > windowHours) {
-    setMsg(msg, `Terskelen (${minHours} t) er større enn vinduet (${Math.floor(windowHours)} t). Da kan varselet aldri fyre.`, "err");
+    setMsg(msg, `Du ber om ${minHours} t, men tidsrommet er bare ${Math.floor(windowHours)} t.`, "err");
     return;
   }
   await api.runtime.sendMessage({ type: "ADD_WATCH", watch: {
@@ -205,7 +206,7 @@ async function onWatchSave() {
     latestEnd: toLocalISO(wish.latestEnd),
     minHours,
   }});
-  setMsg(msg, "Overvåkning lagret. Se «Mine overvåkninger».", "ok");
+  setMsg(msg, "Lagret i «Mine overvåkninger».", "ok");
 }
 
 function setMsg(el, text, cls) {
@@ -378,12 +379,12 @@ async function runSearch() {
   const wish = readWish();
 
   if (!wish.point) {
-    results.replaceChildren(el("p", { class: "hint", text: "Velg posisjon først: et lagret sted, «Min posisjon» eller en stasjon." }));
+    results.replaceChildren(el("p", { class: "hint", text: "Velg posisjon først." }));
     document.getElementById("place").focus();
     return;
   }
   if (wish.latestEnd <= wish.earliestStart) {
-    results.replaceChildren(el("p", { class: "hint", text: "Sluttidspunktet må være etter starten." }));
+    results.replaceChildren(el("p", { class: "hint", text: "Sluttiden må være etter starten." }));
     return;
   }
   results.replaceChildren(el("p", { class: "hint", text: "Søker…" }));
@@ -415,10 +416,8 @@ function renderError(results, code) {
     autoConnect(results);
     return;
   }
-  const text = code
-    ? `Noe gikk galt: ${code}`
-    : "Fikk ikke svar fra utvidelsen. Sjekk at app.dele.no er åpen, og prøv igjen.";
-  results.replaceChildren(el("p", { class: "hint", text }));
+  if (code) console.warn("[finder] søk feilet:", code);
+  results.replaceChildren(el("p", { class: "hint", text: searchErrorText(code) }));
 }
 
 async function autoConnect(results) {
@@ -439,7 +438,7 @@ async function autoConnect(results) {
   }
   // Timeout: sannsynligvis faktisk ikke innlogget. Gi en fokusert vei inn.
   const box = el("div", { class: "hint hint--action" }, [
-    el("p", { text: "Vi åpnet app.dele.no, men fant ingen innlogging. Logg inn der, så prøver vi igjen." }),
+    el("p", { text: "Fant ingen innlogging. Logg inn på app.dele.no og trykk Søk igjen." }),
   ]);
   const btn = el("button", { type: "button", class: "car__open", text: "Gå til app.dele.no →" });
   btn.addEventListener("click", async () => {
@@ -456,6 +455,10 @@ function fmtKm(m) {
   return Number.isInteger(km) ? String(km) : km.toFixed(1).replace(".", ",");
 }
 
+function fmtDistance(m) {
+  return m >= 1000 ? `${fmtKm(m)} km` : `${Math.round(m)} m`;
+}
+
 // Et "short"-treff er boss når den lengste ledige blokken dekker en bitteliten
 // del av det du faktisk trenger (f.eks. 1t av et flerdøgnsvindu). Skjul disse
 // bak «Vis alle» i stedet for å fylle bunnen med ubrukelige rader.
@@ -468,7 +471,7 @@ function isWeak(f, wish) {
 
 function render(container, out, wish, searchResult) {
   container.replaceChildren();
-  bucket(container, "Ledig hele ditt vindu", out.whole, wish, "ok");
+  bucket(container, "Ledig hele tidsrommet", out.whole, wish, "ok");
 
   const strong = out.adjusted.filter((f) => !isWeak(f, wish));
   const weak = out.adjusted.filter((f) => isWeak(f, wish));
@@ -498,7 +501,7 @@ function render(container, out, wish, searchResult) {
   }
   if (!out.whole.length && !out.adjusted.length && !out.siblings.length && !widerAdded) {
     container.append(el("p", { class: "hint",
-      text: "Ingen biler passer i dette tidsrommet. Prøv et større vindu, lengre gangavstand, eller flere biltyper." }));
+      text: "Ingen biler passer. Prøv et lengre tidsrom, større gangavstand eller flere biltyper." }));
   }
 }
 
@@ -538,11 +541,11 @@ function carCard(f, wish) {
     ]),
     el("span", { class: "car__price", text: `${f.hourlyRate} kr/t` }),
   ]));
-  card.append(el("div", { class: "car__meta", text: `${f.location.name} · ${Math.round(f.location.distance)} m unna` }));
+  card.append(el("div", { class: "car__meta", text: `${f.location.name} · ${fmtDistance(f.location.distance)} unna` }));
 
   if (f.kind === "short") {
     const t = Math.round((f.bestBlockMinutes / 60) * 10) / 10;
-    card.append(el("div", { class: "car__note", text: `Kortere enn ønsket: lengste ledige blokk er ~${t} t` }));
+    card.append(el("div", { class: "car__note", text: `Bare ledig ~${String(t).replace(".", ",")} t i strekk` }));
   }
 
   card.append(timeline(f, wish));
@@ -554,7 +557,7 @@ function carCard(f, wish) {
     const url = `https://app.dele.no/findcar?start=${toLocalISO(f.proposed.start)}&end=${toLocalISO(f.proposed.end)}`;
     const label = f.coversWholeWindow ? "Åpne i dele.no →" : "Åpne justert tid →";
     foot.append(el("a", { class: "car__open", href: url, target: "_blank", rel: "noopener",
-      text: label, title: `Åpner dele.no på ${fmtRange(f.proposed.start, f.proposed.end)}, velg «${f.location.name}»` }));
+      text: label, title: `Velg «${f.location.name}» i dele.no` }));
   }
   card.append(foot);
   return card;

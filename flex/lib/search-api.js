@@ -22,6 +22,15 @@ async function fetchWithRetry(url, token, retries = MAX_RETRIES) {
   throw new Error("Max retries exceeded");
 }
 
+// Feilkodene over er for console. Brukeren får en kort norsk melding om hva
+// som kan gjøres. null betyr at utvidelsen selv ikke svarte.
+export function searchErrorText(code) {
+  if (!code) return "Utvidelsen svarer ikke. Last siden på nytt.";
+  if (code === "Max retries exceeded") return "dele.no er travel nå. Prøv igjen om litt.";
+  if (code.startsWith("API error:")) return "dele.no svarte med en feil. Prøv igjen om litt.";
+  return "Fikk ikke kontakt med dele.no. Sjekk nettet og prøv igjen.";
+}
+
 // point: {lng, lat}. start/end: Date. Returnerer søkesvaret.
 export async function searchAvailability(point, start, end, token) {
   const location = encodeURIComponent(
