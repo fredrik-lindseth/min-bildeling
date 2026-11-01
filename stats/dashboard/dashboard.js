@@ -319,7 +319,19 @@ function scrollToHashOnce() {
   hashScrollDone = true;
   const id = decodeURIComponent(window.location.hash.slice(1));
   const target = id ? document.getElementById(id) : null;
-  if (!target?.classList.contains("section")) return;
+  if (!target) return;
+  // Lenken fra «Slik beregnes det» i popupen peker på selve panelet. Det
+  // åpnes, og siden ruller til knappen over det.
+  if (target.classList.contains("method-detail")) {
+    const toggle = target.previousElementSibling;
+    target.hidden = false;
+    toggle?.setAttribute("aria-expanded", "true");
+    (toggle ?? target).scrollIntoView({ behavior: "instant", block: "start" });
+    const section = target.closest(".section");
+    if (section) setActiveNav(section.id);
+    return;
+  }
+  if (!target.classList.contains("section")) return;
   target.scrollIntoView({ behavior: "instant", block: "start" });
   setActiveNav(id);
 }

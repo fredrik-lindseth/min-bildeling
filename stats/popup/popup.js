@@ -300,9 +300,10 @@ function openDashboard(hash = "") {
 dashboardLink.addEventListener("click", () => openDashboard());
 
 // Metoden og kildene for sparetallet står i bilregnestykket i dashboardet.
+// Panelet er lengre enn popupen har plass til, så dashboardet åpner det.
 savingsMethod.addEventListener("click", (e) => {
   e.preventDefault();
-  openDashboard("#bilregnestykket");
+  openDashboard("#ownership-method-detail");
 });
 
 // Initialize
