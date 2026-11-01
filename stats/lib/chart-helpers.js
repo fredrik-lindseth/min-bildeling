@@ -133,7 +133,9 @@ export function lineChartConfig(labels, data, label = "", { yTitle = "" } = {}) 
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 4,
-        tension: 0.3,
+        // Rette linjestykker. En glattet kurve finner opp verdier mellom
+        // månedene og kan gå under null eller over det høyeste punktet.
+        tension: 0,
         fill: false,
       }],
     },
