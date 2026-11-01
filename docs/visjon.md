@@ -6,7 +6,7 @@ Utvidelsen er for alle som er medlem i en Bilparaplyen-organisasjon på dele.no,
 
 ## Oversikt
 
-Popupen viser hva måneden har kostet så langt, sammenlignet med forrige måned, og besparelsen mot å eie bil. Dashboardet viser mønstrene: når på uken og døgnet du kjører, hvilke biler du bruker, hva en kilometer koster på korte og lange turer.
+Popupen viser hva måneden har kostet så langt, sammenlignet med forrige måned, og besparelsen mot å eie bil. Dashboardet viser mønstrene: når på uken og døgnet du kjører, hvilke biler du bruker og hva turene koster per kilometer.
 
 Trendene legger årene oppå hverandre, glatter med et rullerende tremånederssnitt og viser snittforbruket per måned på tvers av år, så det blir lettere å vite hva juli kommer til å koste.
 
