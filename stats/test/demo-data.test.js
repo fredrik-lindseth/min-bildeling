@@ -108,7 +108,8 @@ test("alle seksjoner har innhold og ytterpunktene synes", () => {
   assert.ok(valid.some((x) => x.start.startsWith("2026-10")), "og forrige måned");
 
   for (const year of [2024, 2025, 2026]) {
-    const own = estimateOwnershipCost(r, year);
+    // Samme dag som dataene er laget for, så 2026 er et år som pågår.
+    const own = estimateOwnershipCost(r, year, { now: NOW });
     assert.ok(own && own.savings > 0, `sparing ${year}`);
     const yearTrips = r.filter((x) => new Date(x.start).getFullYear() === year);
     assert.ok(co2Comparison(yearTrips).savedKg > 0, `CO₂ ${year}`);
