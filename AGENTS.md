@@ -28,19 +28,19 @@ Utvikling skjer via `firefox-devtools`-MCP-en, som styrer en **egen, dedikert Fi
 
 Reservasjonsobjekter fra dele.no bruker disse feltnavnene, IKKE det du kanskje ville gjettet:
 
-| Felt | Type | Beskrivelse |
-|---|---|---|
-| `price.total` | number | Kostnad i NOK (IKKE `totalPrice`) |
-| `price.lines[]` | array | Prislinjer: startavgift, timepris, km-pris, gebyr |
-| `drivenKm` | number/null | Kjørte km (IKKE `distance`) |
-| `car.model` | string | Bilmodell (IKKE `vehicleName`) |
-| `car.category` | string | Småbil / Minibil / Kombi / Stasjonsvogn / SUV / Varebil |
-| `car.properties[]` | array | `groupKey: "FUEL_TYPE"` → `name: "Bensin"/"Diesel"/"Elektrisitet"` |
-| `canceled` | datetime/null | null = ikke avbestilt (IKKE `status`) |
-| `noTrips` | boolean | Booket men ikke kjørt. Kan ha kostnad > 0 (gebyr). |
-| `notes` | string/null | Brukerens turnotater, brukes til auto-kategorisering |
-| `start`, `end` | datetime | ISO-strenger |
-| `created` | datetime | Opprettelsestidspunkt (for booking lead time) |
+| Felt               | Type          | Beskrivelse                                                        |
+| ------------------ | ------------- | ------------------------------------------------------------------ |
+| `price.total`      | number        | Kostnad i NOK (IKKE `totalPrice`)                                  |
+| `price.lines[]`    | array         | Prislinjer: startavgift, timepris, km-pris, gebyr                  |
+| `drivenKm`         | number/null   | Kjørte km (IKKE `distance`)                                        |
+| `car.model`        | string        | Bilmodell (IKKE `vehicleName`)                                     |
+| `car.category`     | string        | Småbil / Minibil / Kombi / Stasjonsvogn / SUV / Varebil            |
+| `car.properties[]` | array         | `groupKey: "FUEL_TYPE"` → `name: "Bensin"/"Diesel"/"Elektrisitet"` |
+| `canceled`         | datetime/null | null = ikke avbestilt (IKKE `status`)                              |
+| `noTrips`          | boolean       | Booket men ikke kjørt. Kan ha kostnad > 0 (gebyr).                 |
+| `notes`            | string/null   | Brukerens turnotater, brukes til auto-kategorisering               |
+| `start`, `end`     | datetime      | ISO-strenger                                                       |
+| `created`          | datetime      | Opprettelsestidspunkt (for booking lead time)                      |
 
 Full OpenAPI-spec i `docs/api/openapi.json`. Anonymiserte eksempler i `docs/api/sample-*.json`.
 
@@ -59,16 +59,16 @@ Bruk feil filter → feil tall uten synlig feil.
 
 Alt i `browser.storage.local`:
 
-| Nøkkel | Struktur | Oppdateres av |
-|---|---|---|
-| `reservations` | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms) | `lib/sync.js` |
-| `lastSync` | Timestamp (ms) for siste fullførte synk | `lib/sync.js` |
-| `syncState` | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js` |
-| `syncLock` | `{ owner, expiresAt }` eller null | `lib/sync.js` |
-| `syncHistory` | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }` | `lib/sync.js` |
-| `tripCategories` | `{ reservationId: categoryKey }` | dashboard (bruker-input) |
-| `transportData` | `{ "2025": { taxi: {...}, buss: {...} } }` | dashboard (bruker-input) |
-| `userKeywords` | `{ categoryKey: ["ord", ...] }` | dashboard (egne nøkkelord, import) |
+| Nøkkel           | Struktur                                                                                    | Oppdateres av                      |
+| ---------------- | ------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `reservations`   | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms)           | `lib/sync.js`                      |
+| `lastSync`       | Timestamp (ms) for siste fullførte synk                                                     | `lib/sync.js`                      |
+| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js`                      |
+| `syncLock`       | `{ owner, expiresAt }` eller null                                                           | `lib/sync.js`                      |
+| `syncHistory`    | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }`    | `lib/sync.js`                      |
+| `tripCategories` | `{ reservationId: categoryKey }`                                                            | dashboard (bruker-input)           |
+| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                  | dashboard (bruker-input)           |
+| `userKeywords`   | `{ categoryKey: ["ord", ...] }`                                                             | dashboard (egne nøkkelord, import) |
 
 Reservasjoner, lastSync og sync-nøklene er API-data. Rør dem ikke direkte. tripCategories, transportData og userKeywords er bruker-data. Slett aldri ved sync.
 
@@ -95,6 +95,7 @@ Integrasjonen skal tåle innsyn fra Dele. `docs/api-bruk.md` beskriver API-bruke
 - **Token:** Kan utløpe (401). background.js spør først content script via `tabs.sendMessage`. Hvis content-scriptet ikke er injisert (Firefox MV3-begrensning ved oppstart), faller den tilbake til `scripting.executeScript` som leser `localStorage("persist:data")` direkte. Derfor `scripting`-permission i `manifest.json`. Feiler stille hvis ingen app.dele.no-fane er åpen.
 
 Endepunkter:
+
 - `GET /api/reservations/historic?page=0&size=100&sort=start,desc&membershipId=<UUID>`
 - `GET /api/reservations/{id}`
 - Auth: `authorization`-header med bearer token fra `localStorage("persist:data")` på app.dele.no
