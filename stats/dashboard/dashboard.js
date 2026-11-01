@@ -54,6 +54,7 @@ import {
 } from "../lib/sync-page.js";
 
 import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
+import { createBackup, parseBackup, mergeBackup } from "../lib/backup.js";
 
 import {
   TRANSPORT_MODES,
@@ -2222,6 +2223,169 @@ async function toggleDevSample() {
 }
 
 initDevTools();
+
+// ---------- Sikkerhetskopi ----------
+
+const BACKUP_KEYS = ["tripCategories", "transportData", "userKeywords", "reservations", "lastSync"];
+
+function setBackupStatus(message, { error = false } = {}) {
+  const status = $("backup-status");
+  status.textContent = message;
+  status.classList.toggle("form-status--error", error);
+}
+
+// I demomodus ligger turene i minnet, ikke i lageret, før noe er importert.
+async function readBackupSource() {
+  const data = await storage.get(BACKUP_KEYS);
+  if (demo && !Array.isArray(data.reservations)) data.reservations = allReservations;
+  return data;
+}
+
+async function handleBackupExport() {
+  try {
+    const includeReservations = $("backup-include-trips").checked;
+    const backup = createBackup(await readBackupSource(), { includeReservations });
+    const today = new Date().toISOString().slice(0, 10);
+    downloadBlob(
+      new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }),
+      `bildeleringen-sikkerhetskopi-${today}.json`,
+    );
+    setBackupStatus(includeReservations
+      ? `Lagret kopi med ${formatTrips(backup.reservations.length)}.`
+      : "Lagret kopi uten turer.");
+  } catch (err) {
+    console.error("Backup export failed:", err);
+    setBackupStatus("Eksporten feilet. Prøv igjen.", { error: true });
+  }
+}
+
+const formatBackupDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+
+function describeBackupContents(backup) {
+  const items = [];
+  if (backup.reservations) items.push(formatTrips(backup.reservations.length));
+  const categories = Object.keys(backup.tripCategories).length;
+  if (categories > 0) items.push(formatCount(categories, "kategorivalg", "kategorivalg"));
+  const keywordLists = Object.values(backup.userKeywords);
+  const words = keywordLists.reduce((sum, list) => sum + list.length, 0);
+  if (words > 0) {
+    items.push(`${formatCount(words, "nøkkelord", "nøkkelord")} i ${formatCount(keywordLists.length, "kategori", "kategorier")}`);
+  }
+  const years = Object.keys(backup.transportData).sort();
+  if (years.length > 0) items.push(`Transporttall for ${years.join(", ")}`);
+  return items;
+}
+
+function confirmBackupImport(backup, skipped, exportedAt) {
+  const dialog = $("backup-dialog");
+  const date = new Date(exportedAt);
+  setText("backup-dialog-meta", Number.isNaN(date.getTime())
+    ? "Dette er med i filen:"
+    : `Laget ${formatBackupDate.format(date)}. Dette er med:`);
+
+  const list = $("backup-dialog-list");
+  list.replaceChildren(...describeBackupContents(backup).map((text) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    return li;
+  }));
+
+  const invalid = skipped.categories + skipped.transport + skipped.reservations;
+  const notes = ["Turer flettes på id, og de som alt er lagret, står."];
+  if (invalid > 0) notes.push(`${formatCount(invalid, "ugyldig oppføring", "ugyldige oppføringer")} hoppes over.`);
+  setText("backup-dialog-note", notes.join(" "));
+
+  $("backup-overwrite").checked = false;
+  dialog.returnValue = "";
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"
+      ? { overwrite: $("backup-overwrite").checked }
+      : null), { once: true });
+    dialog.showModal();
+    $("backup-dialog-cancel").focus();
+  });
+}
+
+// En synk holder turene i minnet og skriver dem tilbake, så importerte turer
+// kunne blitt borte. syncLock leses bare, den skrives aldri herfra.
+async function syncIsRunning() {
+  if (syncing) return true;
+  const { syncLock } = await storage.get(["syncLock"]);
+  return Boolean(syncLock && syncLock.expiresAt > Date.now());
+}
+
+function describeImport(counts, skippedTrips) {
+  const parts = [];
+  if (counts.reservationsAdded > 0) parts.push(formatTrips(counts.reservationsAdded));
+  const categories = counts.categoriesAdded + counts.categoriesReplaced;
+  if (categories > 0) parts.push(formatCount(categories, "kategorivalg", "kategorivalg"));
+  if (counts.keywordsAdded > 0) parts.push(formatCount(counts.keywordsAdded, "nøkkelord", "nøkkelord"));
+  const transport = counts.transportAdded + counts.transportReplaced;
+  if (transport > 0) parts.push(formatCount(transport, "transportrad", "transportrader"));
+
+  let message = parts.length > 0
+    ? `Importerte ${parts.join(", ").replace(/, ([^,]*)$/, " og $1")}.`
+    : "Alt i filen var lagret fra før.";
+  const kept = counts.categoriesKept + counts.transportKept;
+  if (kept > 0) message += ` ${kept} sto alt med en annen verdi og ble beholdt.`;
+  if (skippedTrips) message += " Turene ble ikke importert fordi en synk pågår. Prøv igjen etterpå.";
+  return message;
+}
+
+async function handleBackupImport(file) {
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    setBackupStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
+    return;
+  }
+  const result = parseBackup(parsed);
+  if (result.error) {
+    setBackupStatus(result.error, { error: true });
+    return;
+  }
+
+  const choice = await confirmBackupImport(result.backup, result.skipped, parsed?.exportedAt);
+  if (!choice) {
+    setBackupStatus("Import avbrutt.");
+    return;
+  }
+
+  try {
+    const incoming = { ...result.backup };
+    let skippedTrips = false;
+    if (incoming.reservations && await syncIsRunning()) {
+      incoming.reservations = null;
+      skippedTrips = true;
+    }
+    const { next, counts } = mergeBackup(await readBackupSource(), incoming, choice);
+    await storage.set(next);
+    setBackupStatus(describeImport(counts, skippedTrips));
+
+    if (demo) {
+      await renderAll(next.reservations ?? allReservations, null);
+    } else if (!(await loadStored()) && hasRendered) {
+      await renderAll(allReservations, renderedLastSync);
+    }
+    if (isDevMode() && !demo) refreshDevInfo();
+  } catch (err) {
+    console.error("Backup import failed:", err);
+    setBackupStatus("Importen feilet. Ingenting er endret.", { error: true });
+  }
+}
+
+function initBackup() {
+  $("backup-export").addEventListener("click", handleBackupExport);
+  $("backup-import").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    // Tøm, så samme fil kan velges igjen.
+    e.target.value = "";
+    if (file) await handleBackupImport(file);
+  });
+}
+
+initBackup();
 
 // Start
 init();

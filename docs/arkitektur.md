@@ -33,6 +33,8 @@ Alt ligger i `browser.storage.local`.
 
 `reservations`, `lastSync` og sync-nøklene er API-data som bare synken skriver. `tripCategories`, `transportData` og `userKeywords` er brukerdata og slettes aldri av synken.
 
+Unntaket er sikkerhetskopien nederst i dashbordet. `lib/backup.js` har rene funksjoner for den: `createBackup()` lager én fil med `format`, `version`, brukerdataene og valgfritt `reservations` og `lastSync`, `parseBackup()` validerer (og godtar de eldre enkeltfilene), og `mergeBackup()` fletter. Brukerdata legges bare til der de mangler, med mindre brukeren krysser av for å overskrive. Turer flettes på id, de lagrede står, og bare detaljsvar slipper gjennom. `lastSync` blir den nyeste av den lagrede og filens, så importerte turer uten `detailFetchedAt` ikke hentes på nytt. Sync-nøklene er aldri med, og importen av turer hoppes over mens `syncLock` er holdt, siden synken ellers ville skrevet over dem fra minnet.
+
 `reservations` inneholder bare detaljsvar, aldri listeelementer. Listesvaret mangler pris, km, `canceled`, `noTrips`, `car` og `created`, og har `location` som streng (se [api/README.md](api/README.md)). Et listeelement i `reservations` ville fått stats-funksjonene til å regne feil uten synlig feil. Id-er som venter på detalj, står i `syncState.pendingIds`.
 
 ### Filtrering

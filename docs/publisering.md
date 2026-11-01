@@ -36,15 +36,18 @@ Notatet til reviewer står på engelsk i [amo-listing.md](amo-listing.md). Lim d
 
 ## 3. Installer og verifiser i egen Firefox
 
+### Bytte til ny utgave
+
 Den nye gecko-id-en gir Firefox et nytt lager. Det som er lagret under den gamle id-en (`bildeleringen-stats@extension`), blir ikke med. Gjør derfor dette i den gamle utgaven før den fjernes:
 
-1. Dashbordet, Turkategorier: «Eksporter kategorier».
-2. Dashbordet, nøkkelordene under Turkategorier: «Eksporter JSON».
-3. Transportkalkulatoren har ingen eksport. Skriv ned tallene.
+1. Last den gamle utgaven inn på nytt fra denne koden, så den har «Sikkerhetskopi» nederst i dashbordet.
+2. Trykk «Eksporter alt» med «Ta med turene» på. Filen `bildeleringen-sikkerhetskopi-<dato>.json` har kategoriene, nøkkelordene, transporttallene, turene og `lastSync`, men ikke `syncState` eller `syncLock`.
 
-Reservasjonene trenger ingen eksport, de hentes på nytt fra dele.no.
+Fjern så den gamle utgaven, og installer den signerte xpi-en permanent: `about:addons`, tannhjulet, «Installer tillegg fra fil». Åpne dashbordet og velg «Importer» under Sikkerhetskopi. Dialogen viser hva filen har, og det som alt er lagret i den nye utgaven, står med mindre «Overskriv det som alt er lagret her» er krysset av. Turene flettes på id. Med turene og `lastSync` på plass henter neste synk bare nye turer, ikke hele historikken, og det sparer Dele for ett detaljkall per tur. Pågår en synk, hoppes turene over og resten importeres, så importer på nytt når synken er ferdig.
 
-Fjern så den gamle utgaven, og installer den signerte xpi-en permanent: `about:addons`, tannhjulet, «Installer tillegg fra fil». Importer kategoriene og nøkkelordene, og legg inn transporttallene igjen. Sjekk at:
+Har den gamle utgaven ikke Sikkerhetskopi, tar den samme importen også de eldre enkeltfilene: «Eksporter kategorier» under Turkategorier, «Eksporter JSON» for nøkkelordene og turkopien fra `?dev=1`. Transporttallene må da skrives inn igjen for hånd.
+
+Sjekk at:
 
 - popupen og dashbordet åpner, og synken går ferdig mens du er innlogget på app.dele.no
 - tallene stemmer med det du så i den gamle utgaven

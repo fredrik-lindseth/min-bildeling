@@ -454,6 +454,46 @@
     </section>
   </main>
 
+  <!-- Utenfor <main>, så en ny installasjon uten turer også kan importere. -->
+  <aside class="wrap" aria-labelledby="backup-title">
+    <section class="section section--backup" id="sikkerhetskopi">
+      <h2 class="section__title" id="backup-title">Sikkerhetskopi</h2>
+      <p class="backup__help">
+        Kategoriene, nøkkelordene og transporttallene dine finnes bare i denne nettleseren.
+        Ta en kopi før du bytter maskin eller installerer utvidelsen på nytt.
+      </p>
+      <label class="backup__option">
+        <input type="checkbox" id="backup-include-trips" checked>
+        Ta med turene, så slipper en ny installasjon å hente alt fra Dele på nytt
+      </label>
+      <div class="form-actions">
+        <button type="button" id="backup-export" class="btn">Eksporter alt</button>
+        <label class="btn keyword-import">
+          Importer
+          <input type="file" id="backup-import" accept="application/json,.json" class="visually-hidden">
+        </label>
+        <span id="backup-status" class="form-status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+  </aside>
+
+  <dialog id="backup-dialog" class="dialog" aria-labelledby="backup-dialog-title">
+    <form method="dialog">
+      <h2 class="dialog__title" id="backup-dialog-title">Importere sikkerhetskopi?</h2>
+      <p class="backup__meta" id="backup-dialog-meta"></p>
+      <ul class="backup__list" id="backup-dialog-list"></ul>
+      <label class="backup__option">
+        <input type="checkbox" id="backup-overwrite">
+        Overskriv det som alt er lagret her
+      </label>
+      <p class="backup__meta" id="backup-dialog-note"></p>
+      <div class="form-actions">
+        <button type="submit" value="cancel" id="backup-dialog-cancel" class="btn" autofocus>Avbryt</button>
+        <button type="submit" value="confirm" class="btn">Importer</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Utviklerverktøy, bare med ?dev=1. Utenfor <main> så panelet også vises
        i tom tilstand og når innloggingen mangler. -->
   <aside class="wrap" id="devtools-wrapper" aria-labelledby="devtools-title" hidden>
@@ -489,7 +529,7 @@
 
       <div class="panel">
         <h3 class="panel__title">Sikkerhetskopi</h3>
-        <p class="dev-help">Reservasjoner og synktidspunkt som JSON. Kategorier, transport og egne nøkkelord er ikke med.</p>
+        <p class="dev-help">Reservasjoner og synktidspunkt som JSON, og importen erstatter alle turene. Kategorier, transport og egne nøkkelord er bare med i «Sikkerhetskopi» lenger opp.</p>
         <div class="form-actions">
           <button type="button" id="dev-export-btn" class="btn">Eksporter data</button>
           <button type="button" id="dev-import-btn" class="btn">Importer data</button>
