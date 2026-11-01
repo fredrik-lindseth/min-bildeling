@@ -7,6 +7,7 @@
  */
 
 let probe = null;
+let normaliser = null;
 
 /**
  * En ferdig beregnet farge for en CSS-verdi, for eksempel
@@ -20,7 +21,14 @@ export function resolveColor(value) {
     document.body.appendChild(probe);
   }
   probe.style.color = value.startsWith("--") ? `var(${value})` : value;
-  return getComputedStyle(probe).color;
+  const color = getComputedStyle(probe).color;
+  // color-mix() beregnes til color(srgb …), som verken Chart.js sin
+  // fargeparser eller html2canvas leser. En canvas-kontekst gir den tilbake
+  // som #rrggbb.
+  if (!color.startsWith("color(")) return color;
+  normaliser ??= document.createElement("canvas").getContext("2d");
+  normaliser.fillStyle = color;
+  return normaliser.fillStyle;
 }
 
 // Chart.js formaterer akser og tooltips med nettleserens språk, som kan være

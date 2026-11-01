@@ -553,9 +553,11 @@ function renderHeatmapWithLabels(canvas, heatmapData) {
     }
   }
 
-  // Forklaringen under bruker de samme fem trinnene.
+  // Forklaringen under får de samme fem trinnene som ferdige farger. Står
+  // color-mix() igjen i stilen, stopper html2canvas på color(srgb …) og
+  // «Last ned bilde» feiler for hele seksjonen.
   document.querySelectorAll(".heatmap-legend__scale span").forEach((el, i) => {
-    el.style.setProperty("--heat-step", HEAT_STEPS[i]);
+    el.style.backgroundColor = steps[i];
   });
 }
 

@@ -412,10 +412,10 @@ a:focus-visible,
   display: flex;
 }
 
+/* Fargen settes fra dashboard.js, samme trinn som i selve varmekartet. */
 .heatmap-legend__scale span {
   width: 20px;
   height: 12px;
-  background-color: var(--heat-step);
 }
 
 /* ---- Nøkkeltall som liste ---- */
