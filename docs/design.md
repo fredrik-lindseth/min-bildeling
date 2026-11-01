@@ -1,6 +1,6 @@
 # Design for stats
 
-Spesifikasjon for den visuelle retningen i `stats/`: dashboard, popup og årsoppsummering. Den skal godkjennes før CSS-en skrives om, og den omskrivingen kalles del 2 under. `docs/design-skisse.html` viser tokenene i bruk (åpne den direkte i nettleseren, legg til `#lys` eller `#mork` for å tvinge en modus). Alle tall i skissen er oppdiktet.
+Spesifikasjon for den visuelle retningen i `stats/`: dashboard, popup og årsoppsummering. Den er gjennomført, og omskrivingen kalles del 2 under. `?demo=1` på hver av sidene viser designet i bruk med oppdiktede tall (se [DEVELOPMENT.md](DEVELOPMENT.md)).
 
 ## Hva det er, og for hvem
 
@@ -29,11 +29,11 @@ Ett tokensett i en ny fil, `stats/lib/tokens.css`, lenket inn før sidens egen C
 
 `color-scheme: light dark` følger `prefers-color-scheme`, så regelen om mørk modus er oppfylt uten en egen media-blokk. Årsoppsummeringen setter bare `:root { color-scheme: dark; }` i `summary.css` og får de samme tokenene i mørk variant. Da finnes det ett tokensystem, ikke tre.
 
-Konsekvenser som del 2 må ta:
+Konsekvensene, slik del 2 løste dem:
 
 - `light-dark()` krever minst Firefox 120, så `strict_min_version` i `manifest.json` må være minst 120. I Chromium kom støtten i Chrome 123, og skal utvidelsen lastes der, settes `minimum_chrome_version` til minst 123.
 - `getComputedStyle().getPropertyValue("--color-x")` gir tilbake selve `light-dark(...)`-teksten, som Chart.js ikke forstår. `chart-helpers.js` må løse fargen gjennom et skjult måleelement: sett `style.color = "var(--color-x)"` og les `getComputedStyle(el).color`, som da er en ferdig `rgb()`.
-- Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Det er ikke testet ennå. Del 2 verifiserer «Last ned bilde» i begge moduser før noe annet bygges på mekanismen. Feiler det, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk pluss en `:root.scheme-dark`-blokk med de samme verdiene for årsoppsummeringen.
+- Eksporten via html2canvas leser beregnede stiler, som skal være ferdig løste `rgb()`-verdier. Verifisert i Firefox i begge moduser: fargene kommer riktig ut. html2canvas tegner derimot tabellsifre med feil avstand, så kopien som tegnes til bilde får klassen `export` med vanlige sifre. Skulle `light-dark()` likevel svikte et sted, er reserveløsningen en vanlig `@media (prefers-color-scheme: dark)`-blokk pluss en `:root.scheme-dark`-blokk med de samme verdiene for årsoppsummeringen.
 - Kontrastscriptet (se Sjekker som håndhever reglene) må kunne lese `light-dark(a, b)` og sjekke a mot a og b mot b.
 
 ### Token-settet
@@ -64,13 +64,13 @@ Konsekvenser som del 2 må ta:
 | `--color-chart-4`        | `#5B0233` | `#FFA5C1` | bær (lys) og rosa (mørk)                              |
 | `--color-chart-5`        | `#0D6460` | `#3B9C97` | blågrønn                                              |
 
-Aksenten i mørk modus er en lysere lilla fordi `#51289D` gir 1,6:1 mot den mørke flaten. Primærknappen i mørk modus får derfor mørk tekst på lys lilla, slik skissen viser.
+Aksenten i mørk modus er en lysere lilla fordi `#51289D` gir 1,6:1 mot den mørke flaten. Primærknappen i mørk modus får derfor mørk tekst på lys lilla.
 
 Tokenene som forsvinner: `--color-accent-light`, `--color-header-*`, `--color-nav-*`, `--color-status-*` (banneret bruker surface og border), `--color-progress-*`, `--color-btn-sync-*`, `--color-btn-secondary-*`, `--color-card-shadow`, `--color-shadow`, `--color-heatmap-text`, `--color-empty-text`, `--color-link`, `--color-rank-*`, `--color-section-divider`, `--color-secondary`, `--color-tertiary`, `--color-saving-bg`, `--color-danger-hover`, `--color-danger-bg`, alle `--shadow-*`, `--radius-sm/md/lg` og alle `--sum-*`. Grønn som «sparing»-farge går ut. Sparing vises med aksenten, så grønt ikke blir et eget signal som bare finnes ett sted, og rød mot grønn faller bort for fargeblinde.
 
 ### Kontrast
 
-Målt med WCAG 2-formelen i et lite `python3 -I`-script. Kontrastscriptet som kommer i del 2, skal gi de samme tallene. Krav: 4,5:1 for tekst, 3:1 for kanter på kontroller og diagramelementer.
+Målt med WCAG 2-formelen i et lite `python3 -I`-script. `stats/scripts/kontrast.sh` gir de samme tallene. Krav: 4,5:1 for tekst, 3:1 for kanter på kontroller og diagramelementer.
 
 | Par                          | Lys   | Mørk  | Krav |
 | ---------------------------- | ----- | ----- | ---- |
@@ -245,8 +245,8 @@ Inline tom tilstand i en seksjon («Ikke nok data for trendanalyse») sier hvor 
 Chart.js-fargene hentes fra tokenene gjennom måleelementet beskrevet over, og hentes på nytt når `prefers-color-scheme` endrer seg (lytt på `matchMedia(...).change` og oppdater diagrammene).
 
 - Maks fem farger, `--color-chart-1` til `-5`. Faste roller der det finnes faste kategorier: bildeling er alltid chart-1. Transport: bildeling 1, taxi 2, leiebil 3, buss 4, fly 5.
-- Turkategorier: de fem største kategoriene får chart-1 til chart-5 i synkende rekkefølge etter beløp. Er det flere enn fem, samles resten som «Annet» i `--color-border-strong`, en nøytral grå som ikke er en chart-farge. «Annet» ligger alltid sist i diagrammet og i listen. Er det fem eller færre kategorier, finnes ikke «Annet». Ingen sjette chart-farge. «Annet» har omtrent samme lyshet som chart-3 (1,03 lys, 1,10 mørk), men er grå mot blå og står alltid sist med egen etikett.
-- Én serie: chart-1, ingen forklaring. To serier (år mot år): valgt år som fylt søyle i chart-1, sammenligningsåret som hul søyle med 2 px kant i chart-3 (Chart.js: `backgroundColor: "transparent"`, `borderColor` chart-3, `borderWidth: 2`). Forklaringen over diagrammet viser de samme to formene. Fyll mot kant skiller seriene uten farge, og lysheten skiller dem i tillegg.
+- Turkategorier: de fem største kategoriene får chart-1 til chart-5 i synkende rekkefølge etter beløp. Er det flere enn fem, samles resten som «Øvrige» i `--color-border-strong`, en nøytral grå som ikke er en chart-farge. Navnet er ikke «Annet», fordi det alt er en av kategoriene. «Øvrige» ligger alltid sist i diagrammet. Er det fem eller færre kategorier, finnes ikke «Øvrige». Ingen sjette chart-farge. «Øvrige» har omtrent samme lyshet som chart-3 (1,03 lys, 1,10 mørk), men er grå mot blå og står alltid sist med egen etikett. Egen bil i Transport bruker den samme grå.
+- Én serie: chart-1, ingen forklaring. To serier (år mot år): valgt år som fylt søyle i chart-1, sammenligningsåret som hul søyle med 2 px kant i chart-3 (Chart.js: `backgroundColor: "transparent"`, `borderColor` chart-3, `borderWidth: 2`). Forklaringen over diagrammet viser de samme to formene. Fyll mot kant skiller seriene uten farge, og lysheten skiller dem i tillegg. Med flere enn to år er bare siste år fylt, og årene før er hule i chart-3, chart-5, chart-2 og chart-4, nærmeste år først.
 - Søyler med `borderRadius: 0`, ingen kant, unntatt sammenligningsserien over. Linjer 2 px uten fyll og uten gradient, punkter skjult til hover.
 - Rutenett i `--color-grid`, bare horisontale linjer. Akselinjen (x) i border-strong. Aksetekst 12 px i tertiary.
 - Kakediagram: kakestykker skilles med 2 px strek i surface. Etikett og beløp står i en liste ved siden av, ikke bare i forklaringen.
@@ -256,9 +256,9 @@ Chart.js-fargene hentes fra tokenene gjennom måleelementet beskrevet over, og h
 
 ## Sjekker som håndhever reglene
 
-To sjekker finnes alt i `stats/scripts/`, og `package.sh` kjører begge: byggevakten `sjekk-pakke.sh` feiler på hex-, `rgb()`- og `hsl()`-farger utenfor `:root` i CSS-filene, og `kontrast.sh` måler fargeparene i `:root` i lys og mørk modus. Del 2 utvider dem, og begge kjøres før commit og skal være grønne:
+Tre sjekker i `stats/scripts/`, og `package.sh` kjører alle: byggevakten `sjekk-pakke.sh` på den ferdige pakken, `kontrast.sh` og `sjekk-stil.sh`. Kjør de to siste før commit, de skal være grønne:
 
-- Fargesjekken går gjennom `.css`, `.html` og `.js` under `stats/` (unntatt `vendor/`) og feiler med fil og linje når den finner en hex-farge (`#rgb`, `#rrggbb`) eller `rgb()`/`rgba()`/`hsl()` utenfor `stats/lib/tokens.css`. I HTML ser den bare i `<style>` og `style`-attributter, så ankerlenker som `#bad` ikke gir falske treff. Den feiler også på `box-shadow` og `text-shadow` med annen verdi enn `none`, på `border-radius` med annen verdi enn `var(--radius)` eller `0`, og på `!important`. Den er et lite script uten avhengigheter, i samme språk som kontrastscriptet.
+- Stilsjekken (`sjekk-stil.sh`) går gjennom `.css`, `.html` og `.js` under `stats/` (unntatt `vendor/`, `test/` og `dist/`) og feiler med fil og linje når den finner en hex-farge (`#rgb`, `#rrggbb`) eller `rgb()`/`rgba()`/`hsl()` utenfor `stats/lib/tokens.css`. I HTML ser den bare i `<style>` og `style`-attributter, så ankerlenker som `#bad` ikke gir falske treff. Den feiler også på `box-shadow` og `text-shadow` med annen verdi enn `none`, på `border-radius` med annen verdi enn `var(--radius)` eller `0`, og på `!important`. Den er et lite script uten avhengigheter, i samme språk som kontrastscriptet.
 - Kontrastscriptet leser `light-dark(a, b)` fra `tokens.css` og sjekker parene i tabellene over i begge moduser, chart-parene inkludert.
 
 ## Bevegelse
