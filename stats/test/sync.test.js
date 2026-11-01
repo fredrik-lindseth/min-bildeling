@@ -1140,6 +1140,35 @@ test("import venter på en synk i en annen dashboard-fane og skriver etterpå", 
   assert.equal(storage.data.syncLock, null);
 });
 
+test("to importer fra samme side mens en annen fane synker: begge filene blir lagret", async () => {
+  const all = makeReservations(40);
+  const world = slowWorld(all, { latencyMs: 100 });
+  // Lageret bruker en runde per lesing og skriving, slik storage.local gjør, så
+  // de to importene faktisk flettes inn i hverandre.
+  const storage = checkedStorage();
+  for (const op of ["get", "set"]) {
+    const fn = storage[op].bind(storage);
+    storage[op] = async (arg) => {
+      await settle();
+      return fn(arg);
+    };
+  }
+  // En annen fane holder låsen, så begge importene venter og slipper til samtidig.
+  storage.data.syncLock = { owner: "fane-b", role: "page", expiresAt: NOW + 5000 };
+
+  const first = importBackup({ ...world.opts("side-a"), storage, backup: backupOf(all.slice(0, 20)), takeFrom: "side-a" });
+  await settle();
+  const second = importBackup({ ...world.opts("side-a"), storage, backup: backupOf(all.slice(20)), takeFrom: "side-a" });
+  for (let i = 0; i < 20; i++) await settle();
+  storage.data.syncLock = null;
+  const [a, b] = await Promise.all([first, second]);
+
+  assert.equal(a.counts.reservationsAdded, 20);
+  assert.equal(b.counts.reservationsAdded, 20);
+  assert.equal(storage.data.reservations.length, 40);
+  assert.equal(storage.data.syncLock, null);
+});
+
 test("withSyncLock slipper låsen også når oppgaven feiler, og skriver ikke uten den", async () => {
   const storage = makeStorage();
   const h = harness(storage, makeApi([]));

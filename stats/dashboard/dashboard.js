@@ -2407,7 +2407,7 @@ async function handleBackupImport(file, setStatus = setBackupStatus) {
       storage: backupStorage,
       backup: result.backup,
       overwrite: choice.overwrite,
-      owner: `${syncOwner}-import`,
+      owner: syncOwner,
       takeFrom: syncOwner,
       onWait: () => setStatus("Venter til synken i et annet vindu er ferdig. Turene importeres etterpå."),
     });

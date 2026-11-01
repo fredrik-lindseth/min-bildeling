@@ -18,7 +18,7 @@ export const BACKUP_STORAGE_KEYS = ["tripCategories", "transportData", "userKeyw
  * @param {object} opts
  *   backup: { tripCategories, transportData, userKeywords, reservations, lastSync } fra parseBackup()
  *   overwrite: filen vinner der den er ulik det som er lagret
- *   owner: låseier for importen. takeFrom: synken i samme side, som tas over.
+ *   owner: siden som importerer. takeFrom: synken i samme side, som tas over.
  *   onWait({ syncLock, syncState }): en annen side synker, og importen venter.
  * @returns {Promise<{ next: object, counts: object }>}
  */
@@ -32,7 +32,7 @@ export async function importBackup({ storage, backup, overwrite = false, owner, 
   }
   return withSyncLock({
     storage,
-    owner,
+    owner: importOwner(owner),
     role: "import",
     takeFrom,
     onWait,
@@ -45,4 +45,13 @@ export async function importBackup({ storage, backup, overwrite = false, owner, 
       return { next, counts };
     },
   });
+}
+
+// Hver import får sin egen låseier. En lås regnes som ledig for den som alt
+// eier den, så to importer fra samme side med samme eier ville begge tatt
+// låsen, og den siste ville skrevet over turene fra den første.
+let importSeq = 0;
+function importOwner(owner) {
+  importSeq += 1;
+  return `${owner}-import-${importSeq}`;
 }
