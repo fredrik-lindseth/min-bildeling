@@ -1,4 +1,4 @@
-# Fleksibel booking — implementeringsplan
+# Fleksibel booking: implementeringsplan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -19,7 +19,7 @@
 - Cross-browser: `typeof browser !== "undefined" ? browser : chrome`. `flex/lib/browser-polyfill.js` eksporterer `browserAPI` og `storage`.
 - Estimat-tall prefikses "ca." / "~". (Ikke aktuelt i v1, men gjelder om vi legger til estimater.)
 - API bruker naiv lokal ISO uten tidssone (`2026-07-08T09:00:00`). All tidsformattering skal matche dette (ingen `Z`).
-- Commit kun når brukeren ber om det. Ikke commit uoppfordret. Repoet står på `main` — spør om branch før commit.
+- Commit kun når brukeren ber om det. Ikke commit uoppfordret. Repoet står på `main`, så spør om branch før commit.
 
 ---
 
@@ -47,7 +47,7 @@ bildeleringen/
     lib/flex.js                    fleksibilitets-motoren (rene funksjoner)
     lib/storage.js                 lagrede steder + bil-favoritter
     icons/                         gjenbruk stats-ikoner
-    package.json                   { "type": "module" } — kun for node-test, ingen deps
+    package.json                   { "type": "module" }, kun for node-test, ingen deps
     test/format.test.js
     test/flex.test.js
     test/storage.test.js
@@ -59,7 +59,7 @@ bildeleringen/
 
 ---
 
-### Task 0: Monorepo-restrukturering — flytt stats til `stats/`
+### Task 0: Monorepo-restrukturering: flytt stats til `stats/`
 
 **Files:**
 - Move: alle sporede toppnivå-utvidelsesfiler → `stats/`
@@ -79,7 +79,7 @@ git mv manifest.json background.js content.js debug.html debug.js \
 
 Repo-nivå-filer blir værende på rot: `CLAUDE.md`, `AGENTS.md`, `LICENSE`, `README.md`, `docs/`, `.gitignore`.
 
-- [ ] **Step 2: Oppdater `stats/scripts/package.sh` til å kjøre fra stats-mappa**
+- [ ] **Step 2: Oppdater `stats/scripts/package.sh` til å kjøre fra stats-mappen**
 
 Erstatt toppen av `stats/scripts/package.sh` (linje 5-9) slik at den finner stats-rota uansett hvor den kalles fra, og hent delt LICENSE/README fra repo-rota:
 
@@ -135,7 +135,7 @@ git commit -m "refactor: flytt stats-utvidelsen til stats/ (monorepo)"
 
 ---
 
-### Task 1: Flex-scaffold — manifest, auth, tomt finder-skall
+### Task 1: Flex-scaffold: manifest, auth, tomt finder-skall
 
 **Files:**
 - Create: `flex/manifest.json`, `flex/content.js`, `flex/background.js`, `flex/lib/browser-polyfill.js`, `flex/popup/popup.html`, `flex/popup/popup.js`, `flex/finder.html`, `flex/finder.js`, `flex/finder.css`
@@ -197,7 +197,7 @@ cp stats/icons/*.png flex/icons/
 }
 ```
 
-- [ ] **Step 3: Skriv `flex/content.js`** (klassisk script, ikke module — leser auth, samme teknikk som stats)
+- [ ] **Step 3: Skriv `flex/content.js`** (klassisk script, ikke module, leser auth, samme teknikk som stats)
 
 ```js
 // Leser dele.no-token fra localStorage("persist:data") og svarer background.
@@ -253,7 +253,7 @@ export async function getAuth() {
         return res;
       }
     } catch (e) {
-      // content script ikke lastet — prøv injection
+      // content script ikke lastet, prøv injection
     }
     try {
       const results = await browserAPI.scripting.executeScript({
@@ -418,7 +418,7 @@ test("parseLocalISO kaster på ugyldig streng", () => {
 - [ ] **Step 3: Kjør testen og bekreft at den feiler**
 
 Run: `cd ~/bildeleringen-stats/flex && node --test`
-Expected: FAIL — "Cannot find module '../lib/format.js'".
+Expected: FAIL, "Cannot find module '../lib/format.js'".
 
 - [ ] **Step 4: Skriv `flex/lib/format.js`**
 
@@ -451,7 +451,7 @@ export function parseLocalISO(s) {
 - [ ] **Step 5: Kjør testen og bekreft at den passerer**
 
 Run: `cd ~/bildeleringen-stats/flex && node --test`
-Expected: PASS — 4 tester.
+Expected: PASS, 4 tester.
 
 - [ ] **Step 6: Commit** (spør først)
 
@@ -462,7 +462,7 @@ git commit -m "feat(flex): lokal ISO parse/format med tester"
 
 ---
 
-### Task 3: `flex.js` — `freeBlocks`
+### Task 3: `flex.js`: `freeBlocks`
 
 **Files:**
 - Create: `flex/lib/flex.js`
@@ -470,7 +470,7 @@ git commit -m "feat(flex): lokal ISO parse/format med tester"
 
 **Interfaces:**
 - Consumes: `parseLocalISO` fra `format.js`.
-- Produces: `freeBlocks(availability, windowStart: Date, windowEnd: Date): Array<{start: Date, end: Date}>` — maksimale AVAILABLE-blokker klippet til vinduet, stigende.
+- Produces: `freeBlocks(availability, windowStart: Date, windowEnd: Date): Array<{start: Date, end: Date}>`: maksimale AVAILABLE-blokker klippet til vinduet, stigende.
 
 - [ ] **Step 1: Skriv den feilende testen (legg til i `flex/test/flex.test.js`)**
 
@@ -525,7 +525,7 @@ test("freeBlocks behandler UNAVAILABLE som ikke-ledig", () => {
 - [ ] **Step 2: Kjør og bekreft feil**
 
 Run: `cd flex && node --test test/flex.test.js`
-Expected: FAIL — "does not provide an export named 'freeBlocks'".
+Expected: FAIL, "does not provide an export named 'freeBlocks'".
 
 - [ ] **Step 3: Skriv `flex/lib/flex.js`**
 
@@ -569,12 +569,12 @@ Expected: PASS.
 
 ```bash
 git add flex/lib/flex.js flex/test/flex.test.js
-git commit -m "feat(flex): freeBlocks — maksimale ledige blokker i vinduet"
+git commit -m "feat(flex): freeBlocks, maksimale ledige blokker i vinduet"
 ```
 
 ---
 
-### Task 4: `flex.js` — `fitCar`
+### Task 4: `flex.js`: `fitCar`
 
 **Files:**
 - Modify: `flex/lib/flex.js`
@@ -585,7 +585,7 @@ git commit -m "feat(flex): freeBlocks — maksimale ledige blokker i vinduet"
 - Produces: `clippedSegments(availability, windowStart, windowEnd): Array<{start: Date, end: Date, state}>` og `fitCar(car, wish): CarFit`.
   - `car`: objekt fra `searchResult.cars[]` (`carId`, `carNumber`, `model`, `carCategory`, `seats`, `hourlyRate`, `carProperties`, `location: {name, distance, id}`, `availability`).
   - `wish`: `{ earliestStart: Date, latestEnd: Date, durationMinutes: number|null, filters }`.
-  - `CarFit`: `{ carId, carNumber, model, category, seats, carProperties, hourlyRate, location, segments, kind: "fits"|"short"|"none", proposed: {start,end}|null, coversWholeWindow: boolean, shiftMinutes: number, bestBlockMinutes: number, shortfallMinutes: number }`. `segments` er alle availability-segmenter (uansett state) klippet til vinduet — grunnlaget for tidslinja i UI-en.
+  - `CarFit`: `{ carId, carNumber, model, category, seats, carProperties, hourlyRate, location, segments, kind: "fits"|"short"|"none", proposed: {start,end}|null, coversWholeWindow: boolean, shiftMinutes: number, bestBlockMinutes: number, shortfallMinutes: number }`. `segments` er alle availability-segmenter (uansett state) klippet til vinduet, grunnlaget for tidslinjen i UI-en.
 
 - [ ] **Step 1: Skriv feilende tester (legg til i `flex/test/flex.test.js`)**
 
@@ -671,12 +671,12 @@ test("clippedSegments dropper segmenter uten overlapp", () => {
 - [ ] **Step 2: Kjør og bekreft feil**
 
 Run: `cd flex && node --test test/flex.test.js`
-Expected: FAIL — "does not provide an export named 'fitCar'".
+Expected: FAIL, "does not provide an export named 'fitCar'".
 
 - [ ] **Step 3: Legg til `fitCar` i `flex/lib/flex.js`**
 
 ```js
-// Alle availability-segmenter (uansett state) klippet til vinduet — for tidslinja.
+// Alle availability-segmenter (uansett state) klippet til vinduet, for tidslinjen.
 export function clippedSegments(availability, windowStart, windowEnd) {
   const out = [];
   for (const s of availability) {
@@ -762,12 +762,12 @@ Expected: PASS.
 
 ```bash
 git add flex/lib/flex.js flex/test/flex.test.js
-git commit -m "feat(flex): fitCar — klassifiser bil mot ønske"
+git commit -m "feat(flex): fitCar, klassifiser bil mot ønske"
 ```
 
 ---
 
-### Task 5: `flex.js` — `solve` (filtre, buckets, rangering)
+### Task 5: `flex.js`: `solve` (filtre, buckets, rangering)
 
 **Files:**
 - Modify: `flex/lib/flex.js`
@@ -777,7 +777,7 @@ git commit -m "feat(flex): fitCar — klassifiser bil mot ønske"
 - Consumes: `fitCar`.
 - Produces: `solve(searchResult, wish): { whole: CarFit[], adjusted: CarFit[], siblings: CarFit[] }`.
   - `wish.filters`: `{ category?, fuel?, seats?, maxDistanceM?, carIds? }`.
-  - `wish.target?`: `{ carId?, model?, category? }` — hvis satt og målet ikke passer, fylles `siblings`.
+  - `wish.target?`: `{ carId?, model?, category? }`: hvis satt og målet ikke passer, fylles `siblings`.
 
 - [ ] **Step 1: Skriv feilende tester**
 
@@ -829,7 +829,7 @@ test("solve fyller siblings når målbilen er opptatt", () => {
 - [ ] **Step 2: Kjør og bekreft feil**
 
 Run: `cd flex && node --test test/flex.test.js`
-Expected: FAIL — "does not provide an export named 'solve'".
+Expected: FAIL, "does not provide an export named 'solve'".
 
 - [ ] **Step 3: Legg til `solve` + hjelpere i `flex/lib/flex.js`**
 
@@ -893,18 +893,18 @@ export function solve(searchResult, wish) {
 }
 ```
 
-Merk: `siblingSuggestions` kalles med alle `fits` (før distanse-filter fjerner målbilen). Hvis målbilen kan ligge utenfor `maxDistanceM`, la den stå — den er brukerens eget valg. For v1 antar vi at målbilen er innenfor filteret; edge-case dokumenteres i "Åpne spørsmål".
+Merk: `siblingSuggestions` kalles med alle `fits` (før distanse-filter fjerner målbilen). Hvis målbilen kan ligge utenfor `maxDistanceM`, la den stå. Den er brukerens eget valg. For v1 antar vi at målbilen er innenfor filteret; edge-case dokumenteres i "Åpne spørsmål".
 
 - [ ] **Step 4: Kjør og bekreft pass**
 
 Run: `cd flex && node --test`
-Expected: PASS — alle tester.
+Expected: PASS, alle tester.
 
 - [ ] **Step 5: Commit** (spør først)
 
 ```bash
 git add flex/lib/flex.js flex/test/flex.test.js
-git commit -m "feat(flex): solve — filtre, buckets, rangering, søsken"
+git commit -m "feat(flex): solve, filtre, buckets, rangering, søsken"
 ```
 
 ---
@@ -1095,7 +1095,7 @@ git commit -m "feat(flex): søke-API-klient, SEARCH-proxy og fixture"
 
 ---
 
-### Task 7: `storage.js` — lagrede steder + favoritter
+### Task 7: `storage.js`: lagrede steder + favoritter
 
 **Files:**
 - Create: `flex/lib/storage.js`, `flex/test/storage.test.js`
@@ -1131,14 +1131,14 @@ test("mergePlaces beholder default som ikke er overstyrt", () => {
 - [ ] **Step 2: Kjør og bekreft feil**
 
 Run: `cd flex && node --test test/storage.test.js`
-Expected: FAIL — modulen finnes ikke.
+Expected: FAIL, modulen finnes ikke.
 
 - [ ] **Step 3: Skriv `flex/lib/storage.js`**
 
 ```js
 import { storage } from "./browser-polyfill.js";
 
-// Eksempelveien (hjem) — midtpunkt av gatas LineString fra /api/locations.
+// Eksempelveien (hjem), midtpunkt av gatens LineString fra /api/locations.
 export const DEFAULT_PLACES = [
   { id: "home", name: "Eksempelveien (hjem)", point: { lng: 5.3331, lat: 60.3903 } },
 ];
@@ -1189,7 +1189,7 @@ git commit -m "feat(flex): lagrede steder og favoritter"
 
 ---
 
-### Task 8: Finder-UI — ønske-form, søk, resultater, tidslinje, handoff
+### Task 8: Finder-UI: ønske-form, søk, resultater, tidslinje, handoff
 
 **Files:**
 - Modify: `flex/finder.html`, `flex/finder.js`, `flex/finder.css`
@@ -1444,7 +1444,7 @@ function timeline(f, wish) {
 init();
 ```
 
-Tidslinja tegner hele ledig/opptatt-mønsteret i vinduet (grønne ledige segmenter på grå bakgrunn) med en lilla brakett rundt det foreslåtte vinduet — spec-krav nivå 1.
+Tidslinjen tegner hele ledig/opptatt-mønsteret i vinduet (grønne ledige segmenter på grå bakgrunn) med en lilla brakett rundt det foreslåtte vinduet, spec-krav nivå 1.
 
 - [ ] **Step 4: Verifiser hele flyten i nettleseren**
 
@@ -1463,7 +1463,7 @@ git commit -m "feat(flex): finder-UI med ønske-form, resultater og dele.no-hand
 
 ---
 
-### Task 9 (fase 1.5): `splitPairs` — del hele-vinduet på to biler
+### Task 9 (fase 1.5): `splitPairs`: del hele-vinduet på to biler
 
 **Files:**
 - Modify: `flex/lib/flex.js`, `flex/finder.js`
@@ -1510,7 +1510,7 @@ test("splitPairs gir ingen par når én bil dekker alt", () => {
 - [ ] **Step 2: Kjør og bekreft feil**
 
 Run: `cd flex && node --test test/flex.test.js`
-Expected: FAIL — "does not provide an export named 'splitPairs'".
+Expected: FAIL, "does not provide an export named 'splitPairs'".
 
 - [ ] **Step 3: Legg til `splitPairs` i `flex/lib/flex.js`**
 
@@ -1576,7 +1576,7 @@ export function splitPairs(searchResult, wish, opts = {}) {
 - [ ] **Step 4: Kjør og bekreft pass**
 
 Run: `cd flex && node --test`
-Expected: PASS — alle tester.
+Expected: PASS, alle tester.
 
 - [ ] **Step 5: Vis del-opp i UI-en**
 
@@ -1643,12 +1643,12 @@ git commit -m "feat(flex): del-opp-på-to-biler (fase 1.5)"
 - Monorepo `stats/` + `flex/` → Task 0.
 - Testrunner uten build-step → Task 2 (`node --test`, `package.json` type:module).
 
-**Placeholder-skann:** Ingen "TBD/TODO". Tidslinje-noten i Task 8 er en bevisst, valgfri utvidelse med konkret oppskrift, ikke en åpen placeholder — v1 fungerer uten den.
+**Placeholder-skann:** Ingen "TBD/TODO". Tidslinje-noten i Task 8 er en bevisst, valgfri utvidelse med konkret oppskrift, ikke en åpen placeholder. v1 fungerer uten den.
 
 **Type-konsistens:** `CarFit`-felter (`kind`, `proposed`, `coversWholeWindow`, `shiftMinutes`, `bestBlockMinutes`, `shortfallMinutes`, `segments`, `location.{name,distance,id}`) er like i Task 4, 5 og forbrukt i Task 8 (`timeline` leser `f.segments`). `searchAvailability(point, start, end, token)` med `point:{lng,lat}` er lik i Task 6 og kalt i background. `solve`-retur `{whole, adjusted, siblings}` matcher `render` i Task 8.
 
 ## Åpne spørsmål / risiko
 
 - `siblingSuggestions` antar at målbilen er innenfor distansefilteret; hvis brukeren favoriserer en bil langt unna, kan den falle ut. Håndteres når "mine biler"-favoritter kobles på target.
-- Per-bil deep-link ikke funnet — handoff bruker tid + stedsnavn (godkjent for v1).
+- Per-bil deep-link ikke funnet, handoff bruker tid + stedsnavn (godkjent for v1).
 - `before`/`after` i søkesvaret er fortsatt ukjent (ikke brukt).

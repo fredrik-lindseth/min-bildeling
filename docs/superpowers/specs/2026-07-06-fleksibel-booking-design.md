@@ -1,4 +1,4 @@
-# Fleksibel booking — design
+# Fleksibel booking: design
 
 - **Dato:** 2026-07-06
 - **Status:** Godkjent, klar for planlegging
@@ -27,7 +27,7 @@ En egen Firefox-utvidelse ("Bildeleringen Fleksibel", arbeidstittel) som:
 ## Ikke-mål
 
 - **Ikke** booke bilen selv i v1. Vi finner og viser, så deep-linker inn i dele.no.
-  Faktisk skrive-booking krever kartlegging av et skrive-API og har pengerisiko —
+  Faktisk skrive-booking krever kartlegging av et skrive-API og har pengerisiko, så det blir en
   egen, senere fase.
 - **Ikke** gjenskape dele.no sitt kartsøk eller fulle filtersett. Bare det som
   tjener fleksibiliteten.
@@ -64,12 +64,12 @@ GET https://app.dele.no/api/search
 
 - Auth: `authorization: Bearer <token>`. Ingen `membershipId` nødvendig (i motsetning
   til `/reservations/historic`).
-- `location` kan være vilkårlig koordinat — trenger ikke være en registrert stasjon.
+- `location` kan være vilkårlig koordinat, trenger ikke være en registrert stasjon.
 - Svaret (~586 KB for Bergen) har topp-nivå: `start`, `end`, `location`, `cars`,
   `messages`, `before`, `after`. `before`/`after` er ukjent betydning (verdi 1/1),
   ikke nødvendig for oss.
 - Returnerer alle biler i organisasjonen sortert med et `location.distance`-felt
-  (meter), men *ikke* rent distansesortert — vi re-sorterer selv. Inneholder biler
+  (meter), men *ikke* rent distansesortert, vi re-sorterer selv. Inneholder biler
   fra andre byer på hundrevis av km; vi filtrerer på distanse klientside.
 
 ### Bilobjekt i `cars[]`
@@ -79,7 +79,7 @@ Relevante felt: `carId`, `carNumber`, `licensePlate`, `model`, `modelId`,
 girkasse, hjuldrift, dyr), `location` (`id`, `name`, `distance`, `geojson`),
 `maxAvailability`, og `availability[]`.
 
-### `availability[]` — datamodellen
+### `availability[]`: datamodellen
 
 Liste av sammenhengende segmenter:
 
@@ -95,17 +95,17 @@ Liste av sammenhengende segmenter:
 
 - Kun `AVAILABLE` er bookbart. `RESERVED` og `UNAVAILABLE` (service/ute av drift)
   ekskluderes begge.
-- Segmentene er **ikke** klippet til søkevinduet — de viser reell utstrekning for
+- Segmentene er **ikke** klippet til søkevinduet, de viser reell utstrekning for
   blokken (en bil reservert til 26. juli vises som ett segment til 26. juli selv om
   du søkte én uke). Grensene er snappet til hel time.
 - Én bil kan ha ett segment (helt ledig eller helt opptatt i perioden) eller mange.
 
 ### Støtteendepunkter
 
-- `GET /api/locations` — 331 stasjoner med `id`, `name`, `geojson` (Point, LineString
+- `GET /api/locations`: 331 stasjoner med `id`, `name`, `geojson` (Point, LineString
   eller Polygon). Brukes til stedsvalg. Hjem = "Eksempelveien", en av stasjonene
   i listen.
-- `GET /api/search/filters` — filteralternativer (ikke kartlagt i detalj ennå).
+- `GET /api/search/filters`: filteralternativer (ikke kartlagt i detalj ennå).
 
 ## Arkitektur
 
@@ -115,18 +115,18 @@ JS/HTML/CSS, ES modules, mørk modus påkrevd, norsk UI, alle farger via
 
 ### Moduler
 
-- **`content.js`** — content script på `app.dele.no`, leser `token` (+ `membershipId`
+- **`content.js`**: content script på `app.dele.no`, leser `token` (+ `membershipId`
   om vi trenger det senere) fra `localStorage("persist:data")`. Samme teknikk som
   stats-utvidelsen. Klassisk script (ikke module).
-- **`background.js`** — henter auth (content script først, `scripting.executeScript`
+- **`background.js`**: henter auth (content script først, `scripting.executeScript`
   som fallback), proxyer søkekall. Rate-limit 50ms + eksponentiell 429-backoff,
   gjenbrukt fra stats-mønsteret.
-- **`lib/search-api.js`** — `searchAvailability(point, start, end, token)` →
+- **`lib/search-api.js`**: `searchAvailability(point, start, end, token)` →
   `GET /api/search`. `fetchLocations(token)`.
-- **`lib/flex.js`** — fleksibilitets-motoren. Rene funksjoner, ingen sideeffekter,
+- **`lib/flex.js`**: fleksibilitets-motoren. Rene funksjoner, ingen sideeffekter,
   ingen browser-API. Tar søkeresultat + ønske-objekt, returnerer rangerte treff.
-- **UI** — egen fullside (browser-fane). Liten popup som inngang ("åpne finner").
-- **`storage.local`** — dine steder (hjem) og bil-favoritter/filtre. Fundamentet
+- **UI**: egen fullside (browser-fane). Liten popup som inngang ("åpne finner").
+- **`storage.local`**: dine steder (hjem) og bil-favoritter/filtre. Fundamentet
   overvåkningen senere gjenbruker.
 
 ## Fleksibilitets-motoren (`lib/flex.js`)
@@ -151,15 +151,15 @@ JS/HTML/CSS, ES modules, mørk modus påkrevd, norsk UI, alle farger via
 
 ### De fire beregningene
 
-1. **Tidslinje** — normaliser `availability[]` for rendering. Triviell.
+1. **Tidslinje**: normaliser `availability[]` for rendering. Triviell.
 
 2. **Passende vinduer (per bil):** slå sammen tilstøtende `AVAILABLE`-segmenter til
    maksimale frie blokker, klipp til `[earliestStart, latestEnd]`. En blokk ≥
    `duration` gir gyldige plasseringer. Klassifiser:
-   - **Eksakt** — blokk dekker hele `[earliestStart, latestEnd]`.
-   - **Skyv** — blokk ≥ `duration` men ikke hele vinduet → foreslå tidligste
+   - **Eksakt**: blokk dekker hele `[earliestStart, latestEnd]`.
+   - **Skyv**: blokk ≥ `duration` men ikke hele vinduet → foreslå tidligste
      passende delvindu (start = blokkstart, evt. snappet til hel time).
-   - **Kort ned** — ingen blokk ≥ `duration` → største blokk, "nærmeste du kommer
+   - **Kort ned**: ingen blokk ≥ `duration` → største blokk, "nærmeste du kommer
      er X t, du ba om Y t".
 
 3. **Søsken-bil:** beregning (2) over kandidatsettet filtrert på lik modell/kategori
@@ -167,7 +167,7 @@ JS/HTML/CSS, ES modules, mørk modus påkrevd, norsk UI, alle farger via
    ledig hele vinduet 200 m unna."
 
 4. **Del opp på to biler** (fase 1.5): for hardcasen "hele vinduet, ingen enkeltbil
-   dekker" — finn par (bilA, bilB) + overlevering T slik at A er ledig `[ES,T]` og B
+   dekker", finn par (bilA, bilB) + overlevering T slik at A er ledig `[ES,T]` og B
    er ledig `[T,LE]`. Kandidat-T = unionen av segmentgrenser. Foretrekk samme stasjon
    for byttet, færrest overleveringer.
 
@@ -182,7 +182,7 @@ bedre), så distanse.
   lokal veggklokke likt, ingen `Z`. Europe/Oslo antatt.
 - Minste nyttige varighet som filter (unngå å foreslå 20-minutters luker).
 - Distansefilter for "nær meg" gjøres klientside på `location.distance`.
-- Segmenter snappet til hel time — regn med at grenser er hele timer.
+- Segmenter snappet til hel time, regn med at grenser er hele timer.
 
 ## UI-flyt
 
@@ -221,9 +221,9 @@ finnes en bedre per-bil booking-URL.
 
 ## Faser
 
-- **v1** — finner (nivå 1–3: tidslinje, passende vinduer, søsken-bil) + redirect.
-- **Fase 1.5** — del-opp-på-to (nivå 4).
-- **Senere** — faktisk booking i utvidelsen (krever kartlegging av skrive-API);
+- **v1**: finner (nivå 1–3: tidslinje, passende vinduer, søsken-bil) + redirect.
+- **Fase 1.5**: del-opp-på-to (nivå 4).
+- **Senere**: faktisk booking i utvidelsen (krever kartlegging av skrive-API);
   overvåkning/varsling (egen design-runde).
 
 ## Testing
@@ -236,6 +236,6 @@ node-basert (`node --test`, ES modules kjører rett) uten build-step.
 ## Åpne spørsmål / risiko
 
 - Betydningen av `before`/`after` i søkesvaret er ukjent (ikke blokkerende).
-- `/api/search/filters` ikke kartlagt i detalj — kartlegges ved behov for filter-UI.
-- Flytting av eksisterende utvidelse til `stats/` må ikke bryte den — verifiseres først.
-- Per-bil deep-link ikke funnet ennå — v1 aksepterer stedsnavn + ett trykk.
+- `/api/search/filters` ikke kartlagt i detalj, kartlegges ved behov for filter-UI.
+- Flytting av eksisterende utvidelse til `stats/` må ikke bryte den, verifiseres først.
+- Per-bil deep-link ikke funnet ennå, v1 aksepterer stedsnavn + ett trykk.

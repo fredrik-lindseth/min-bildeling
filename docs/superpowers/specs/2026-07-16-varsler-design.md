@@ -1,4 +1,4 @@
-# Varsler — design
+# Varsler: design
 
 - **Dato:** 2026-07-16
 - **Status:** Godkjent, klar for planlegging. Revidert etter kode-verifisert review
@@ -52,9 +52,9 @@ sitter foran skjermen.
 
 To repo, koblet av én webhook-POST:
 
-- **`bildeleringen/flex/`** — watch-modell, deteksjon, poller, dispatcher, UI.
+- **`bildeleringen/flex/`**: watch-modell, deteksjon, poller, dispatcher, UI.
   All browser-side kode.
-- **`backend/`** — dedikert `bildeleringen-backend` som tar imot treff og
+- **`backend/`**: dedikert `bildeleringen-backend` som tar imot treff og
   relayer til Signal. Bygges i backend-repoet; kontrakten under er
   fast.
 
@@ -126,12 +126,12 @@ ble bedre).
 
 ### Storage-nøkler (nye)
 
-| Nøkkel | Struktur | Oppdateres av |
-|---|---|---|
-| `watches` | Array av watch-objekter (over) | KUN background.js (UI sender meldinger) |
-| `authToken` | `{ token, ts }` eller null | content.js (push ved sidelasting) |
-| `notifyBackend` | `{ url, token }` eller null | UI (innstillinger) |
-| `pollMinutes` | number (default 15) | UI (innstillinger) |
+| Nøkkel          | Struktur                       | Oppdateres av                           |
+| --------------- | ------------------------------ | --------------------------------------- |
+| `watches`       | Array av watch-objekter (over) | KUN background.js (UI sender meldinger) |
+| `authToken`     | `{ token, ts }` eller null     | content.js (push ved sidelasting)       |
+| `notifyBackend` | `{ url, token }` eller null    | UI (innstillinger)                      |
+| `pollMinutes`   | number (default 15)            | UI (innstillinger)                      |
 
 `places` og `favoriteCarIds` finnes alt fra flex og gjenbrukes. Ingen `authStale`-
 nøkkel: polleren dømmer på `authToken` + pull-fallback (se Auth).
@@ -201,7 +201,7 @@ min, konfigurerbar (kortere = mer API-last og batteri; `search`-svaret er ~586 K
    - `{ browserHits, relayHits, notified } = reconcile(hits, watch.notified, nå)`
    - **Batch:** hvis `browserHits.length`, ÉN browser-notifikasjon som
      oppsummerer ("3 biler ledige ≥ 96 t ved Eksempelveien"). Hvis
-     `relayHits.length` og backend konfigurert, ÉN POST med hele lista.
+     `relayHits.length` og backend konfigurert, ÉN POST med hele listen.
    - Ved 200 fra POST: sett `relayed: true` på de relaykede nøklene i `notified`.
    - `watch.notified = notified; watch.lastChecked = nå` og lagre (background er
      eneste skriver).
@@ -238,7 +238,7 @@ forhåndslastet. I Firefox gis notifications-permission ved installasjon og
 "nektet"-feilgren å håndtere.
 
 **2. Webhook-relay** til backend, kun hvis `notifyBackend` er satt. Én POST med
-`relayHits`-lista. Ved 200: marker nøklene `relayed: true`. Ved feil: la dem stå
+`relayHits`-listen. Ved 200: marker nøklene `relayed: true`. Ved feil: la dem stå
 `relayed: false` (retry neste runde, uten nytt browser-varsel). Kort retry
 innad i runden, men aldri drop-on-fail.
 
@@ -291,7 +291,7 @@ sjekkliste for nye tjenester.
 - **Auth:** `Authorization: Bearer <token>`. Slå opp på `sha256(token)`,
   sammenlign med `hmac.compare_digest` (ikke klartekst-token i basen, ikke
   `==`). Ukjent → 401. Sett tak på request-body-størrelse.
-- **Dispatch:** formater ÉN norsk melding fra `hits`-lista,
+- **Dispatch:** formater ÉN norsk melding fra `hits`-listen,
   `curl varsel-api /send`. Kanal-agnostisk, så Resend-e-post
   kan legges til senere uten å røre kontrakten. Tider formateres som Europe/Oslo
   veggklokke, aldri parset som UTC.
@@ -324,14 +324,14 @@ single-flight-lock: **all mutasjon av `watches` går som meldinger til
 
 ## Nye tillatelser (flex/manifest.json)
 
-- `alarms` — bakgrunns-polling.
-- `notifications` — browser-varsel.
-- `host_permissions`: `https://varsel.example.com/*` — webhook-relay
+- `alarms`: bakgrunns-polling.
+- `notifications`: browser-varsel.
+- `host_permissions`: `https://varsel.example.com/*`: webhook-relay
   (eller CORS-alternativet, se Åpne spørsmål).
 
 ## Faser
 
-- **v1** — deteksjon + browser-varsel + varsel-relay via dedikert backend.
+- **v1**: deteksjon + browser-varsel + varsel-relay via dedikert backend.
 - **Oppfølging (egne runder):**
   - E-post-kanal (Resend) i backend for fremmede brukere.
   - Fler-bruker-onboarding: hvordan en ukjent bruker registrerer kanal + får
