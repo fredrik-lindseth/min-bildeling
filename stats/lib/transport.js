@@ -27,18 +27,24 @@ import { regionForOrganization } from "./ownership-cost.js";
 export const TAXI_CO2_BEFORE_REQUIREMENT = 229;
 
 // Dagen kravet gjelder fra, per region i ownership-cost.js. Bergen ligger i
-// gamle Hordaland. Ukjent organisasjon regnes som Bergen, som i bilregnestykket.
-const TAXI_ZERO_EMISSION_FROM = {
+// gamle Hordaland.
+export const TAXI_ZERO_EMISSION_FROM = {
   bergen: Date.UTC(2024, 3, 1),
   trondheim: Date.UTC(2025, 6, 1),
 };
+
+// Ukjent organisasjon, eller en by som ikke står i tabellen over, regnes som
+// Bergen, som i bilregnestykket. Uten dette ble utslippet NaN.
+export function taxiZeroEmissionFrom(region) {
+  return TAXI_ZERO_EMISSION_FROM[region] ?? TAXI_ZERO_EMISSION_FROM.bergen;
+}
 
 /**
  * Drosjeutslipp per km for et år, for bilkollektivet til organizationId.
  * Året kravet trer i kraft, vektes etter hvor stor del av året som var før.
  */
 export function taxiCO2PerKm(year, organizationId) {
-  const from = TAXI_ZERO_EMISSION_FROM[regionForOrganization(organizationId) ?? "bergen"];
+  const from = taxiZeroEmissionFrom(regionForOrganization(organizationId));
   const start = Date.UTC(year, 0, 1);
   const end = Date.UTC(year + 1, 0, 1);
   const before = Math.min(1, Math.max(0, (from - start) / (end - start)));

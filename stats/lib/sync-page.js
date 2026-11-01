@@ -3,7 +3,7 @@
 // app.dele.no-fanen. Se kommentaren øverst i sync.js for hvorfor.
 
 import { browserAPI, storage } from "./browser-polyfill.js";
-import { runSyncWhenFree } from "./sync.js";
+import { releaseLock, runSyncWhenFree } from "./sync.js";
 
 export {
   isAuthError,
@@ -20,11 +20,12 @@ let inFlight = null;
 let holdsLock = false;
 
 // Lukkes siden midt i en synk, slippes låsen med en gang, så neste side
-// slipper å vente på at leasen går ut. Best effort: storage-kallet sendes,
-// men siden venter ikke på svaret. Rekker det ikke fram, tar neste side
-// over når leasen er ute, eller med en gang om låsen var popupens.
+// slipper å vente på at leasen går ut. Låsen slettes bare hvis den fortsatt
+// er vår: en annen side kan ha tatt den over siden holdsLock ble satt.
+// Best effort: siden venter ikke på svaret. Rekker det ikke fram, tar neste
+// side over når leasen er ute, eller med en gang om låsen var popupens.
 globalThis.addEventListener?.("pagehide", () => {
-  if (holdsLock) storage.set({ syncLock: null }).catch(() => {});
+  if (holdsLock) releaseLock(storage, owner).catch(() => {});
 });
 
 async function getAuth() {

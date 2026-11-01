@@ -164,7 +164,8 @@ function lockLost() {
   return new ApiError("LOCK_LOST", "En annen side har overtatt synkroniseringen");
 }
 
-async function releaseLock(storage, owner) {
+// Slett låsen bare hvis den er vår. Har en annen side tatt den over, står den.
+export async function releaseLock(storage, owner) {
   const { syncLock } = await storage.get(["syncLock"]);
   if (syncLock?.owner === owner) await storage.set({ syncLock: null });
 }
@@ -324,22 +325,24 @@ export async function runSync({
     failedThisRun += 1;
   };
 
-  const finish = async (status, error = null) => {
+  const finish = async (status, error = null, { record = true } = {}) => {
     const finishedAt = now();
-    // Les historikken på nytt: en annen side kan ha skrevet sin siden vi startet.
-    const fresh = await storage.get(["syncHistory"]);
-    const history = Array.isArray(fresh.syncHistory) ? fresh.syncHistory : [];
-    const entry = {
-      startedAt,
-      finishedAt,
-      durationMs: finishedAt - startedAt,
-      status,
-      error,
-      calls,
-      fetched,
-      failed: failedThisRun,
-    };
-    await storage.set({ syncHistory: [entry, ...history].slice(0, HISTORY_LENGTH) });
+    if (record) {
+      // Les historikken på nytt: en annen side kan ha skrevet sin siden vi startet.
+      const fresh = await storage.get(["syncHistory"]);
+      const history = Array.isArray(fresh.syncHistory) ? fresh.syncHistory : [];
+      const entry = {
+        startedAt,
+        finishedAt,
+        durationMs: finishedAt - startedAt,
+        status,
+        error,
+        calls,
+        fetched,
+        failed: failedThisRun,
+      };
+      await storage.set({ syncHistory: [entry, ...history].slice(0, HISTORY_LENGTH) });
+    }
     await releaseLock(storage, owner);
     onLock(false);
     return {
@@ -459,8 +462,9 @@ export async function runSync({
     return await finish("SYNCED");
   } catch (e) {
     if (e.code === "LOCK_LOST") {
-      // Den andre siden eier syncState nå. Ikke skriv over den.
-      return await finish("BUSY");
+      // Den andre siden eier syncState nå. Ikke skriv over den, og ikke før
+      // en BUSY i historikken: synken fortsetter der, og det er den som teller.
+      return await finish("BUSY", null, { record: false });
     }
     const code = e.code === "AUTH_EXPIRED" || e.code === "SERVICE_UNAVAILABLE" ? e.code : null;
     const reason = code || e.message || String(e);

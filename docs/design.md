@@ -167,13 +167,13 @@ brukt på bildeling i 2025, fordelt på 61 turer.
 ```
 Bilregnestykket                                   Last ned bilde
 ca. 38 000 kr
-mindre per år enn å eie en tilsvarende bil.
+mindre per år enn å eie en Volvo EX40.
 
-Egen bil, per år              ca. 52 200 kr
+Volvo EX40, per år            ca. 52 200 kr
 Bildeling, per år             − 14 200 kr
 ──────────────────────────────────────────
 Forskjell                     ca. 38 000 kr
-Hva «egen bil» betyr, i én setning.
+Hvilken bil det regnes mot, i én setning.
 Slik beregnes det
 ```
 

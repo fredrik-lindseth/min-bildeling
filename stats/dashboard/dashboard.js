@@ -922,7 +922,7 @@ function renderOwnership(reservations) {
       ? `mindre per år enn å eie en ${result.carName}.`
       : `mer per år enn å eie en ${result.carName}.`
   );
-  setLedger("ledger", result.ownershipCost, result.sharingCost, result.savings);
+  setLedger("ledger", result.carName, result.ownershipCost, result.sharingCost, result.savings);
 
   // Ownership breakdown horizontal bar chart
   const bd = result.breakdownOwnership;
@@ -991,7 +991,9 @@ function renderOwnership(reservations) {
 
 // Regnestykket: egen bil minus bildeling er forskjellen. Egen bil og
 // forskjellen er estimater og får «ca.», bildelingen er faktiske beløp.
-function setLedger(prefix, ownershipCost, sharingCost, savings) {
+// Bilen står med navn (fra referansebil.js), samme bil som i hovedtallet.
+function setLedger(prefix, carName, ownershipCost, sharingCost, savings) {
+  setText(`${prefix}-car-label`, `${carName}, per år`);
   setText(`${prefix}-car`, `ca. ${formatNOK.format(ownershipCost)}`);
   setText(`${prefix}-sharing`, `− ${formatNOK.format(sharingCost)}`);
   setText(`${prefix}-diff`, `ca. ${formatNOK.format(savings)}`);

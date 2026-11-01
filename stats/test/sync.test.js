@@ -4,6 +4,7 @@ import {
   runSync,
   runSyncWhenFree,
   lockIsFree,
+  releaseLock,
   needsDetail,
   mergeReservations,
   DETAIL_BATCH_SIZE,
@@ -892,5 +893,20 @@ test("mister siden låsen etter et svar som brukte hele leasen, stopper den før
   assert.equal(storage.data.reservations.length, 60);
   // Side a gjorde høyst ett kall etter at b tok over: det trege som allerede var i gang.
   assert.ok(world.api.count("detail") <= 60 + 11, `detaljkall: ${world.api.count("detail")}`);
+  assert.equal(storage.data.syncLock, null);
+  // Bare side b sin synk står i historikken, ingen BUSY fra side a.
+  assert.deepEqual(
+    storage.data.syncHistory.map((h) => h.status),
+    ["SYNCED"],
+  );
+});
+
+test("releaseLock sletter bare låsen når siden eier den", async () => {
+  const theirs = { owner: "side-b", role: "page", expiresAt: NOW + LOCK_LEASE_MS };
+  const storage = makeStorage({ syncLock: theirs });
+  await releaseLock(storage, "side-a");
+  assert.deepEqual(storage.data.syncLock, theirs);
+
+  await releaseLock(storage, "side-b");
   assert.equal(storage.data.syncLock, null);
 });

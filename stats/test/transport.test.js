@@ -8,9 +8,12 @@ import {
   TRANSPORT_METHOD,
   TAXI_CO2_BEFORE_REQUIREMENT,
   taxiCO2PerKm,
+  taxiZeroEmissionFrom,
+  TAXI_ZERO_EMISSION_FROM,
   transportSummary,
 } from "../lib/transport.js";
 import { CO2_METHOD } from "../lib/co2.js";
+import { REFERENCE_CAR as CAR } from "../lib/referansebil.js";
 
 const BILDELERINGEN = "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0";
 const TRONDHEIM = "8dba8f19-c438-f278-ed7c-912ec6537cb9";
@@ -45,6 +48,18 @@ test("taxi før kravet bruker det gamle drosjesnittet, vektet året kravet kom",
   const old = transportSummary({ taxi: { trips: 4, totalKm: 100, totalCost: 1200 } }, null,
     { year: "2023", organizationId: BILDELERINGEN });
   assert.equal(old.modes.taxi.co2Kg, 22.9);
+});
+
+test("taxi i en by uten eget krav i tabellen regnes som Bergen, ikke NaN", () => {
+  assert.equal(taxiZeroEmissionFrom("oslo"), TAXI_ZERO_EMISSION_FROM.bergen);
+  assert.equal(taxiZeroEmissionFrom(null), TAXI_ZERO_EMISSION_FROM.bergen);
+  // Hver by i bilregnestykket skal ha sin egen dato, så fallbacken ikke skjuler en ny by.
+  for (const { city } of Object.values(CAR.parking)) {
+    assert.ok(city.toLowerCase() in TAXI_ZERO_EMISSION_FROM, `mangler drosjekrav for ${city}`);
+  }
+  for (const year of [2023, 2024, 2025, 2026]) {
+    assert.ok(Number.isFinite(taxiCO2PerKm(year, "ukjent")));
+  }
 });
 
 test("buss bruker SSBs nasjonale tall", () => {
