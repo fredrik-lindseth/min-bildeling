@@ -226,7 +226,6 @@ async function init() {
     syncBtn.remove();
     document.querySelector(".header__title").append(" ", createDemoBadge(document));
     renderStats(demo.reservations);
-    lastSyncedEl.textContent = formatSyncTime(demo.lastSync);
     hideStatus();
     return;
   }

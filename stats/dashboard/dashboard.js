@@ -1618,8 +1618,9 @@ async function syncAndRender(force) {
 async function init() {
   if (demo) {
     syncBtn.remove();
+    lastSyncedEl.remove();
     document.querySelector(".header__title").append(" ", createDemoBadge(document));
-    await renderAll(demo.reservations, demo.lastSync);
+    await renderAll(demo.reservations, null);
     showMain();
     return;
   }

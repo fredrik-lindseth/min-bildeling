@@ -447,13 +447,14 @@ export function isDemoMode(search) {
 }
 
 /**
- * Alt en side trenger i demomodus: reservasjoner, «sist synkronisert» og et
- * lager i minnet forhåndsfylt med brukerdata.
+ * Alt en side trenger i demomodus: reservasjoner og et lager i minnet
+ * forhåndsfylt med brukerdata. Ingen «sist synkronisert», for ingenting er
+ * synkronisert, og en ekte tid i et skjermbilde ville sett ut som ekte data.
  */
 export function createDemoSession({ seed = DEMO_SEED, now = new Date() } = {}) {
   const reservations = generateDemoReservations({ seed, now });
   const storage = createDemoStorage(demoUserData(reservations));
-  return { reservations, lastSync: now.getTime() - 25 * 60000, storage };
+  return { reservations, storage };
 }
 
 /** Merket som skiller demoskjermbilder fra ekte tall. */

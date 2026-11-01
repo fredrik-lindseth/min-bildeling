@@ -112,6 +112,7 @@ test("alle seksjoner har innhold og ytterpunktene synes", () => {
 
 test("demolageret er forhåndsfylt og lever bare i minnet", async () => {
   const session = createDemoSession({ now: NOW });
+  assert.equal(session.lastSync, undefined, "demo har ingen synktid å vise");
   const categories = await loadCategories(session.storage);
   assert.ok(Object.values(categories).includes("helgetur"));
   const transport = await loadTransportData(session.storage);
