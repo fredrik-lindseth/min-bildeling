@@ -97,6 +97,18 @@ const CORPUS = [
   ["Boligvisning", null],
   ["Julaften", "hoytid"],
   ["Privilegert parkering", "aerend"],
+  // Feiltreff fra «jul» og *-ord som traff hvor som helst i ordet.
+  ["Ferie i juli", "helgetur"],
+  ["Julie fyller år", null],
+  ["Ekskursjon med klassen", null],
+  ["Møte med bobestyrer etter konkursen", "jobb"],
+  ["Diskusjon om diskurs", null],
+  ["Kursiv skrift", null],
+  ["Førstehjelpskurs", "jobb"],
+  ["Kurset i Oslo", "jobb"],
+  ["Foreldremøtet", "jobb"],
+  ["Søndagsbesøket", "besok"],
+  ["Dugnaden", "besok"],
 ];
 
 test("testkorpuset får forventet kategori", () => {
@@ -129,6 +141,10 @@ test("ordstart, helt ord og sammensetning", () => {
   assert.ok(keywordPattern("fly ").test("fly, tog"));
   assert.ok(!keywordPattern("fly ").test("flytting"));
   assert.ok(keywordPattern("*besøk").test("bursdagsbesøk"));
+  assert.ok(keywordPattern("*besøk").test("besøkstid"));
+  assert.ok(keywordPattern("*besøk").test("bursdagsbesøkene"));
+  assert.ok(!keywordPattern("*kurs").test("ekskursjon"));
+  assert.ok(!keywordPattern("*møte").test("kundemøterom"));
   assert.ok(keywordPattern("ærend").test("ærender"));
   assert.ok(!keywordPattern("ærend").test("tærende"));
   assert.ok(keywordPattern("17. mai").test("17. mai"));

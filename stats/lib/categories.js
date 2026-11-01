@@ -23,9 +23,11 @@ export const CATEGORIES = {
 // Et ord treffer i starten av et ord i notatet: «lege» treffer «legevakt»,
 // men ikke «privilegert». Ender ordet på mellomrom, må hele ordet stå alene,
 // så «fly » treffer «fly til Oslo», men ikke «flytting». Står det * først,
-// treffer ordet også sist i en sammensetning: «*besøk» treffer
-// «bursdagsbesøk». Det brukes bare for ord som ikke ligger gjemt i vanlige
+// treffer ordet også sist i et ord, med en bøyningsending etter
+// (INFLECTION): «*besøk» treffer «bursdagsbesøket», men «*kurs» treffer ikke
+// «ekskursjon». Det brukes bare for ord som ikke ligger gjemt i vanlige
 // ord, ellers står sammensetningen for seg («hageavfall», «sommerferie»).
+// Ord som likevel treffer feil, står i STOP_WORDS.
 //
 // Blandede notater: første kategori i listen med treff vinner, ikke det
 // første ordet i notatet. Tidligste treff lar vanlige verb som «hente»,
@@ -76,7 +78,7 @@ export const DEFAULT_KEYWORDS = {
   aktivitet: [
     "skøyte", "fotball", "trening", "svømme", "bade", "tur ", "ski ",
     "skitur", "skisenter", "skiløyp", "alpint", "langrenn", "klatring",
-    "klatre", "*buldr", "kino", "gokart", "padle", "sykkel", "fiske",
+    "klatre", "buldr", "*buldring", "kino", "gokart", "padle", "sykkel", "fiske",
     "konsert", "teater", "museum",
   ],
   jobb: ["jobb", "arbeid", "kontor", "*møte", "*kurs", "intervju", "kunde"],
@@ -139,17 +141,29 @@ export function mergeKeywords(defaults, userKeywords) {
   return merged;
 }
 
+// Ord i notatet som aldri skal treffe noe nøkkelord, med alt som henger
+// etter: «juli» er ikke «jul», og «konkurs» er ikke et kurs. Gjelder også
+// brukerens egne nøkkelord.
+export const STOP_WORDS = ["juli", "konkurs", "diskurs", "kursiv"];
+
+// Bøyningsendelser et *-ord kan ha etter seg når det står sist i et ord.
+const INFLECTION = "(?:e|en|et|er|ene|a|ar|ane|n|t|r|ne|s)?";
+
 // Ett regulært uttrykk per nøkkelord, bygd én gang per flettet liste.
 // WeakMap-en holder på listen bare så lenge kalleren gjør det.
 const compiledCache = new WeakMap();
 
 const LETTER_BEFORE = "(?<!\\p{L})";
 const LETTER_AFTER = "(?!\\p{L})";
+const STOP_PATTERN = new RegExp(
+  `${LETTER_BEFORE}(?:${STOP_WORDS.join("|")})\\p{L}*`,
+  "gu",
+);
 
 /**
- * Build the matcher for one keyword. It must start a word, unless it starts
- * with "*", which lets it end a compound too. A trailing space means the
- * word must also end there. Exported for tests.
+ * Build the matcher for one keyword. It must start a word. A trailing space
+ * means the word must also end there. A leading "*" also lets it end a word,
+ * followed by at most an inflection ending. Exported for tests.
  */
 export function keywordPattern(keyword) {
   const lower = keyword.toLowerCase();
@@ -158,10 +172,9 @@ export function keywordPattern(keyword) {
   const inCompound = core.startsWith("*");
   if (inCompound) core = core.slice(1);
   const escaped = core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(
-    (inCompound ? "" : LETTER_BEFORE) + escaped + (wholeWord ? LETTER_AFTER : ""),
-    "u",
-  );
+  const atStart = LETTER_BEFORE + escaped + (wholeWord ? LETTER_AFTER : "");
+  if (!inCompound) return new RegExp(atStart, "u");
+  return new RegExp(`${atStart}|${escaped}${INFLECTION}${LETTER_AFTER}`, "u");
 }
 
 function compileKeywords(keywords) {
@@ -185,7 +198,7 @@ function compileKeywords(keywords) {
  */
 export function matchKeyword(notes, keywords) {
   if (!notes || typeof notes !== "string") return null;
-  const lower = notes.toLowerCase();
+  const lower = notes.toLowerCase().replace(STOP_PATTERN, " ");
 
   for (const [category, patterns] of compileKeywords(keywords)) {
     for (const [keyword, pattern] of patterns) {
