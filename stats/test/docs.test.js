@@ -128,8 +128,9 @@ test("openapi.json beskriver listesvaret med de samme feltene som eksempelet", (
   const spec = read("openapi.json");
   const items = spec.paths["/reservations/historic"].get.responses["200"].content["application/json"].schema.items;
   const name = items.$ref.split("/").pop();
-  const fields = Object.keys(spec.components.schemas[name].properties).sort();
-  assert.equal(fields.length, 14);
+  const schema = spec.components.schemas[name];
+  const fields = Object.keys(schema.properties).sort();
+  assert.match(schema.description, new RegExp(`\\b${fields.length} felt\\b`), "feltantallet i beskrivelsen");
   for (const item of read("sample-historic-list.json")) {
     assert.deepEqual(Object.keys(item).sort(), fields);
   }
