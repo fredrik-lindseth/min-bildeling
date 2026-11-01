@@ -256,10 +256,10 @@ Chart.js-fargene hentes fra tokenene gjennom måleelementet beskrevet over, og h
 
 ## Sjekker som håndhever reglene
 
-Det finnes ingen fargesjekk i repoet i dag. Del 2 legger to script i `stats/scripts/`, og begge kjøres før commit og skal være grønne:
+To sjekker finnes alt i `stats/scripts/`, og `package.sh` kjører begge: byggevakten `sjekk-pakke.sh` feiler på hex-, `rgb()`- og `hsl()`-farger utenfor `:root` i CSS-filene, og `kontrast.sh` måler fargeparene i `:root` i lys og mørk modus. Del 2 utvider dem, og begge kjøres før commit og skal være grønne:
 
-- En fargesjekk som går gjennom `.css`, `.html` og `.js` under `stats/` (unntatt `vendor/`) og feiler med fil og linje når den finner en hex-farge (`#rgb`, `#rrggbb`) eller `rgb()`/`rgba()`/`hsl()` utenfor `stats/lib/tokens.css`. I HTML ser den bare i `<style>` og `style`-attributter, så ankerlenker som `#bad` ikke gir falske treff. Den feiler også på `box-shadow` og `text-shadow` med annen verdi enn `none`, på `border-radius` med annen verdi enn `var(--radius)` eller `0`, og på `!important`. Den er et lite script uten avhengigheter, i samme språk som kontrastscriptet.
-- Kontrastscriptet, som leser `light-dark(a, b)` fra `tokens.css` og sjekker parene i tabellene over i begge moduser, chart-parene inkludert.
+- Fargesjekken går gjennom `.css`, `.html` og `.js` under `stats/` (unntatt `vendor/`) og feiler med fil og linje når den finner en hex-farge (`#rgb`, `#rrggbb`) eller `rgb()`/`rgba()`/`hsl()` utenfor `stats/lib/tokens.css`. I HTML ser den bare i `<style>` og `style`-attributter, så ankerlenker som `#bad` ikke gir falske treff. Den feiler også på `box-shadow` og `text-shadow` med annen verdi enn `none`, på `border-radius` med annen verdi enn `var(--radius)` eller `0`, og på `!important`. Den er et lite script uten avhengigheter, i samme språk som kontrastscriptet.
+- Kontrastscriptet leser `light-dark(a, b)` fra `tokens.css` og sjekker parene i tabellene over i begge moduser, chart-parene inkludert.
 
 ## Bevegelse
 
