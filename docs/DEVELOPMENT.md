@@ -55,7 +55,7 @@ lib/
   chart-helpers.js         # Chart.js-hjelpere
   co2.js                   # CO₂ per drivstofftype og kategori
   formatters.js            # NOK- og datoformatering
-  ownership-cost.js        # Eierkostnader og Volvo EX C40
+  ownership-cost.js        # Eierkostnader og Volvo EX40
   stats.js                 # Statistikk (rene funksjoner)
   sync.js                  # Synkmotoren
   sync-page.js             # Kobler synken til popup og dashboard
@@ -80,8 +80,8 @@ icons/
 
 | Estimat               | Kilde                           |
 | --------------------- | ------------------------------- |
-| Eierkostnader         | NAF Bilkostnadsindeks, OFV      |
-| Volvo EX C40 2026     | Nypris, forsikring, strøm       |
+| Eierkostnader         | OFV kalkyle 2026, NAF, kommuner |
+| Volvo EX40            | Finn-pris 10.09.2026, OFV       |
 | CO₂ bildeling         | Miljødirektoratet (per biltype) |
 | CO₂ buss              | TØI/Skyss (~50 g/passasjer-km)  |
 | CO₂ taxi              | Miljødirektoratet (~120 g/km)   |

@@ -13,7 +13,7 @@ Repoet har to utvidelser: `stats/` for statistikk og [`flex/`](flex/README.md) f
   - Bookingmønster (forhåndsvarsel, mest brukte stasjoner, andel siste liten)
   - Kilometer (distanse, per bil, lengste tur)
   - Trender (år mot år, rullerende snitt, sesong)
-  - Bilregnestykket (bildeling mot egen bil, også Volvo EX C40 2026)
+  - Bilregnestykket (bildeling mot egen bil, også Volvo EX40)
   - Turkategorier (sortert automatisk etter turnotatene)
   - Klimaregnskap (CO₂ per drivstofftype og bil)
   - Transportkalkulator (taxi, leiebil, buss, fly, sykkel, totalbilde)

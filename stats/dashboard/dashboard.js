@@ -953,7 +953,7 @@ function renderOwnership(reservations) {
     },
   });
 
-  // Volvo EX C40, som et mindre regnestykke under det første
+  // Volvo EX40, som et mindre regnestykke under det første
   const volvo = estimateVolvoComparison(reservations);
   if (volvo) {
     setLedger("volvo", volvo.ownershipCost, volvo.sharingCost, volvo.savings);
@@ -962,7 +962,7 @@ function renderOwnership(reservations) {
   // Note text
   const categoryName = result.category || "ukjent";
   const noteEl = $("comparison-note");
-  noteEl.textContent = `Regnet mot din mest brukte bilkategori (${categoryName}) og Volvo EX C40 2026.`;
+  noteEl.textContent = `Regnet mot din mest brukte bilkategori (${categoryName}) og Volvo EX40.`;
 
   // Ownership methodology detail
   const ownershipMethodDetail = $("ownership-method-detail");
