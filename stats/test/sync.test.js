@@ -14,7 +14,7 @@ import {
   detailRetryDelayMs,
 } from "../lib/sync.js";
 import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
-import { describeSyncResult } from "../lib/sync-messages.js";
+import { describeProgress, describeProgressShort, describeSyncResult } from "../lib/sync-messages.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-01T12:00:00Z");
@@ -602,6 +602,13 @@ test("rå feiltekst når ikke brukeren", () => {
     const message = describeSyncResult({ status: "PAUSED", error, done: 5, total: 10 });
     assert.equal(message, "Synkroniseringen stoppet. Prøv igjen om litt. Hentet 5 av 10.");
   }
+});
+
+test("banner og knapp viser samme tall under synk", () => {
+  const progress = { phase: "details", current: 40, total: 661 };
+  assert.equal(describeProgress(progress), "Henter detaljer for 40 av 661 turer…");
+  assert.equal(describeProgressShort(progress), "Synkroniserer 40 av 661");
+  assert.equal(describeProgressShort({ phase: "list", current: 1, total: 661 }), "Synkroniserer…");
 });
 
 // ---------- Lease etter tid ----------

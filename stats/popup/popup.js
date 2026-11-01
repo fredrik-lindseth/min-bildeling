@@ -2,7 +2,13 @@ import { currentMonthStats, monthlyCosts, usagePatterns } from "../lib/stats.js"
 import { createMonthBars } from "../lib/chart-helpers.js";
 import { formatNOK, formatSyncTime } from "../lib/formatters.js";
 import { estimateOwnershipCost } from "../lib/ownership-cost.js";
-import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
+import {
+  startSync,
+  isAuthError,
+  describeSyncResult,
+  describeProgress,
+  describeProgressShort,
+} from "../lib/sync-page.js";
 // Popupen lukkes så snart brukeren klikker et annet sted, og da stopper synken.
 // Den henter derfor bare et lite antall detaljer om gangen og ber om dashbordet
 // for resten. Det som er hentet, står i storage uansett.
@@ -40,6 +46,7 @@ function showStatus(message, progress = null) {
 
   if (progress !== null) {
     progressEl.hidden = false;
+    progressEl.setAttribute("aria-valuenow", String(progress));
     progressBar.style.width = `${progress}%`;
   } else {
     progressEl.hidden = true;
@@ -173,6 +180,7 @@ async function sendMessage(msg, timeoutMs = 10000) {
 function showProgress({ phase, current, total }) {
   const pct = phase === "details" && total > 0 ? Math.round((current / total) * 100) : null;
   showStatus(describeProgress({ phase, current, total }), pct);
+  syncBtn.textContent = describeProgressShort({ phase, current, total });
 }
 
 async function renderStored() {
@@ -186,6 +194,7 @@ async function renderStored() {
 // Kjør synken fra popupen og vis resultatet. Feil vises og blir stående.
 async function syncAndRender(force) {
   syncBtn.disabled = true;
+  syncBtn.textContent = "Synkroniserer…";
   if (force) showStatus("Synkroniserer…");
 
   const result = await startSync({
@@ -194,6 +203,7 @@ async function syncAndRender(force) {
     onProgress: showProgress,
   });
   syncBtn.disabled = false;
+  syncBtn.textContent = "Synkroniser";
 
   let hasData = false;
   try {

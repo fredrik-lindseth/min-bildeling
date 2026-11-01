@@ -47,3 +47,9 @@ export function describeProgress({ phase, current, total }) {
   if (phase === "details" && total > 0) return `Henter detaljer for ${current} av ${total} turer…`;
   return "Synkroniserer…";
 }
+
+// Kort form til synk-knappen, så knapp og banner viser samme tall.
+export function describeProgressShort({ phase, current, total }) {
+  if (phase === "details" && total > 0) return `Synkroniserer ${current} av ${total}`;
+  return "Synkroniserer…";
+}

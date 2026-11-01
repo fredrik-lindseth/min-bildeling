@@ -5,7 +5,12 @@
 import { browserAPI, storage } from "./browser-polyfill.js";
 import { runSync } from "./sync.js";
 
-export { isAuthError, describeSyncResult, describeProgress } from "./sync-messages.js";
+export {
+  isAuthError,
+  describeSyncResult,
+  describeProgress,
+  describeProgressShort,
+} from "./sync-messages.js";
 
 const owner =
   typeof crypto !== "undefined" && crypto.randomUUID

@@ -148,7 +148,6 @@ body {
   height: 100%;
   border-radius: 3px;
   background-color: var(--color-accent);
-  transition: width 0.2s ease;
   width: 0%;
 }
 
@@ -253,6 +252,8 @@ body {
 }
 
 .btn--sync {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   background-color: var(--color-btn-secondary-bg);
   color: var(--color-btn-secondary-text);
 }
@@ -283,16 +284,8 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-  html { scroll-behavior: auto; }
+/* Bevegelse bare uten ønske om redusert bevegelse. Fargeoverganger står utenfor. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .progress__bar { transition: width 0.2s ease; }
 }

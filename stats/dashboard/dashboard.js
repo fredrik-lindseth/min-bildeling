@@ -34,7 +34,13 @@ import {
 } from "../lib/categories.js";
 
 import { storage } from "../lib/browser-polyfill.js";
-import { startSync, isAuthError, describeSyncResult, describeProgress } from "../lib/sync-page.js";
+import {
+  startSync,
+  isAuthError,
+  describeSyncResult,
+  describeProgress,
+  describeProgressShort,
+} from "../lib/sync-page.js";
 
 import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
 
@@ -239,6 +245,7 @@ function hideStatus() {
 
 function showProgress(pct) {
   progressBar.hidden = false;
+  progressBar.setAttribute("aria-valuenow", String(pct));
   progressFill.style.width = `${pct}%`;
 }
 
@@ -1568,6 +1575,7 @@ async function loadStored() {
 
 function onSyncProgress(progress) {
   showStatus(describeProgress(progress));
+  syncBtn.textContent = describeProgressShort(progress);
   if (progress.phase === "details" && progress.total > 0) {
     showProgress(Math.round((progress.current / progress.total) * 100));
   }
@@ -1578,13 +1586,13 @@ function onSyncProgress(progress) {
 // gikk bra og det likevel ikke finnes data.
 async function syncAndRender(force) {
   syncBtn.disabled = true;
-  syncBtn.classList.add("is-syncing");
+  syncBtn.textContent = "Synkroniserer…";
   if (force) showStatus("Synkroniserer…");
 
   const result = await startSync({ force, onProgress: onSyncProgress });
 
   syncBtn.disabled = false;
-  syncBtn.classList.remove("is-syncing");
+  syncBtn.textContent = "Synkroniser";
   progressBar.hidden = true;
 
   // Tegn opp på nytt bare når synken faktisk hentet noe, eller ingenting vises ennå.
