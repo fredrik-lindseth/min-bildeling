@@ -180,7 +180,7 @@ Slik beregner vi
 
 Kostnader-hovedtallet står uten «ca.» fordi det er summen av faktiske beløp (`price.total`). «ca.» står bare foran estimater: Bilregnestykket, egen bil-kostnaden og CO₂-tallene.
 
-Bilregnestykket settes som et faktisk regnestykke, med strek over summen og summen i aksentfarge. Det er det ene grepet i designet som skal huskes, og det kommer rett fra seksjonens navn. Brukeren spør «lønner det seg?», og et regnestykke med strek over summen svarer slik folk regner selv. Sammenligningen mot Volvo EX C40 blir et andre, mindre regnestykke under det første, uten eget hovedtall.
+Bilregnestykket settes som et faktisk regnestykke, med strek over summen og summen i aksentfarge. Det er det ene grepet i designet som skal huskes, og det kommer rett fra seksjonens navn. Brukeren spør «lønner det seg?», og et regnestykke med strek over summen svarer slik folk regner selv. Sammenligningen mot Volvo EX40 blir et andre, mindre regnestykke under det første, uten eget hovedtall.
 
 Støtteseksjonene (Bruksmønster, Bookingmønster, Kilometer, Trender, Turkategorier, Klima, Transport) har ikke hovedtall. De får seksjonsoverskrift, diagram i panel og nøkkeltall som en to-kolonners liste (`<dl>`) med etikett til venstre og tall til høyre, delt med 1 px linjer. Kortrutenettet (`.cards--2`, `.cards--3`) går ut. Rangerte lister (mest brukte biler, stasjoner) er nummererte lister der nummeret står i tekstfarge tertiary, ikke i en farget sirkel.
 

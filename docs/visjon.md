@@ -12,7 +12,7 @@ Trendene legger årene oppå hverandre, glatter med et rullerende tremånederssn
 
 ## Bilregnestykket
 
-Regnestykket sammenligner bildelingen din med hva det ville kostet å eie biltypen du bruker mest, ut fra din egen kjørelengde. Eierkostnadene er brutt ned i verditap, forsikring, årsavgift, vedlikehold, parkering og drivstoff, med tall fra NAF Bilkostnadsindeks. Målet er å kunne sammenligne mot en bestemt bil du har vurdert å kjøpe. I dag finnes Volvo EX C40 2026 som eget alternativ.
+Regnestykket sammenligner bildelingen din med hva det ville kostet å eie biltypen du bruker mest, ut fra din egen kjørelengde. Eierkostnadene er brutt ned i verditap, forsikring, årsavgift, vedlikehold, parkering og drivstoff, med tall fra OFVs «Kostnader ved bilhold» 2026. Målet er å kunne sammenligne mot en bestemt bil du har vurdert å kjøpe. I dag finnes Volvo EX40 som eget alternativ.
 
 ## Turkategorier
 
