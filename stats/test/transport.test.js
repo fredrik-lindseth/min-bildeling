@@ -13,6 +13,7 @@ import {
   transportSummary,
 } from "../lib/transport.js";
 import { CO2_METHOD } from "../lib/co2.js";
+import { methodText } from "../lib/method-panel.js";
 import { REFERENCE_CAR as CAR } from "../lib/referansebil.js";
 
 const BILDELERINGEN = "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0";
@@ -20,19 +21,23 @@ const TRONDHEIM = "8dba8f19-c438-f278-ed7c-912ec6537cb9";
 
 test("taxi teller 0 g/km etter nullutslippskravet, med begge fylkene som kilde", () => {
   assert.equal(TRANSPORT_MODES.taxi.co2PerKm, null, "faktoren følger året");
-  const sources = TRANSPORT_METHOD.sources.join("\n");
-  assert.match(sources, /Vestland.*2024/);
-  assert.match(sources, /Trøndelag.*2025/);
+  const { factors, sources, notes } = TRANSPORT_METHOD;
+  const zero = factors.filter((f) => f.value === 0 && f.label.startsWith("Taxi"));
+  assert.deepEqual(zero.map((f) => f.label), ["Taxi i gamle Hordaland fra 1. april 2024", "Taxi i Trøndelag fra 1. juli 2025"]);
+  assert.match(sources[zero[0].source].name, /Vestland/);
+  assert.match(sources[zero[1].source].name, /Trøndelag/);
   // Bare eksos er med, så teksten skal si det framfor å love nullutslipp.
-  assert.match(TRANSPORT_METHOD.note, /eksos/);
+  assert.ok(notes.some((n) => /eksos/.test(n)));
   const s = transportSummary({ taxi: { trips: 4, totalKm: 40, totalCost: 1200 } }, null, { year: 2026 });
   assert.equal(s.modes.taxi.co2Kg, 0);
 });
 
 test("taxi før kravet bruker det gamle drosjesnittet, vektet året kravet kom", () => {
   assert.equal(TAXI_CO2_BEFORE_REQUIREMENT, 229);
-  assert.match(TRANSPORT_METHOD.note, /229 g\/km/);
-  assert.ok(TRANSPORT_METHOD.sources.some((s) => /Vestland fylkeskommune.*2021/.test(s)));
+  const before = TRANSPORT_METHOD.factors.find((f) => f.value === 229);
+  assert.match(before.note, /Hordaland-tallet brukes også for Trøndelag/);
+  assert.match(TRANSPORT_METHOD.sources[before.source].name, /^Vestland fylkeskommune/);
+  assert.match(TRANSPORT_METHOD.sources[before.source].date, /^2021/);
 
   // Bildeleringen og ukjent organisasjon: gamle Hordaland, krav fra 1. april 2024.
   assert.equal(taxiCO2PerKm(2023, BILDELERINGEN), 229);
@@ -64,18 +69,17 @@ test("taxi i en by uten eget krav i tabellen regnes som Bergen, ikke NaN", () =>
 
 test("buss bruker SSBs nasjonale tall", () => {
   assert.equal(TRANSPORT_MODES.buss.co2PerKm, 59);
-  assert.ok(TRANSPORT_METHOD.sources.some((s) => /^SSB.*\d{4}/.test(s)));
+  const bus = TRANSPORT_METHOD.factors.find((f) => f.label.startsWith(TRANSPORT_MODES.buss.label));
+  assert.equal(bus.value, 59);
+  assert.match(TRANSPORT_METHOD.sources[bus.source].name, /^SSB/);
   const s = transportSummary({ buss: { trips: 10, totalKm: 100, totalCost: 400 } }, null);
   assert.equal(s.modes.buss.co2Kg, 5.9);
 });
 
 test("forutsetningene for CO₂ og transport nevner ingen enkeltby", () => {
   const text = [
-    TRANSPORT_METHOD.note,
-    ...TRANSPORT_METHOD.sources,
-    CO2_METHOD.note,
-    CO2_METHOD.comparison,
-    ...CO2_METHOD.sources,
+    methodText(TRANSPORT_METHOD),
+    methodText(CO2_METHOD),
     ...Object.values(TRANSPORT_MODES).map((m) => m.label),
   ].join("\n");
   assert.doesNotMatch(text, /\b(Bergen|Skyss|bybane|Trondheim|AtB)\b/i);

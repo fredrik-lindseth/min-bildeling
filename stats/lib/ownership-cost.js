@@ -65,27 +65,41 @@ export function parkingFor(reservations, organizationId) {
   return { city, perMonth, perYear: perMonth * 12 };
 }
 
-// Tekst og kilder til «Slik beregnes det» ved bilregnestykket og sparetallet.
-// Tallene hentes fra referansebil.js, så teksten følger med når de endres.
-const nb = (n) => new Intl.NumberFormat("nb-NO").format(n);
-const kr = (n) => `${nb(n)} kr`;
-const parkingText = Object.values(CAR.parking)
-  .map((p) => `${kr(p.perMonth)} i måneden i ${[p.city, p.zone].filter(Boolean).join(" ")} (${p.organization})`)
-  .join(" og ");
+// «Slik beregnes det» ved bilregnestykket, «Spart i år» og årsoppsummeringen,
+// se method-panel.js. Verdiene og kildene er de samme oppføringene i
+// referansebil.js som regnestykket bruker, så tabellen følger med når de
+// endres.
 const defaultCity = CAR.parking[CAR.defaultParkingOrganization].city;
+const percent = (share) => `${Math.round(share * 100)}\u00a0%`;
+const factor = (label, entry, unit, note) => ({ label, value: entry.value, unit, source: entry.source, note });
 
 export const OWNERSHIP_METHOD = {
-  note: `Regnestykket sammenligner med én fast bil, en ny ${CAR.model.value} ${CAR.variant.value} ` +
-    `til ${kr(CAR.price.value)} (tidligere XC40 Recharge), uansett hvilke biler du har brukt. ` +
-    "Faste kostnader per år er verditap over tre år, forsikring med 75 % bonus, " +
-    `trafikkforsikringsavgift, vedlikehold med service og boligsoneparkering for bil 1: ${parkingText}. ` +
-    `Ukjent bilkollektiv regnes som ${defaultCity}. Dekk og strøm regnes for kilometerne du kjørte. ` +
-    `Tallene er fra OFV, som regner med ${nb(CAR.ofvKmPerYear.value)} km i året. ` +
-    "Kjører du mindre, blir verditap og forsikring i virkeligheten noe lavere. " +
-    "Renter på kjøpesummen, bompenger og ferje er ikke med. " +
-    "Bildeling er det du faktisk har betalt. «Spart i år» tar de faste " +
-    "kostnadene for den delen av året som er gått.",
-  sources: [SOURCES.ofv, SOURCES.volvoPrice, SOURCES.finn, SOURCES.naf, SOURCES.bergen, SOURCES.trondheim],
+  intro: `Det du har betalt for bildeling, sammenlignes med å eie en ny ${CAR.model.value} ${CAR.variant.value}, ` +
+    "uansett hvilke biler du har brukt.",
+  factors: [
+    { ...factor("Pris, ny bil", CAR.price, "kr", "Tidligere XC40 Recharge."), source: [CAR.price.source, "finn"] },
+    factor("Verditap over tre år", CAR.depreciation, "kr/år"),
+    factor("Forsikring med 75\u00a0% bonus", CAR.insurance, "kr/år"),
+    factor("Trafikkforsikringsavgift", CAR.trafficInsuranceTax, "kr/år"),
+    factor("Vedlikehold og service", CAR.maintenance, "kr/år"),
+    ...Object.values(CAR.parking).map((p) => ({
+      label: `Boligsoneparkering i ${[p.city, p.zone].filter(Boolean).join(", ")}`,
+      value: p.perMonth, unit: "kr/mnd", source: p.source,
+      note: `Bil 1 i byen til bilkollektivet ditt. Ukjent bilkollektiv regnes som ${defaultCity}.`,
+    })),
+    factor("Dekk", CAR.tyresPerKm, "kr/km"),
+    factor("Strømforbruk", CAR.kWhPerKm, "kWh/km"),
+    factor(`Hjemmelading, ${percent(1 - CAR.fastChargingShare.value)} av ladingen`, CAR.homeChargingKrPerKWh, "kr/kWh"),
+    factor(`Hurtiglading, ${percent(CAR.fastChargingShare.value)} av ladingen`, CAR.fastChargingKrPerKWh, "kr/kWh"),
+    factor("Kjørelengde i OFV-tallene", CAR.ofvKmPerYear, "km/år",
+      "Kjører du mindre, blir verditap og forsikring i virkeligheten noe lavere."),
+  ],
+  notes: [
+    "Bildeling er det du faktisk har betalt.",
+    "«Spart i år» tar de faste kostnadene for den delen av året som er gått.",
+    "Renter på kjøpesummen, bompenger og ferje er ikke med.",
+  ],
+  sources: SOURCES,
 };
 
 /**

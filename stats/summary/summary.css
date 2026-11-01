@@ -51,14 +51,8 @@ body {
   cursor: pointer;
 }
 
-.method a {
-  color: var(--color-accent);
-  text-underline-offset: 3px;
-}
-
 .year-picker select:focus-visible,
-.method summary:focus-visible,
-.method a:focus-visible {
+.method summary:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -135,13 +129,9 @@ body {
   cursor: pointer;
 }
 
-.method p,
-.method ul {
-  margin-top: var(--space-2);
-}
-
-.method ul {
-  padding-left: var(--space-4);
+/* Panelene fra ../lib/method-panel.css, ett for sparingen og ett for CO₂. */
+#method-detail > * {
+  margin-top: var(--space-5);
 }
 
 /* Demomodus (?demo=1) */

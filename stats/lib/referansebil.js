@@ -11,30 +11,37 @@
 // 4. Kjør `cd stats && node --test`. ownership-cost.test.js regner
 //    interpolasjonen for hånd og må følge med.
 
+// Kildene vises i «Slik beregnes det» med navn, lenke og dato.
 export const SOURCES = {
   ofv: {
-    text: "OFV: Kostnader ved bilhold – eksempler på beregning 2026 (16.06.2026)",
+    name: "OFV: Kostnader ved bilhold – eksempler på beregning 2026",
     url: "https://kommunikasjon.ntb.no/files/17848801/18952851/322829/no",
+    date: "2026-06-16",
   },
   volvoPrice: {
-    text: "Elbil24: Volvo EX40 oppgraderes, priser fra Volvo Norge inkl. levering (10.09.2026)",
+    name: "Elbil24: Volvo EX40 oppgraderes, priser fra Volvo Norge inkl. levering",
     url: "https://www.elbil24.no/nyheter/volvo-ex40-tar-plastisk-kirurgi/85125635",
+    date: "2026-09-10",
   },
   finn: {
-    text: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare (10.09.2026)",
+    name: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare",
     url: "https://www.finn.no/bilguiden/nyheter/volvo-ex40-oppdatert-norske-priser-er-klare",
+    date: "2026-09-10",
   },
   naf: {
-    text: "NAF: Avgifter og kostnader for bil 2026 (oppdatert 02.10.2026)",
+    name: "NAF: Avgifter og kostnader for bil 2026",
     url: "https://www.naf.no/politikk-og-samfunn/privatokonomi/avgifter-og-kostnader-for-bil-2026",
+    date: "2026-10-02", dateLabel: "oppdatert",
   },
   bergen: {
-    text: "Bergen kommune: Boligsoneparkering, sone 1–8 (side oppdatert 15.10.2026)",
+    name: "Bergen kommune: Boligsoneparkering, sone 1–8",
     url: "https://www.bergen.kommune.no/innbyggerhjelpen/trafikk-reiser-vei/vei-transport-og-parkering/parkering/boligsoneparkering",
+    date: "2026-10-15", dateLabel: "side oppdatert",
   },
   trondheim: {
-    text: "Trondheim kommune: Prisliste, boligsoneparkering (side oppdatert 31.12.2025)",
+    name: "Trondheim kommune: Prisliste, boligsoneparkering",
     url: "https://www.trondheim.kommune.no/parkering/innhold/priser-og-betaling/prisliste/",
+    date: "2025-12-31", dateLabel: "side oppdatert",
   },
 };
 

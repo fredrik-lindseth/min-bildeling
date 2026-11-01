@@ -174,6 +174,17 @@ function getStationName(r) {
   return r.location?.name || "Ukjent stasjon";
 }
 
+// «Slik beregnes det» ved Bookingmønster, se method-panel.js. Ingen faktorer,
+// bare hva som telles med.
+export const BOOKING_METHOD = {
+  intro: "Ledetiden er tiden fra du booket til turen startet.",
+  notes: [
+    "Booket du etter starttid, teller det som 0 timer, altså «rett før avreise».",
+    "Turer som ikke ble kjørt, er med.",
+    "Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke med.",
+  ],
+};
+
 export function bookingPatterns(reservations) {
   // Bruker filterValid for å se faktisk bookingatferd, inkluderer noTrips.
   // Krever created, eldre reservasjoner kan mangle feltet.

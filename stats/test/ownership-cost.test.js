@@ -68,8 +68,8 @@ test("hver forutsetning har kilde og dato", () => {
     assert.match(v.date, /^\d{4}-\d{2}-\d{2}$/, `${key} mangler dato`);
   }
   for (const source of Object.values(SOURCES)) {
-    assert.match(source.text, /\d{2}\.\d{2}\.\d{4}/, `kilden mangler dato: ${source.text}`);
-    assert.match(source.url, /^https:\/\//, source.text);
+    assert.match(source.date, /^\d{4}-\d{2}-\d{2}$/, `kilden mangler dato: ${source.name}`);
+    assert.match(source.url, /^https:\/\//, source.name);
   }
 });
 
@@ -142,15 +142,15 @@ test("uten år regnes kilometer og bildeling om til ett år", () => {
 });
 
 test("«Slik beregnes det» navngir bilen, OFVs 10 000 km og begge byene", () => {
-  const nb = (n) => new Intl.NumberFormat("nb-NO").format(n);
-  const { note, sources } = OWNERSHIP_METHOD;
-  assert.ok(note.includes(`Volvo EX40 P5 Core til ${nb(439900)} kr`));
-  assert.ok(note.includes(`${nb(10000)} km i året`));
-  assert.ok(note.includes(`${nb(582)} kr i måneden i Bergen`));
-  assert.ok(note.includes(`${nb(785)} kr i måneden i Trondheim`));
-  assert.doesNotMatch(note, /\bvi\b|EX C40|kategori/i);
-  assert.ok(sources.some((s) => /^OFV/.test(s.text)));
-  assert.ok(sources.some((s) => /Trondheim kommune/.test(s.text)));
+  const { intro, factors, sources } = OWNERSHIP_METHOD;
+  assert.ok(intro.includes("Volvo EX40 P5 Core"));
+  const value = (label) => factors.find((f) => f.label.startsWith(label))?.value;
+  assert.equal(value("Pris"), 439900);
+  assert.equal(value("Kjørelengde"), 10000);
+  assert.equal(value("Boligsoneparkering i Bergen"), 582);
+  assert.equal(value("Boligsoneparkering i Trondheim"), 785);
+  assert.ok(sources.ofv.name.startsWith("OFV"));
+  assert.ok(sources.trondheim.name.startsWith("Trondheim kommune"));
 });
 
 test("parkeringen følger organisasjonen i reservasjonene", () => {

@@ -111,7 +111,7 @@ export const TRANSPORT_MODES = {
 };
 
 // CO₂ per km for egen bil, by fuel type
-const EGENBIL_CO2 = {
+export const EGENBIL_CO2 = {
   bensin: 130, // Norwegian fleet average ICE
   diesel: 120,
   elbil: 0,
@@ -207,25 +207,67 @@ export function transportSummary(transportData, sharingStats, { year, organizati
 }
 
 // ---------------------------------------------------------------------------
-// Methodology note
+// Slik beregnes det
 // ---------------------------------------------------------------------------
 
+// «Slik beregnes det» ved Transport, se method-panel.js. Tallene og
+// etikettene hentes fra konstantene over, så tabellen følger regnestykket.
+const formatDay = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const taxi = TRANSPORT_MODES.taxi.label;
+
 export const TRANSPORT_METHOD = {
-  note:
-    "CO₂-faktorer, bare utslipp fra eksos: " +
-    "Taxi 0 g/km etter nullutslippskravet for drosjer (gamle Hordaland fra 1. april 2024, " +
-    `Trøndelag fra 1. juli 2025), før det ~${TAXI_CO2_BEFORE_REQUIREMENT} g/km (drosjene i Hordaland 2018, brukt også for Trøndelag), ` +
-    "Leiebil ~130 g/km (norsk bilparksnitt), " +
-    "Egen bil: bensin ~130, diesel ~120, elbil 0 g/km (Miljødirektoratet), " +
-    "Buss ~59 g/km per passasjer (SSB, buss 2019, elbuss og bane gir mindre), " +
-    "Fly ~150 g/km per passasjer (Avinor/Miljødirektoratet), " +
-    "Sykkel/gange = 0.",
-  sources: [
-    "Miljødirektoratet: Utslippsfaktorer",
-    "Lovdata: miljøkrav til drosjenæringa i Vestland (FOR-2020-03-03-2549, gamle Hordaland fra 01.04.2024, resten av fylket fra 01.04.2026)",
-    "Lovdata: miljøkrav til drosjer i Trøndelag (FOR-2021-05-27-1753, krav innen 01.07.2025)",
-    "Vestland fylkeskommune: Miljøkrav til drosjenæringa i Vestland, utgreiing, fotnote 11 (mars 2021)",
-    "SSB: Mer utslipp for hver kilometer reist, figur 1 (13.12.2021)",
-    "Avinor: Innenriks luftfart utslipp",
+  intro: "Utslippet for hvert transportmiddel er kilometerne du har ført opp, ganger faktoren i tabellen.",
+  factors: [
+    {
+      label: `${taxi} før nullutslippskravet`, value: TAXI_CO2_BEFORE_REQUIREMENT, unit: "g/km",
+      note: "Drosjene i Hordaland i 2018. Hordaland-tallet brukes også for Trøndelag.", source: "vestland",
+    },
+    {
+      label: `${taxi} i gamle Hordaland fra ${formatDay.format(TAXI_ZERO_EMISSION_FROM.bergen)}`,
+      value: 0, unit: "g/km", source: "lovdataVestland",
+    },
+    {
+      label: `${taxi} i Trøndelag fra ${formatDay.format(TAXI_ZERO_EMISSION_FROM.trondheim)}`,
+      value: 0, unit: "g/km", source: "lovdataTrondelag",
+    },
+    { label: TRANSPORT_MODES.leiebil.label, value: TRANSPORT_MODES.leiebil.co2PerKm, unit: "g/km", note: "Snitt for norsk bilpark." },
+    { label: "Egen bil, bensin", value: EGENBIL_CO2.bensin, unit: "g/km", source: "miljodir" },
+    { label: "Egen bil, diesel", value: EGENBIL_CO2.diesel, unit: "g/km", source: "miljodir" },
+    { label: "Egen bil, elbil", value: EGENBIL_CO2.elbil, unit: "g/km", source: "miljodir" },
+    {
+      label: `${TRANSPORT_MODES.buss.label}, per passasjer`, value: TRANSPORT_MODES.buss.co2PerKm, unit: "g/km",
+      note: "Norske busser utenom langrute i 2019. Elbuss og bane gir mindre.", source: "ssb",
+    },
+    { label: `${TRANSPORT_MODES.fly.label}, per passasjer`, value: TRANSPORT_MODES.fly.co2PerKm, unit: "g/km", source: "avinor" },
+    { label: TRANSPORT_MODES.sykkel.label, value: TRANSPORT_MODES.sykkel.co2PerKm, unit: "g/km" },
   ],
+  notes: [
+    "Bare utslipp fra eksos er med.",
+    "Året kravet kom, vektes drosjeutslippet etter hvor mye av året som var før.",
+    "Bildelingstallene hentes fra dele.no.",
+  ],
+  sources: {
+    vestland: {
+      name: "Vestland fylkeskommune: Miljøkrav til drosjenæringa i Vestland, utgreiing, fotnote 11",
+      url: "https://www.vestlandfylke.no/globalassets/kollektiv-og-transport/miljokrav-til-drosjenaringa-i-vestland.pdf",
+      date: "2021-03",
+    },
+    lovdataVestland: {
+      name: "Lovdata: Forskrift om miljøkrav til drosjenæringa i Vestland fylke (FOR-2020-03-03-2549)",
+      url: "https://lovdata.no/dokument/LF/forskrift/2020-03-03-2549",
+      date: "2026-11-01", dateLabel: "lest",
+    },
+    lovdataTrondelag: {
+      name: "Lovdata: Forskrift om miljøkrav til drosjer i Trøndelag (FOR-2021-05-27-1753)",
+      url: "https://lovdata.no/dokument/LF/forskrift/2021-05-27-1753",
+      date: "2026-11-01", dateLabel: "lest",
+    },
+    miljodir: { name: "Miljødirektoratet: Utslippsfaktorer" },
+    ssb: {
+      name: "SSB: Mer utslipp for hver kilometer reist, figur 1",
+      url: "https://www.ssb.no/natur-og-miljo/forurensning-og-klima/artikler/mer-utslipp-for-hver-kilometer-reist",
+      date: "2021-12-13",
+    },
+    avinor: { name: "Avinor: Innenriks luftfart utslipp" },
+  },
 };

@@ -589,18 +589,14 @@ a:focus-visible,
 }
 
 /* ---- Slik beregnes det ---- */
+/* Selve panelet står i ../lib/method-panel.css. */
 .method-detail {
-  max-width: var(--measure);
   margin-top: var(--space-2);
-  color: var(--color-text-secondary);
 }
 
-.method-detail > * + * {
-  margin-top: var(--space-1);
-}
-
-.method-detail ul {
-  padding-left: var(--space-4);
+/* Fotnotelenkene skal lande under den faste navigasjonen. */
+.method-panel [id] {
+  scroll-margin-top: calc(var(--nav-height) + var(--space-4));
 }
 
 /* ---- Sjekk forslag ---- */

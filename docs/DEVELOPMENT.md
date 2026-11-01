@@ -59,6 +59,7 @@ lib/
   chart-helpers.js         # Chart.js-hjelpere
   co2.js                   # CO₂ per drivstofftype og kategori
   formatters.js            # NOK- og datoformatering
+  method-panel.js/.css     # «Slik beregnes det»: ett panel for alle metodene
   ownership-cost.js        # Bilregnestykket mot referansebilen
   referansebil.js          # Volvo EX40: forutsetningene med kilde og dato
   stats.js                 # Statistikk (rene funksjoner)

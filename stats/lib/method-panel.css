@@ -1,0 +1,127 @@
+/* «Slik beregnes det», bygd av method-panel.js. Lenkes inn etter tokens.css
+   i dashboard, popup og årsoppsummering, så panelet ser likt ut overalt.
+   Innledning, tabell med Hva, Verdi og Kilde, fotnoter og kildeliste, se
+   docs/design.md. Tabellen holder også i popupens 350 px: kildekolonnen er
+   bare et tall, og etiketten brytes framfor verdien. */
+
+.method-panel {
+  max-width: var(--measure);
+  color: var(--color-text-secondary);
+}
+
+.method-panel > * + * {
+  margin-top: var(--space-3);
+}
+
+.method-panel__heading {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.method-panel__heading + .method-panel__intro {
+  margin-top: var(--space-1);
+}
+
+.method-panel a {
+  color: var(--color-accent);
+  text-underline-offset: 3px;
+}
+
+.method-panel a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.method-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.method-panel__caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.method-panel__table th,
+.method-panel__table td {
+  padding-block: var(--space-1);
+  font-weight: 400;
+  text-align: left;
+  vertical-align: baseline;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.method-panel__table th + th,
+.method-panel__table th + td,
+.method-panel__table td + td {
+  padding-left: var(--space-3);
+}
+
+.method-panel__table thead th {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  border-bottom-color: var(--color-border-strong);
+}
+
+.method-panel__table .method-panel__value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.method-panel__table td.method-panel__value {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.method-panel__table .method-panel__source {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Fotnotetegnet skal ikke gjøre raden høyere. */
+.method-panel__ref {
+  font-size: var(--text-xs);
+  line-height: 0;
+}
+
+.method-panel__table td.method-panel__source .method-panel__ref {
+  font-size: inherit;
+  vertical-align: baseline;
+}
+
+.method-panel__notes {
+  font-size: var(--text-sm);
+  list-style: none;
+}
+
+.method-panel__notes--marked li {
+  display: grid;
+  grid-template-columns: 1.25em 1fr;
+}
+
+.method-panel__mark {
+  font-size: var(--text-xs);
+}
+
+.method-panel__sources-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.method-panel > .method-panel__sources {
+  margin-top: var(--space-1);
+  padding-left: 1.25em;
+  font-size: var(--text-sm);
+}
+
+.method-panel__notes li + li,
+.method-panel__sources li + li {
+  margin-top: var(--space-1);
+}

@@ -4,7 +4,7 @@ import { filterDriven } from "./stats.js";
 // CO₂ emission factors (grams per km) by fuel type and car category
 // Sources: Miljødirektoratet, SSB Registered Vehicle Statistics
 // These are tank-to-wheel (direct) emissions only
-const CO2_PER_KM = {
+export const CO2_PER_KM = {
   Bensin: {
     Småbil: 120, Minibil: 110, Kombi: 140,
     Stasjonsvogn: 150, SUV: 180, Varebil: 190,
@@ -21,20 +21,34 @@ const CO2_PER_KM = {
 
 // Norwegian registered passenger car fleet average: ~110 g/km (tank-to-wheel)
 // Used only in co2Comparison() for reference. Not shown prominently in UI.
-const PRIVATE_CAR_AVG_CO2 = 110;
+export const PRIVATE_CAR_AVG_CO2 = 110;
 
-// Methodology note for UI display. Factors and the comparison are national,
-// so they hold for every Bilparaplyen member. TØI 1895/2022 «Bildeling i
-// Bergen» is background in docs/research, but no number here comes from it,
-// so it is not listed as a source.
+// Laveste og høyeste faktor for et drivstoff, over alle kategoriene.
+function factorRange(fuel) {
+  const values = Object.values(CO2_PER_KM[fuel]);
+  return [Math.min(...values), Math.max(...values)];
+}
+
+// «Slik beregnes det» ved Klima og i årsoppsummeringen, se method-panel.js.
+// Faktorene og sammenligningen er nasjonale, så de gjelder alle medlemmene i
+// Bilparaplyen. TØI-rapportene i docs/research er bakgrunn, men ingen faktor
+// her kommer fra dem, så de står ikke som kilde.
+const BY_CATEGORY = "Faktoren følger bilkategorien, fra minibil til varebil.";
 export const CO2_METHOD = {
-  note: "Utslippet per tur regnes fra bilens drivstoff og kategori. " +
-    "Elbil teller 0 g/km, siden bare direkte utslipp er med.",
-  comparison: `Spart utslipp er regnet mot snittet for norske privatbiler, ${PRIVATE_CAR_AVG_CO2} g/km.`,
-  sources: [
-    "TØI: Bildelingens miljøkonsekvenser (Julsrud)",
-    "Miljødirektoratet / SSB: Utslippsfaktorer norsk bilpark",
+  intro: "Utslippet for hver tur er kjørte kilometer ganger en faktor for bilens drivstoff og kategori.",
+  factors: [
+    { label: "Bensinbil", value: factorRange("Bensin"), unit: "g/km", note: BY_CATEGORY, source: "faktorer" },
+    { label: "Dieselbil", value: factorRange("Diesel"), unit: "g/km", note: BY_CATEGORY, source: "faktorer" },
+    { label: "Elbil", value: factorRange("Elektrisitet"), unit: "g/km", note: "Bare utslipp fra eksos er med.", source: "faktorer" },
+    {
+      label: "Snitt for norske privatbiler", value: PRIVATE_CAR_AVG_CO2, unit: "g/km",
+      note: "Spart utslipp er forskjellen mot dette snittet.", source: "faktorer",
+    },
   ],
+  notes: ["Ukjent kategori regnes som småbil, og ukjent drivstoff som bensin."],
+  sources: {
+    faktorer: { name: "Miljødirektoratet og SSB: Utslippsfaktorer for norsk bilpark" },
+  },
 };
 
 /**

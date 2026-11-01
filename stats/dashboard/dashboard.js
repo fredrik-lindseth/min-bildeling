@@ -9,7 +9,10 @@ import {
   bookingPatterns,
   costYears,
   keepSelectedYear,
+  BOOKING_METHOD,
 } from "../lib/stats.js";
+
+import { renderMethodPanel } from "../lib/method-panel.js";
 
 import {
   drawChart,
@@ -699,13 +702,7 @@ function renderBookingPatterns(reservations) {
     },
   });
 
-  // Method detail
-  const methodDetail = $("booking-method-detail");
-  if (methodDetail) {
-    methodDetail.innerHTML = `
-      <p>Tiden fra du booket til turen startet. Booket du etter starttid, teller det som 0 timer, og ytterpunktet viser «rett før avreise». Turer som ikke ble kjørt er med. Avbestilte turer og eldre bookinger uten bookingtidspunkt er ikke.</p>
-    `;
-  }
+  renderMethodPanel($("booking-method-detail"), BOOKING_METHOD, { idPrefix: "booking-metode" });
 }
 
 // ---------- Rendering: Section 4 - Kilometer ----------
@@ -976,17 +973,7 @@ function renderOwnership(reservations) {
   $("comparison-note").textContent =
     `Regnet mot en ny ${COMPARISON_CAR.name} ${COMPARISON_CAR.variant} til ${formatNOK.format(COMPARISON_CAR.price)}.`;
 
-  // Ownership methodology detail
-  const ownershipMethodDetail = $("ownership-method-detail");
-  if (ownershipMethodDetail && result) {
-    const bd = result.breakdownOwnership;
-    ownershipMethodDetail.innerHTML = `
-      <p>${escapeHtml(OWNERSHIP_METHOD.note)}</p>
-      <p><code>Verditap ${formatNOK.format(bd.depreciation)} + forsikring ${formatNOK.format(bd.insurance)} + trafikkforsikringsavgift ${formatNOK.format(bd.tax)} + vedlikehold ${formatNOK.format(bd.maintenance)} + parkering i ${escapeHtml(result.parkingCity)} ${formatNOK.format(bd.parking)} + dekk ${formatNOK.format(bd.tyres)} + strøm ${formatNOK.format(bd.energy)} = ${formatNOK.format(result.ownershipCost)}</code></p>
-      <p>Bildeling, omregnet til ett år: <code>${formatNOK.format(result.sharingCost)}</code></p>
-      ${sourcesHtml(OWNERSHIP_METHOD.sources)}
-    `;
-  }
+  renderMethodPanel($("ownership-method-detail"), OWNERSHIP_METHOD, { idPrefix: "eierkostnad-metode" });
 }
 
 // Regnestykket: egen bil minus bildeling er forskjellen. Egen bil og
@@ -1375,24 +1362,7 @@ function renderClimate(reservations) {
   const elPct = total.tripCount > 0 ? Math.round((elTrips / total.tripCount) * 100) : 0;
   setText("co2-electric-pct", `${elPct} %`);
 
-  // Utregningen per drivstofftype, med tekst og kilder fra CO2_METHOD.
-  const methodDetail = $("co2-method-detail");
-  if (methodDetail) {
-    const fuelLines = Object.entries(total.byFuelType)
-      .filter(([, d]) => d.trips > 0)
-      .sort(([, a], [, b]) => b.kg - a.kg)
-      .map(([fuel, d]) => {
-        const gPerKm = d.km > 0 ? Math.round((d.kg * 1000) / d.km) : 0;
-        return `<p>${escapeHtml(fuel)}: <code>${formatKm.format(d.km)} km \u00d7 ${gPerKm} g/km = ${formatKm.format(Math.round(d.kg))} kg CO\u2082</code></p>`;
-      })
-      .join("");
-    methodDetail.innerHTML = `
-      <p>${escapeHtml(CO2_METHOD.note)}</p>
-      ${fuelLines}
-      <p>Totalt: <code>${formatKm.format(Math.round(total.totalKg))} kg CO\u2082</code> fra <code>${formatKm.format(total.totalKm)} km</code></p>
-      ${sourcesHtml(CO2_METHOD.sources)}
-    `;
-  }
+  renderMethodPanel($("co2-method-detail"), CO2_METHOD, { idPrefix: "co2-metode" });
 
   // Monthly chart
   if (monthly.length === 0) {
@@ -1702,14 +1672,7 @@ function renderTransportSummary(reservations, savedData, year) {
     tableEl.appendChild(row);
   }
 
-  // Methodology detail
-  const methodDetail = $("transport-method-detail");
-  if (methodDetail) {
-    methodDetail.innerHTML = `
-      <p>${escapeHtml(TRANSPORT_METHOD.note)} Bildelingstallene hentes fra dele.no.</p>
-      ${sourcesHtml(TRANSPORT_METHOD.sources)}
-    `;
-  }
+  renderMethodPanel($("transport-method-detail"), TRANSPORT_METHOD, { idPrefix: "transport-metode" });
 }
 
 // ---------- Utility ----------
@@ -1718,17 +1681,6 @@ function escapeHtml(str) {
   const el = document.createElement("span");
   el.textContent = str;
   return el.innerHTML;
-}
-
-// En kilde er en tekst eller { text, url }. Lenken åpnes i ny fane, så
-// dashbordet blir stående.
-function sourcesHtml(sources) {
-  const items = sources.map((s) => {
-    const text = escapeHtml(typeof s === "string" ? s : s.text);
-    if (!s.url) return `<li>${text}</li>`;
-    return `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${text}</a></li>`;
-  }).join("");
-  return `<p>Kilder:</p><ul>${items}</ul>`;
 }
 
 // ---------- Sync ----------

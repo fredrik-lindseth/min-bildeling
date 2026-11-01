@@ -205,7 +205,14 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 
 **Paneler.** Surface, 1 px border, 2 px hjørner. Ingen hover-effekt, ingen løft, ingen skygge. Diagramtittelen står i panelet som `h3` i 15 px vekt 600.
 
-**«Slik beregnes det».** Stille knapp med `aria-expanded`. Innholdet åpnes under i tekst-secondary med maks 68 tegn bredde, kildene som vanlige lenker. Pilen `▸` i knappeteksten går ut, `aria-expanded` og innholdet som dukker opp er nok.
+**«Slik beregnes det».** Stille knapp med `aria-expanded` (i årsoppsummeringen en `<details>`). Pilen `▸` i knappeteksten går ut, `aria-expanded` og innholdet som dukker opp er nok. Innholdet er ett felles panel i alle flatene, bygd av `lib/method-panel.js` og stilt i `lib/method-panel.css`, i tekst-secondary med maks 68 tegn bredde:
+
+- én innledende setning om hva som regnes,
+- en tabell med kolonnene Hva, Verdi og Kilde: én faktor per rad, verdien i 600 og tekstfarge, kilden som et fotnotenummer som lenker til kildelisten,
+- korte merknader under tabellen, med bokstav når de hører til en rad («bare utslipp fra eksos», «Hordaland-tallet brukes også for Trøndelag») og uten når de gjelder hele metoden,
+- kildelisten, nummerert, med lenke og dato.
+
+Metodene er rene data ved siden av regnestykket (`CO2_METHOD`, `TRANSPORT_METHOD`, `OWNERSHIP_METHOD`, `BOOKING_METHOD`), og verdiene i tabellen er de samme konstantene som regnestykket bruker. `test/method-panel.test.js` binder dem. Tabellen holder også i popupens 350 px, fordi kildekolonnen bare er et tall og etiketten brytes framfor verdien.
 
 **Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary. Den forsvinner ikke på tid, for en melding med tidsgrense rekker ikke alle å lese, men fjernes så snart et felt i skjemaet endres, siden den da ikke lenger stemmer.
 

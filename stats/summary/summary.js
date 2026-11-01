@@ -2,6 +2,7 @@ import { filterDriven, costStats, usagePatterns, mileageStats, monthlyCosts } fr
 import { estimateOwnershipCost, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 import { co2Comparison, CO2_METHOD } from "../lib/co2.js";
 import { formatNOK } from "../lib/formatters.js";
+import { renderMethodPanel } from "../lib/method-panel.js";
 import { isDemoMode, createDemoSession, createDemoBadge } from "../lib/demo-data.js";
 
 const browserAPI = globalThis.browser ?? globalThis.chrome;
@@ -97,33 +98,15 @@ function renderYear(reservations, year) {
   }
 }
 
+// Sparetallet og CO₂-tallet har hvert sitt panel, med samme oppsett som i
+// dashboardet.
 function renderMethod() {
   const el = document.getElementById("method-detail");
-  el.replaceChildren();
-  const add = (tag, text) => {
-    const node = document.createElement(tag);
-    node.textContent = text;
-    el.appendChild(node);
-    return node;
-  };
-  add("p", OWNERSHIP_METHOD.note);
-  add("p", `${CO2_METHOD.note} ${CO2_METHOD.comparison}`);
-  add("p", "Kilder:");
-  const list = add("ul", "");
-  for (const source of [...OWNERSHIP_METHOD.sources, ...CO2_METHOD.sources]) {
-    const li = document.createElement("li");
-    if (source.url) {
-      const a = document.createElement("a");
-      a.href = source.url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.textContent = source.text;
-      li.appendChild(a);
-    } else {
-      li.textContent = source.text ?? source;
-    }
-    list.appendChild(li);
-  }
+  const ownership = document.createElement("div");
+  const co2 = document.createElement("div");
+  el.replaceChildren(ownership, co2);
+  renderMethodPanel(ownership, OWNERSHIP_METHOD, { idPrefix: "spart-metode", heading: "Spart mot å eie bil", headingLevel: 2 });
+  renderMethodPanel(co2, CO2_METHOD, { idPrefix: "co2-metode", heading: "CO₂ spart", headingLevel: 2 });
 }
 
 // Én slide per tastetrykk. Nettleserens eget sidesteg for mellomrom og
