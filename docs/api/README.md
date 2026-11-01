@@ -8,7 +8,7 @@ Observert fra `app.dele.no` og brukt av begge utvidelsene: stats leser reservasj
 - `sample-reservation-driven.json`: eksempel på fullført tur med km og prislinjer
 - `sample-reservation-notrip.json`: eksempel på booket, men ikke kjørt (noTrips=true, med gebyr)
 - `sample-reservation-cancelled.json`: eksempel på avbestilt reservasjon
-- `sample-historic-list.json`: eldre eksempel med detaljskjemaet, ikke det `/reservations/historic` returnerer (se under)
+- `sample-historic-list.json`: eksempel på listesvaret fra `/reservations/historic`, de 14 feltene beskrevet under
 
 ## Autentisering
 

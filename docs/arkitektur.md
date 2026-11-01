@@ -20,16 +20,16 @@ Background kjører ikke synken. Firefox avslutter MV3-event-pagen på idle (rund
 
 Alt ligger i `browser.storage.local`.
 
-| Nøkkel           | Struktur                                                                                    | Skrives av                          |
-| ---------------- | ------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `reservations`   | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms)           | `lib/sync.js`                       |
-| `lastSync`       | Tidspunkt (ms) for siste fullførte synk                                                     | `lib/sync.js`                       |
-| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, calls, reason?, pausedAt? }` | `lib/sync.js`                       |
-| `syncLock`       | `{ owner, expiresAt }` eller null                                                           | `lib/sync.js`                       |
-| `syncHistory`    | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }`    | `lib/sync.js`                       |
-| `tripCategories` | `{ reservationId: categoryKey }`                                                            | dashbordet (brukerens valg)         |
-| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                  | dashbordet (brukerens valg)         |
-| `userKeywords`   | `{ categoryKey: ["ord", ...] }`                                                             | dashbordet (egne nøkkelord, import) |
+| Nøkkel           | Struktur                                                                                                  | Skrives av                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `reservations`   | Array av fulle reservasjonsobjekter (detaljsvar), hver med `detailFetchedAt` (ms)                         | `lib/sync.js`                       |
+| `lastSync`       | Tidspunkt (ms) for siste fullførte synk                                                                   | `lib/sync.js`                       |
+| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, fetchedSoFar, calls, reason?, pausedAt? }` | `lib/sync.js`                       |
+| `syncLock`       | `{ owner, expiresAt }` eller null                                                                         | `lib/sync.js`                       |
+| `syncHistory`    | De tre siste synkene: `{ startedAt, durationMs, status, error, calls, fetched, failed }`                  | `lib/sync.js`                       |
+| `tripCategories` | `{ reservationId: categoryKey }`                                                                          | dashbordet (brukerens valg)         |
+| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                                | dashbordet (brukerens valg)         |
+| `userKeywords`   | `{ categoryKey: ["ord", ...] }`                                                                           | dashbordet (egne nøkkelord, import) |
 
 `reservations`, `lastSync` og sync-nøklene er API-data som bare synken skriver. `tripCategories`, `transportData` og `userKeywords` er brukerdata og slettes aldri av synken.
 
@@ -52,8 +52,8 @@ Tallene for pauser, batcher, låsen, bryteren, fryseregelen, popupens grense og 
 - **Lagre fortløpende:** etter listefasen skrives `syncState` med `pendingIds`. Detaljer hentes ett kall om gangen og lagres i batcher (`DETAIL_BATCH_SIZE`). En avbrutt synk fortsetter fra `pendingIds` neste gang en side åpnes, uten nytt listekall og uten å vente på timegrensen.
 - **Paginering:** listen er sortert `start,desc`. Synken stopper på siden der den møter en kjent id, så sant kjente og nye id-er dekker `x-totalelements`. Førstegangssynk går til siste side. `full: true` tvinger full paginering.
 - **Hvilke detaljer hentes:** nye reservasjoner, og lagrede som ikke er fryst (`DETAIL_REFRESH_MS`, `SETTLE_WINDOW_MS`). Data fra før `detailFetchedAt` fantes, bruker `lastSync` som hentetidspunkt.
-- **Feil i tjenesten:** 429, 502, 503, 504 og nettverksfeil gir Retry-After eller backoff med jitter. Bryteren (`BREAKER_THRESHOLD`) stopper synken med `SERVICE_UNAVAILABLE`, lagrer det som er hentet og setter automatiske synker på pause (`SERVICE_PAUSE_MS`).
-- **Feil per id:** et detaljkall som svarer 500, får opptil `ITEM_ATTEMPTS` forsøk i alt. 404 og annen 4xx prøves ikke på nytt. Deretter legges id-en i `syncState.failed` som `{ status, attempts, lastAttemptAt }`, og synken går videre. Slår bryteren ut på 5xx midt i en detalj, havner også den id-en i `failed`, så en reservasjon som alltid svarer 503 ikke stopper hver synk på samme sted. Automatiske synker prøver feilede id-er igjen etter `detailRetryDelayMs`. `force` (Synkroniser, Prøv igjen) prøver dem med en gang. Før dette ble id-en stående først i køen og låste synken for godt.
+- **Feil i tjenesten:** 429, 502, 503, 504, nettverksfeil og 500 på listekall gir Retry-After eller backoff med jitter. Bryteren (`BREAKER_THRESHOLD`) stopper synken med `SERVICE_UNAVAILABLE`, lagrer det som er hentet og setter automatiske synker på pause (`SERVICE_PAUSE_MS`).
+- **Feil per id:** et detaljkall som svarer 500, får opptil `ITEM_ATTEMPTS` forsøk i alt. 404 og annen 4xx prøves ikke på nytt. Deretter legges id-en i `syncState.failed` som `{ status, attempts, lastAttemptAt }`, og synken går videre. Slår bryteren ut på 5xx midt i en detalj, havner også den id-en i `failed`, så en reservasjon som alltid svarer 503 ikke stopper hver synk på samme sted. Automatiske synker prøver feilede id-er igjen etter `detailRetryDelayMs`. `force` (Synkroniser, Prøv igjen) prøver dem med en gang. Før dette ble id-en stående først i køen og låste synken for godt. En id med 404 `NOT_FOUND_MAX_ATTEMPTS` ganger regnes som slettet og prøves ikke mer. UI skiller id-er som mangler i `reservations` fra lagrede som ikke kunne oppdateres (`countFailed`).
 - **Når:** automatisk synk når en side åpnes, høyst én gang per `SYNC_INTERVAL_MS`. Synkroniser og Prøv igjen tvinger. Ingen bakgrunnspolling. Popupen begrenser detaljene med `POPUP_MAX_DETAILS`.
 - **Telling:** `calls = { list, detail, retries, failed }` per synk, lagret i `syncHistory` og vist i utviklerpanelet (`?dev=1` på dashbordet).
 - **Feil i UI:** synkfeil og delvise resultater vises i statusfeltet med Prøv igjen-knapp og overskrives ikke av tom-tilstanden. Tekstene står i `lib/sync-messages.js`.

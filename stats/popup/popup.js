@@ -289,7 +289,7 @@ dashboardLink.addEventListener("click", () => openDashboard());
 // Metoden og kildene for sparetallet står i bilregnestykket i dashboardet.
 document.getElementById("savings-method").addEventListener("click", (e) => {
   e.preventDefault();
-  openDashboard("#bilregnestyket");
+  openDashboard("#bilregnestykket");
 });
 
 // Initialize

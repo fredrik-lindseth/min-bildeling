@@ -11,6 +11,7 @@ import {
   DETAIL_REFRESH_MS,
   LOCK_LEASE_MS,
   DETAIL_RETRY_BASE_MS,
+  NOT_FOUND_MAX_ATTEMPTS,
   detailRetryDelayMs,
 } from "../lib/sync.js";
 import { parseRetryAfter, ITEM_ATTEMPTS } from "../lib/api.js";
@@ -391,6 +392,7 @@ test("en avbrutt synk (siden lukket) fortsetter fra pendingIds", async () => {
   assert.equal(api.count("detail"), 30);
   assert.equal(resumed.done, 50);
   assert.equal(resumed.total, 50);
+  assert.equal(resumed.fetchedSoFar, 50);
 });
 
 test("en annen side med gyldig lås gir BUSY uten kall", async () => {
@@ -588,18 +590,86 @@ test("500 på én detalj mellom vellykkede nullstiller telleren for ulike id-er"
 });
 
 test("brukeren får vite at turer mangler detaljer og prøves igjen", () => {
-  const one = describeSyncResult({ status: "SYNCED", done: 30, total: 30, failedThisRun: 1, failed: 1 });
-  assert.equal(one, "1 tur mangler detaljer. Den prøves igjen senere.");
+  const one = describeSyncResult({
+    status: "SYNCED", fetchedSoFar: 29, done: 30, total: 30, failedThisRun: 1, failed: 1, missing: 1, stale: 0,
+  });
+  assert.equal(one, "Hentet 29 av 30. 1 tur mangler detaljer. Den prøves igjen senere.");
 
-  const many = describeSyncResult({ status: "CACHED", count: 30, failed: 3 });
+  const many = describeSyncResult({ status: "CACHED", count: 30, failed: 3, missing: 3, stale: 0 });
   assert.equal(many, "3 turer mangler detaljer. De prøves igjen senere.");
 
-  assert.equal(describeSyncResult({ status: "CACHED", count: 30, failed: 0 }), null);
+  assert.equal(describeSyncResult({ status: "CACHED", count: 30, failed: 0, missing: 0, stale: 0 }), null);
+});
+
+test("en lagret tur som ikke kunne oppdateres, mangler ikke detaljer", async () => {
+  // Avsluttet i går og hentet for to dager siden: skal hentes på nytt.
+  const end = NOW - DAY;
+  const stored = [{ id: "r0001", start: new Date(end - 3600e3).toISOString(), end: new Date(end).toISOString(),
+    detailFetchedAt: NOW - 2 * DAY }];
+  const api = makeApi(stored, { failures: { "detail:r0001": [{ status: 500, always: true }] } });
+  const storage = makeStorage({ reservations: stored, lastSync: NOW - 2 * 3600e3 });
+  const result = await harness(storage, api).run();
+
+  assert.equal(result.status, "SYNCED");
+  assert.equal(result.count, 1);
+  assert.deepEqual([result.missing, result.stale], [0, 1]);
+  assert.equal(
+    describeSyncResult(result),
+    "Hentet 0 av 1. 1 tur kunne ikke oppdateres og vises slik den var. Den prøves igjen senere."
+  );
+  assert.equal(
+    describeSyncResult({ status: "CACHED", missing: 2, stale: 1 }),
+    "2 turer mangler detaljer, og 1 kunne ikke oppdateres. De prøves igjen senere."
+  );
+});
+
+test("en tur som feilet i samme synk, telles ikke dobbelt når synken fortsetter", async () => {
+  const all = makeReservations(10);
+  const bad = all[0].id;
+  const api = makeApi(all, { failures: { [`detail:${bad}`]: [{ status: 503, always: true }] } });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  const first = await h.run();
+  assert.equal(first.status, "PAUSED");
+  assert.equal(first.fetchedSoFar, 0);
+
+  // Synkroniser tar den feilede med igjen. Totalen er fortsatt ti, og den
+  // feilede telles ikke som hentet.
+  const forced = await h.run({ force: true });
+  assert.equal(forced.status, "PAUSED");
+  assert.equal(forced.total, 10);
+  assert.equal(forced.fetchedSoFar, 9);
+  assert.equal(storage.data.reservations.length, 9);
+  assert.equal(describeSyncResult(forced), "Dele svarer ikke nå. Prøver igjen senere. Hentet 9 av 10.");
+});
+
+test("en tur som svarer 404 gang på gang, regnes som slettet og prøves ikke mer", async () => {
+  const all = makeReservations(5);
+  const bad = all[2].id;
+  const api = makeApi(all, { failures: { [`detail:${bad}`]: [{ status: 404, always: true }] } });
+  const storage = makeStorage();
+  const h = harness(storage, api);
+
+  let result = await h.run();
+  for (let n = 1; n < NOT_FOUND_MAX_ATTEMPTS; n++) {
+    assert.equal(result.missing, 1);
+    h.advance(detailRetryDelayMs(n));
+    result = await h.run();
+  }
+  assert.equal(storage.data.syncState.failed[bad].attempts, NOT_FOUND_MAX_ATTEMPTS);
+  assert.equal(result.missing, 0);
+  assert.equal(describeSyncResult(result), null);
+
+  // Heller ikke Synkroniser prøver den igjen.
+  api.calls.length = 0;
+  await h.run({ force: true });
+  assert.equal(detailCallsFor(api, bad), 0);
 });
 
 test("rå feiltekst når ikke brukeren", () => {
   for (const error of ["API-feil 500", "Max retries exceeded", "NetworkError when attempting to fetch resource."]) {
-    const message = describeSyncResult({ status: "PAUSED", error, done: 5, total: 10 });
+    const message = describeSyncResult({ status: "PAUSED", error, fetchedSoFar: 5, done: 5, total: 10 });
     assert.equal(message, "Synkroniseringen stoppet. Prøv igjen om litt. Hentet 5 av 10.");
   }
 });
