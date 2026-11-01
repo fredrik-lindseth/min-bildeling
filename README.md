@@ -26,7 +26,7 @@ All data forblir i nettleseren. Ingen eksterne servere, ingen sporing.
 
 ## Installasjon
 
-Last ned `.zip` fra [Releases](../../releases).
+Last ned `.zip` fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases).
 
 **Firefox:**
 1. Gå til `about:debugging#/runtime/this-firefox`
