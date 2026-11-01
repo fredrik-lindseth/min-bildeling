@@ -16,13 +16,13 @@ Regnestykket sammenligner bildelingen din med hva det ville kostet å eie biltyp
 
 ## Turkategorier
 
-Turene sorteres etter formål (handletur, hyttetur, flyplass, jobb og så videre) ut fra notatene du skrev da du booket, og du kan velge kategori selv. Da ser du hva hver type tur koster, noe kontoutskriften ikke kan vise. På sikt kan utvidelsen foreslå kategorier også ut fra tidspunkt og lengde.
+Turene sorteres etter formål (handletur, hyttetur, flyplass, jobb og så videre) ut fra turnotatene, og du kan velge kategori selv. Da ser du hva hver type tur koster, noe kontoutskriften ikke kan vise. På sikt kan utvidelsen foreslå kategorier også ut fra tidspunkt og lengde.
 
 ## Klima og annen transport
 
 CO₂ beregnes per tur ut fra kjørt distanse, drivstofftype og bilkategori, med utslippsfaktorer fra Miljødirektoratet, og sammenlignes med en gjennomsnittlig privatbil. Transportkalkulatoren tar med taxi, leiebil, buss og bybane, fly, egen bil, sykkel og gange, så bildelingen kan ses mot resten av transporten.
 
-Alle estimater merkes med «ca.» eller «~» og har en «Slik beregner vi»-knapp med kildene og hva som ikke er med, som utslipp fra produksjon og strøm (tank-to-wheel, ikke well-to-wheel).
+Alle estimater skal merkes med «ca.» eller «~» og ha en «Slik beregner vi»-knapp med kildene og hva som ikke er med, som utslipp fra produksjon og strøm (tank-to-wheel, ikke well-to-wheel).
 
 ## Årsoppsummering
 
@@ -30,7 +30,7 @@ Alle estimater merkes med «ca.» eller «~» og har en «Slik beregner vi»-kna
 
 ## Data og personvern
 
-Alt lagres lokalt, så statistikken virker også uten nett. Synken henter bare nye turer, og manuell synk er ett klikk. Det finnes ingen konto, ingen server og ingen sporing. Eksport og import av data mellom maskiner står ikke på plass ennå.
+Alt lagres lokalt, så statistikken virker også uten nett. Synken henter bare det som er nytt eller kan ha endret seg, og manuell synk er ett klikk. Det finnes ingen konto, ingen server og ingen sporing. Eksport og import av data mellom maskiner står ikke på plass ennå.
 
 Avbestilte turer telles ikke med i kostnadene. Turer som ble booket, men ikke kjørt, telles, siden de kan ha kostet gebyr.
 
