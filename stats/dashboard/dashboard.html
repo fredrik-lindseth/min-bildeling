@@ -71,7 +71,7 @@
 
       <div class="chart-container">
         <h3 class="chart-container__title">M&aring;nedlige kostnader</h3>
-        <canvas id="monthly-cost-chart"></canvas>
+        <div class="chart-frame"><canvas id="monthly-cost-chart"></canvas></div>
       </div>
 
       <div class="cards cards--3">
@@ -127,7 +127,7 @@
 
       <div class="chart-container">
         <h3 class="chart-container__title">Turer per m&aring;ned</h3>
-        <canvas id="trips-per-month-chart"></canvas>
+        <div class="chart-frame"><canvas id="trips-per-month-chart"></canvas></div>
       </div>
 
       <div class="cards cards--2">
@@ -186,12 +186,12 @@
 
         <div class="chart-container">
           <h3 class="chart-container__title">N&aring;r booker du?</h3>
-          <canvas id="lead-time-chart"></canvas>
+          <div class="chart-frame"><canvas id="lead-time-chart"></canvas></div>
         </div>
 
         <div class="chart-container">
           <h3 class="chart-container__title">Mest brukte stasjoner</h3>
-          <canvas id="top-stations-chart"></canvas>
+          <div class="chart-frame chart-frame--tall"><canvas id="top-stations-chart"></canvas></div>
         </div>
 
         <div class="method-block">
@@ -219,7 +219,7 @@
       <div id="km-content">
         <div class="chart-container">
           <h3 class="chart-container__title">M&aring;nedlig distanse</h3>
-          <canvas id="monthly-km-chart"></canvas>
+          <div class="chart-frame"><canvas id="monthly-km-chart"></canvas></div>
         </div>
 
         <div class="cards cards--3">
@@ -264,17 +264,17 @@
       <div id="trends-content">
         <div class="chart-container">
           <h3 class="chart-container__title">År mot år</h3>
-          <canvas id="yoy-chart"></canvas>
+          <div class="chart-frame"><canvas id="yoy-chart"></canvas></div>
         </div>
 
         <div class="chart-container">
           <h3 class="chart-container__title">Glidende snitt, tre måneder</h3>
-          <canvas id="rolling-avg-chart"></canvas>
+          <div class="chart-frame"><canvas id="rolling-avg-chart"></canvas></div>
         </div>
 
         <div class="chart-container" id="seasonal-container" hidden>
           <h3 class="chart-container__title">Sesongsammenligning</h3>
-          <canvas id="seasonal-chart"></canvas>
+          <div class="chart-frame"><canvas id="seasonal-chart"></canvas></div>
         </div>
       </div>
     </section>
@@ -313,7 +313,7 @@
 
         <div class="chart-container">
           <h3 class="chart-container__title">Kostnadsfordeling, eid bil</h3>
-          <canvas id="ownership-breakdown-chart"></canvas>
+          <div class="chart-frame"><canvas id="ownership-breakdown-chart"></canvas></div>
         </div>
 
         <h3 class="section__subtitle">Mot Volvo EX C40 2026</h3>
@@ -357,7 +357,7 @@
       <div class="cards cards--2">
         <div class="chart-container" style="grid-column: 1 / -1;">
           <h3 class="chart-container__title">Kostnad per kategori</h3>
-          <canvas id="category-donut-chart"></canvas>
+          <div class="chart-frame"><canvas id="category-donut-chart"></canvas></div>
         </div>
       </div>
 
@@ -427,7 +427,7 @@
 
         <div class="chart-container">
           <h3 class="chart-container__title">CO&#8322; per m&aring;ned</h3>
-          <canvas id="monthly-co2-chart"></canvas>
+          <div class="chart-frame"><canvas id="monthly-co2-chart"></canvas></div>
         </div>
 
         <div class="card card--list">
@@ -477,12 +477,12 @@
       <div id="transport-summary" hidden>
         <div class="chart-container">
           <h3 class="chart-container__title">Transportkostnader fordelt</h3>
-          <canvas id="transport-cost-chart"></canvas>
+          <div class="chart-frame"><canvas id="transport-cost-chart"></canvas></div>
         </div>
 
         <div class="chart-container">
           <h3 class="chart-container__title">CO&#8322;-utslipp fordelt</h3>
-          <canvas id="transport-co2-chart"></canvas>
+          <div class="chart-frame"><canvas id="transport-co2-chart"></canvas></div>
         </div>
 
         <div class="cards cards--3">

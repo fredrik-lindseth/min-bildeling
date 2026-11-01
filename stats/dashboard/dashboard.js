@@ -98,6 +98,8 @@ function colorWithAlpha(cssColor, alpha) {
 // Set Chart.js global defaults for current theme
 Chart.defaults.color = cssVar("--color-text-secondary");
 Chart.defaults.borderColor = cssVar("--color-border");
+// Høyden kommer fra .chart-frame i CSS-en, ikke fra bredden.
+Chart.defaults.maintainAspectRatio = false;
 
 // ---------- Formatters ----------
 

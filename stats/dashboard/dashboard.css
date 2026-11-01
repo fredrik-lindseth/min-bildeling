@@ -498,9 +498,16 @@ body {
   letter-spacing: 0.03em;
 }
 
-.chart-container canvas {
-  width: 100%;
-  max-height: 320px;
+/* Fast høyde på rammen og maintainAspectRatio: false i dashboard.js. Uten
+   dette regner Chart.js høyden ut fra bredden og diagrammet vokser i flere
+   sekunder mens siden legger seg. */
+.chart-frame {
+  position: relative;
+  height: 280px;
+}
+
+.chart-frame--tall {
+  height: 360px;
 }
 
 /* ---- Heatmap ---- */
