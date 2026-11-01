@@ -596,7 +596,10 @@ function renderBookingPatterns(reservations) {
   // Lead time histogram
   const distLabels = patterns.distribution.map((b) => b.label);
   const distData = patterns.distribution.map((b) => b.count);
-  draw("leadTime", $("lead-time-chart"), barChartConfig(distLabels, distData, "Turer", { yTitle: "Antall" }));
+  // Sju faste intervaller: alle etikettene skal stå, også når de er trange.
+  const leadConfig = barChartConfig(distLabels, distData, "Turer", { yTitle: "Antall" });
+  leadConfig.options.scales.x.ticks = { ...leadConfig.options.scales.x.ticks, autoSkip: false };
+  draw("leadTime", $("lead-time-chart"), leadConfig);
 
   // Top stations (top 10, resten samlet som "Andre")
   const TOP_N = 10;
