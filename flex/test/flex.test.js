@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseLocalISO } from "../lib/format.js";
-import { freeBlocks, fitCar, clippedSegments, solve, splitPairs, ORG_BILDELERINGEN } from "../lib/flex.js";
+import { freeBlocks, fitCar, clippedSegments, solve, splitPairs } from "../lib/flex.js";
 
 const sample = JSON.parse(
   readFileSync(fileURLToPath(new URL("./fixtures/search-sample.json", import.meta.url)))
@@ -158,13 +158,45 @@ test("solve filtrerer på categories-array (biltype-brikker)", () => {
   assert.deepEqual(out.whole.map((f) => f.carId).sort(), ["k", "u"]);
 });
 
-test("solve filtrerer bort andre bilkollektiv (kun Bildeleringen-org)", () => {
+const ORG_BERGEN = "3212bcbe-8e34-4c28-9439-a44e6d5cf9c0";
+const ORG_TRONDHEIM = "8dba8f19-c438-f278-ed7c-912ec6537cb9";
+
+test("solve tar med biler fra alle bilkollektivene på dele.no", () => {
   const avail = () => [seg("2026-07-01T00:00:00", "2026-07-20T00:00:00", "AVAILABLE")];
-  const bdl = car(avail(), { carId: "bdl", organizationId: ORG_BILDELERINGEN });
-  const trd = car(avail(), { carId: "trd", organizationId: "8dba8f19-c438-f278-ed7c-912ec6537cb9" });
-  const wish = { ...wholeWindowWish, filters: { organizationId: ORG_BILDELERINGEN } };
+  const bdl = car(avail(), { carId: "bdl", organizationId: ORG_BERGEN });
+  const trd = car(avail(), { carId: "trd", organizationId: ORG_TRONDHEIM });
+  const out = solve(result([bdl, trd]), wholeWindowWish);
+  assert.deepEqual(out.whole.map((f) => f.carId).sort(), ["bdl", "trd"]);
+});
+
+test("solve ignorerer organizationId fra eldre lagrede filtre", () => {
+  const avail = () => [seg("2026-07-01T00:00:00", "2026-07-20T00:00:00", "AVAILABLE")];
+  const bdl = car(avail(), { carId: "bdl", organizationId: ORG_BERGEN });
+  const trd = car(avail(), { carId: "trd", organizationId: ORG_TRONDHEIM });
+  const wish = { ...wholeWindowWish, filters: { organizationId: ORG_BERGEN } };
   const out = solve(result([bdl, trd]), wish);
-  assert.deepEqual(out.whole.map((f) => f.carId), ["bdl"]);
+  assert.deepEqual(out.whole.map((f) => f.carId).sort(), ["bdl", "trd"]);
+});
+
+test("avstandstaket regnes fra det valgte stedet, uansett by", () => {
+  // Søket fra Trondheim: Trondheim-bilene er nær, Bergen og Tromsø langt unna.
+  const avail = () => [seg("2026-07-01T00:00:00", "2026-07-20T00:00:00", "AVAILABLE")];
+  const trd = car(avail(), { carId: "trd", organizationId: ORG_TRONDHEIM, location: { id: "t", name: "T", distance: 3000 } });
+  const bgo = car(avail(), { carId: "bgo", organizationId: ORG_BERGEN, location: { id: "b", name: "B", distance: 430000 } });
+  const tos = car(avail(), { carId: "tos", organizationId: ORG_BERGEN, location: { id: "x", name: "X", distance: 790000 } });
+  const wish = { ...wholeWindowWish, filters: { maxDistanceM: 100000 } };
+  const out = solve(result([trd, bgo, tos]), wish);
+  assert.deepEqual(out.whole.map((f) => f.carId), ["trd"]);
+});
+
+test("excludeCategories slipper gjennom biltyper finderen ikke kjenner", () => {
+  const avail = () => [seg("2026-07-01T00:00:00", "2026-07-20T00:00:00", "AVAILABLE")];
+  const smaabil = car(avail(), { carId: "s", carCategory: "Småbil" });
+  const kombi = car(avail(), { carId: "k", carCategory: "Kombi" });
+  const ukjent = car(avail(), { carId: "u", carCategory: "Kompakt SUV" });
+  const wish = { ...wholeWindowWish, filters: { excludeCategories: ["Småbil", "Varebil"] } };
+  const out = solve(result([smaabil, kombi, ukjent]), wish);
+  assert.deepEqual(out.whole.map((f) => f.carId).sort(), ["k", "u"]);
 });
 
 test("solve filtrerer på fuels-array (drivstoff-brikker)", () => {

@@ -4,7 +4,9 @@ Firefox-utvidelse ved siden av stats som finner *når* en bil er ledig, oppå de
 
 ## Søk
 
-- Filtrer alltid til `ORG_BILDELERINGEN` og avstandstaket `REGION_CEILING_M`.
+- Ikke filtrer på organisasjon. Søket gir biler fra alle bilkollektivene på dele.no, og app.dele.no viser og booker dem alle. Om backend godtar booking på tvers av organisasjoner, er ukjent, se Organisasjoner i `../docs/api/README.md`.
+- Avstandstaket `REGION_CEILING_M` regnes fra stedet brukeren velger og holder andre byer ute, også Tromsø-bilene.
+- Biltypefilteret utelukker de brikkene som er slått av. Andre bilkollektiv kan ha biltyper finderen ikke har brikke for.
 - Større radius kjører `solve` på nytt over samme svar, ikke et nytt kall.
 - Ikke URL-enkod tidsdelen i lenker til app.dele.no.
 - Ikke bruk `datetime-local`.

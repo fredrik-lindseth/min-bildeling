@@ -241,7 +241,7 @@ async function dispatchAll(results) {
       browserAPI.notifications.create(`watch-${r.watch.id}-${Date.now()}`, {
         type: "basic",
         iconUrl: browserAPI.runtime.getURL("icons/icon-48.png"),
-        title: "Bildeleringen: bil ledig",
+        title: "Delebil ledig",
         message: summaryText(r.watch, r.browserHits),
       });
     }

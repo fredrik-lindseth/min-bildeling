@@ -1,6 +1,6 @@
 # Bildeleringen Fleksibel
 
-Nettleserutvidelse for [Bildeleringen / dele.no](https://dele.no) som finner *når* en delebil er ledig. Søket på dele.no svarer bare ledig eller opptatt for et eksakt tidsrom, så er planen «en bil et sted man–fre», må du prøve deg fram. Utvidelsen leser hele ledig/opptatt-mønsteret og regner ut hva som passer. Den er laget av en bruker og er ikke tilknyttet Bildeleringen eller Dele AS.
+Nettleserutvidelse for medlemmer i Bilparaplyen på [dele.no](https://dele.no), i Bergen, Trondheim og andre steder, som finner *når* en delebil er ledig. Søket på dele.no svarer bare ledig eller opptatt for et eksakt tidsrom, så er planen «en bil et sted man–fre», må du prøve deg fram. Utvidelsen leser hele ledig/opptatt-mønsteret og regner ut hva som passer. Den er laget av en bruker og er ikke tilknyttet Bildeleringen eller Dele AS.
 
 ## Funksjoner
 
@@ -9,7 +9,7 @@ Nettleserutvidelse for [Bildeleringen / dele.no](https://dele.no) som finner *n�
 - **Del opp på to biler**: dekker ingen bil hele turen, foreslås et bytte underveis.
 - **Tidslinje** per bil, grønn for ledig og grå for opptatt. Tidspunktet vises når du holder musen over.
 - **Fleksibel varighet**: «hele vinduet» eller «N timer et sted i vinduet».
-- **Filtre**: biltype og drivstoff, og gangavstand. Bare Bildeleringens biler, ikke andre bilkollektiv på plattformen.
+- **Filtre**: biltype og drivstoff, og gangavstand. Biler fra alle bilkollektivene på dele.no, innenfor 100 km fra stedet du velger.
 - **Åpne i dele.no**: åpner dele.no med tiden fylt ut, justert til luken som passer.
 - **Varsler**: få beskjed når en bil blir ledig lenge nok på et sted. Nettleservarsel, og valgfritt videre til Signal via egen backend. Sjekker mens Firefox er åpen.
 
