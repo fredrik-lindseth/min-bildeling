@@ -65,11 +65,14 @@ export function applyChartTheme() {
  * border-strong, aksetekst i tertiary.
  */
 export function axes({ yTitle = "", horizontal = false } = {}) {
+  // Chart.js lar etiketter stå 3 px fra hverandre før den hopper over noen,
+  // så «20 000» og «40 000» gikk i ett på en smal verdiakse. Med mer luft
+  // hoppes det over før de møtes.
   const valueAxis = {
     beginAtZero: true,
     grid: { color: resolveColor("--color-grid") },
     border: { display: false },
-    ticks: { maxRotation: 0 },
+    ticks: { maxRotation: 0, autoSkipPadding: 12 },
     title: yTitle ? { display: true, text: yTitle } : { display: false },
   };
   const categoryAxis = {
@@ -79,7 +82,7 @@ export function axes({ yTitle = "", horizontal = false } = {}) {
   };
   if (horizontal) {
     return {
-      x: { ...valueAxis, ticks: { maxRotation: 0, maxTicksLimit: 6 } },
+      x: { ...valueAxis, ticks: { maxRotation: 0, maxTicksLimit: 6, autoSkipPadding: 12 } },
       y: { ...categoryAxis, ticks: { autoSkip: false } },
     };
   }
