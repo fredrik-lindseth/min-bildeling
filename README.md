@@ -36,7 +36,7 @@ I Chrome:
 2. Gå til `chrome://extensions` og slå på Utviklermodus
 3. Klikk «Last inn upakket» og velg mappen
 
-Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar 1–2 minutter.
+Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar noen minutter hvis du har mange turer. La dashboardet stå åpent til den er ferdig.
 
 ## Personvern
 

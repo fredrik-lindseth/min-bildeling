@@ -75,7 +75,7 @@ async function getAuth() {
       }
       console.log("[BG] getAuth: content script returned", response);
     } catch (e) {
-      console.log("[BG] getAuth: content script not loaded —", e.message);
+      console.log("[BG] getAuth: content script not loaded:", e.message);
     }
 
     // Inject direkte og les localStorage. Returnerer diagnose ved feil.

@@ -185,7 +185,7 @@ export async function saveUserKeywords(storage, userKeywords) {
 
 /**
  * Compute per-category statistics from reservations and a category map.
- * Pure function — no side effects.
+ * Pure function, no side effects.
  */
 export function categoryStats(reservations, categoryMap) {
   const driven = filterDriven(reservations);

@@ -101,15 +101,15 @@ export async function saveTransportData(storage, data) {
  * Build a transport summary combining bildeling stats with manually entered
  * transport data for a given year.
  *
- * @param {Object} transportData — user-entered data for one year,
+ * @param {Object} transportData  User-entered data for one year,
  *   e.g. { taxi: { trips: 5, totalKm: 100, totalCost: 2500 }, buss: { trips: 200, totalCost: 8400 } }
- * @param {Object} sharingStats — bildeling stats: { cost, co2Kg, km, trips }
+ * @param {Object} sharingStats   Bildeling stats: { cost, co2Kg, km, trips }
  * @returns {{ modes: Object, totals: { cost: number, co2Kg: number, km: number } }}
  */
 export function transportSummary(transportData, sharingStats) {
   const modes = {};
 
-  // Bildeling — always included when stats are provided
+  // Bildeling is always included when stats are provided
   if (sharingStats) {
     modes.bildeling = {
       cost: sharingStats.cost || 0,
@@ -120,7 +120,7 @@ export function transportSummary(transportData, sharingStats) {
     };
   }
 
-  // Other transport modes — only included when user entered data
+  // Other transport modes are only included when user entered data
   for (const [mode, definition] of Object.entries(TRANSPORT_MODES)) {
     const entry = transportData[mode];
     if (!entry) continue;

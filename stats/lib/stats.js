@@ -8,14 +8,14 @@ function getCarName(r) {
   return r.car?.model || r.car?.licensePlate || "Ukjent";
 }
 
-// Not canceled and has a price — includes noTrips (user still paid)
+// Not canceled and has a price. Includes noTrips (user still paid)
 export function filterValid(reservations) {
   return reservations.filter(
     (r) => r.canceled == null && getPrice(r) != null
   );
 }
 
-// Actually drove — for usage patterns and mileage
+// Actually drove, for usage patterns and mileage
 export function filterDriven(reservations) {
   return filterValid(reservations).filter((r) => !r.noTrips);
 }
@@ -27,7 +27,7 @@ export function costStats(reservations) {
   const costs = valid.map((r) => getPrice(r));
   costs.sort((a, b) => a - b);
 
-  // Min excludes 0 kr trips (free/no-show) — find first cost > 0
+  // Min excludes 0 kr trips (free/no-show), find first cost > 0
   const nonZeroCosts = costs.filter((c) => c > 0);
 
   return {
