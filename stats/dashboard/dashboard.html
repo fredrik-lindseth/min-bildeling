@@ -308,9 +308,36 @@
         </div>
       </div>
 
-      <div id="uncategorized-section" hidden>
-        <h3 class="list-title">Forslag til kategori</h3>
-        <div class="suggestion-list" id="suggestion-list"></div>
+      <!-- Notatene er personlige og blir ikke med i bildet. -->
+      <div class="trip-check" id="trip-check" data-html2canvas-ignore hidden>
+        <h3 class="list-title" id="trip-check-title">Sjekk forslag</h3>
+        <p class="trip-check__help">
+          Forslagene fra turnotatene er alt regnet med i oversikten over. Rett dem som er feil.
+          Det du velger her, overstyrer forslaget.
+        </p>
+        <div class="trip-check__bar">
+          <label class="trip-check__filter">
+            Vis
+            <select class="field" id="trip-filter">
+              <option value="check">Turer med notat uten valgt kategori</option>
+              <option value="all">Alle turer</option>
+            </select>
+          </label>
+          <button type="button" class="btn" id="trip-accept-all">Godta alle forslag</button>
+        </div>
+        <ul class="trip-list" id="trip-list" aria-labelledby="trip-check-title"></ul>
+        <div class="form-actions">
+          <button type="button" class="btn btn--quiet" id="trip-more">Vis flere</button>
+          <span class="form-status" id="trip-count"></span>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="trip-export" class="btn btn--quiet">Eksporter kategorier</button>
+          <label class="btn btn--quiet keyword-import">
+            Importer kategorier
+            <input type="file" id="trip-import" accept="application/json,.json" class="visually-hidden">
+          </label>
+          <span id="trip-status" class="form-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <details class="panel keyword-card" id="keyword-card">
@@ -319,7 +346,9 @@
           <span class="keyword-card__total" id="keyword-total"></span>
         </summary>
         <p class="keyword-card__help">
-          Skill ordene med komma. Første kategori ovenfra med treff i turnotatet vinner.
+          Skill ordene med komma. Et ord treffer starten av et ord i notatet, så «lege» treffer «legevakt».
+          Med * først treffer det også inne i et ord: «*besøk» treffer «bursdagsbesøk».
+          Første kategori ovenfra med treff vinner.
         </p>
         <form id="keyword-form" class="keyword-form">
           <div id="keyword-fields"></div>

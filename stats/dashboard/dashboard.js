@@ -29,10 +29,13 @@ import {
   CATEGORIES,
   loadCategories,
   saveCategory,
+  saveCategories,
+  normalizeTripCategories,
   categoryStats,
   autoSuggestAll,
   DEFAULT_KEYWORDS,
   mergeKeywords,
+  matchKeyword,
   keywordHits,
   normalizeUserKeywords,
   parseKeywordInput,
@@ -985,21 +988,20 @@ function setLedger(prefix, ownershipCost, sharingCost, savings) {
 // ---------- Rendering: Section 6 - Turkategorier ----------
 
 async function renderCategories(reservations) {
-  // 1. Load saved categories from storage
   const savedCategories = await loadCategories(storage);
   const userKeywords = await loadUserKeywords(storage);
   const keywords = mergeKeywords(DEFAULT_KEYWORDS, userKeywords);
 
-  // 2. Auto-suggest for uncategorized trips
+  renderCategoryOverview(reservations, savedCategories, keywords);
+  renderTripCheck(reservations, savedCategories, keywords);
+  renderKeywordCard(reservations, userKeywords, keywords);
+}
+
+// Forslagene teller med i oversikten, men et lagret valg går alltid foran.
+function renderCategoryOverview(reservations, savedCategories, keywords) {
   const suggestions = autoSuggestAll(reservations, savedCategories, keywords);
+  const stats = categoryStats(reservations, { ...suggestions, ...savedCategories });
 
-  // 3. Merge saved + suggestions for stats display
-  const merged = { ...suggestions, ...savedCategories };
-
-  // 4. Calculate stats
-  const stats = categoryStats(reservations, merged);
-
-  // 5. Render donut chart (cost distribution)
   const entries = Object.entries(stats).filter(([, v]) => v.totalCost > 0);
   if (entries.length === 0) {
     destroyChart("categoryDonut");
@@ -1029,10 +1031,9 @@ async function renderCategories(reservations) {
     });
   }
 
-  // 6. Render category table
   const tableEl = $("category-table");
   tableEl.innerHTML = "";
-  for (const [key, val] of entries.sort(([, a], [, b]) => b.totalCost - a.totalCost)) {
+  for (const [, val] of entries.sort(([, a], [, b]) => b.totalCost - a.totalCost)) {
     const row = document.createElement("div");
     row.className = "table-row";
     row.innerHTML = `
@@ -1042,44 +1043,182 @@ async function renderCategories(reservations) {
     `;
     tableEl.appendChild(row);
   }
+}
 
-  // 7. Show uncategorized trips with suggestions (max 10)
-  const uncategorizedWithSuggestions = filterDriven(reservations)
-    .filter(r => !savedCategories[r.id] && suggestions[r.id])
-    .slice(0, 10);
+// ---------- Sjekk forslag ----------
 
-  if (uncategorizedWithSuggestions.length > 0) {
-    $("uncategorized-section").hidden = false;
-    const listEl = $("suggestion-list");
-    listEl.innerHTML = "";
+const TRIP_PAGE_SIZE = 10;
+// Filter og hvor langt brukeren har bladd, overlever ny tegning ved synk og
+// lagring av nøkkelord.
+const tripCheck = { filter: "check", shown: TRIP_PAGE_SIZE };
+const formatTripDate = new Intl.DateTimeFormat("nb-NO", {
+  day: "numeric", month: "short", year: "numeric",
+});
+const CATEGORY_OPTIONS = Object.entries(CATEGORIES)
+  .map(([key, { label }]) => ({ key, label }))
+  .sort((a, b) => a.label.localeCompare(b.label, "nb"));
 
-    for (const r of uncategorizedWithSuggestions) {
-      const catKey = suggestions[r.id];
-      const catLabel = CATEGORIES[catKey]?.label || catKey;
-      const item = document.createElement("div");
-      item.className = "suggestion-item";
-      item.innerHTML = `
-        <span class="suggestion-item__notes">${escapeHtml(r.notes || "Ingen notat")}</span>
-        <button type="button" class="btn suggestion-item__btn" data-id="${r.id}" data-cat="${catKey}">${escapeHtml(catLabel)}</button>
-      `;
+function hasNotes(r) {
+  return typeof r.notes === "string" && r.notes.trim() !== "";
+}
+
+function setTripStatus(message, { error = false } = {}) {
+  const status = $("trip-status");
+  status.textContent = message;
+  status.classList.toggle("form-status--error", error);
+}
+
+function tripSourceText(saved, match) {
+  if (saved) return "Valgt";
+  if (match) return `Forslag fra «${match.keyword.replace("*", "").trim()}»`;
+  return "Ingen forslag";
+}
+
+function renderTripCheck(reservations, savedCategories, keywords) {
+  const driven = filterDriven(reservations)
+    .sort((a, b) => String(b.start).localeCompare(String(a.start)));
+  const section = $("trip-check");
+  section.hidden = driven.length === 0;
+  if (driven.length === 0) return;
+
+  const saved = { ...savedCategories };
+  const matches = new Map(driven.map((r) => [r.id, matchKeyword(r.notes, keywords)]));
+  const pending = driven.filter((r) => !saved[r.id] && matches.get(r.id));
+
+  // Radene ligger fast til neste tegning, så en tur ikke forsvinner fra
+  // listen i det brukeren velger kategori for den.
+  const rows = tripCheck.filter === "all"
+    ? driven
+    : driven.filter((r) => !saved[r.id] && hasNotes(r));
+
+  const filterEl = $("trip-filter");
+  filterEl.value = tripCheck.filter;
+  filterEl.onchange = () => {
+    tripCheck.filter = filterEl.value;
+    tripCheck.shown = TRIP_PAGE_SIZE;
+    renderTripCheck(reservations, saved, keywords);
+  };
+
+  const acceptBtn = $("trip-accept-all");
+  acceptBtn.textContent = `Godta alle forslag (${pending.length})`;
+  acceptBtn.disabled = pending.length === 0;
+  acceptBtn.onclick = async () => {
+    const accepted = Object.fromEntries(pending.map((r) => [r.id, matches.get(r.id).category]));
+    await saveCategories(storage, accepted);
+    await renderCategories(reservations);
+    setTripStatus(`Godtok ${formatCount(pending.length, "forslag", "forslag")}.`);
+  };
+
+  const listEl = $("trip-list");
+  listEl.innerHTML = "";
+  const moreBtn = $("trip-more");
+
+  const appendRows = (from, to) => {
+    let first = null;
+    for (const r of rows.slice(from, to)) {
+      const item = tripRow(r, saved[r.id], matches.get(r.id));
       listEl.appendChild(item);
+      first ??= item.querySelector("select");
+    }
+    const shown = Math.min(to, rows.length);
+    moreBtn.hidden = shown >= rows.length;
+    setText("trip-count", rows.length === 0
+      ? "Ingen turer å sjekke"
+      : `Viser ${shown} av ${formatTrips(rows.length)}`);
+    return first;
+  };
+  appendRows(0, tripCheck.shown);
+
+  moreBtn.onclick = () => {
+    const from = listEl.children.length;
+    tripCheck.shown = from + TRIP_PAGE_SIZE;
+    // Fokus til første nye rad, så tastaturbrukeren slipper å lete.
+    appendRows(from, tripCheck.shown)?.focus();
+  };
+
+  // onchange, ikke addEventListener: listen tegnes på nytt ved synk og
+  // lagring, og lyttere ville ellers hopet seg opp.
+  listEl.onchange = async (e) => {
+    const select = e.target.closest(".trip-row__select");
+    if (!select || !select.value) return;
+    const id = select.dataset.id;
+    await saveCategory(storage, id, select.value);
+    saved[id] = select.value;
+    select.closest(".trip-row").querySelector(".trip-row__source").textContent = "Valgt";
+    select.querySelector("option[value='']")?.remove();
+    renderCategoryOverview(reservations, saved, keywords);
+    const left = pending.filter((r) => !saved[r.id]);
+    pending.length = 0;
+    pending.push(...left);
+    acceptBtn.textContent = `Godta alle forslag (${pending.length})`;
+    acceptBtn.disabled = pending.length === 0;
+    setTripStatus(`Lagret: ${CATEGORIES[select.value].label}`);
+  };
+
+  $("trip-export").onclick = () => {
+    const json = JSON.stringify({ tripCategories: saved }, null, 2);
+    downloadBlob(new Blob([json], { type: "application/json" }), "bildeleringen-turkategorier.json");
+  };
+
+  $("trip-import").onchange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      setTripStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
+      return;
+    }
+    const { categories, skipped } = normalizeTripCategories(parsed);
+    const ids = Object.keys(categories);
+    if (ids.length === 0) {
+      setTripStatus("Fant ingen kategorier i filen.", { error: true });
+      return;
     }
 
-    // onclick, ikke addEventListener: renderCategories kjøres på nytt ved
-    // sync og lagring av nøkkelord, og lyttere ville ellers hopet seg opp.
-    listEl.onclick = async (e) => {
-      const btn = e.target.closest(".suggestion-item__btn");
-      if (!btn) return;
-      await saveCategory(storage, btn.dataset.id, btn.dataset.cat);
-      btn.textContent = "\u2713";
-      btn.disabled = true;
-    };
-  } else {
-    $("uncategorized-section").hidden = true;
-  }
+    // Som for nøkkelordene legges importen til. Det du alt har valgt, står.
+    const fresh = await loadCategories(storage);
+    const added = Object.fromEntries(ids.filter((id) => !fresh[id]).map((id) => [id, categories[id]]));
+    await saveCategories(storage, added);
+    await renderCategories(reservations);
+    const kept = ids.length - Object.keys(added).length;
+    const parts = [`La inn ${formatCount(Object.keys(added).length, "kategori", "kategorier")}`];
+    if (kept > 0) parts.push(`${kept} hadde alt en`);
+    if (skipped > 0) parts.push(`${formatCount(skipped, "ukjent", "ukjente")} hoppet over`);
+    setTripStatus(`${parts.join(", ")}.`);
+  };
+}
 
-  // 8. Egne nøkkelord
-  renderKeywordCard(reservations, userKeywords, keywords);
+function tripRow(r, savedKey, match) {
+  const item = document.createElement("li");
+  item.className = "trip-row";
+  const notesId = `trip-notes-${r.id}`;
+  const date = formatTripDate.format(new Date(r.start));
+  const current = savedKey || match?.category || "";
+  const placeholder = current
+    ? ""
+    : `<option value="" selected disabled>Velg kategori</option>`;
+  const options = CATEGORY_OPTIONS.map(({ key, label }) =>
+    `<option value="${key}"${key === current ? " selected" : ""}>${escapeHtml(label)}</option>`
+  ).join("");
+
+  item.innerHTML = `
+    <span class="trip-row__date">${escapeHtml(date)}</span>
+    <span class="trip-row__notes${hasNotes(r) ? "" : " trip-row__notes--empty"}" id="${escapeHtml(notesId)}">${escapeHtml(hasNotes(r) ? r.notes : "Uten notat")}</span>
+    <span class="trip-row__source">${escapeHtml(tripSourceText(savedKey, match))}</span>
+    <select class="field trip-row__select" data-id="${escapeHtml(String(r.id))}"
+      aria-label="Kategori for turen ${escapeHtml(date)}" aria-describedby="${escapeHtml(notesId)}">
+      ${placeholder}${options}
+    </select>
+  `;
+  return item;
+}
+
+function formatCount(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 // Rekkefølgen i skjemaet er den samme som suggestCategory() sjekker i, så
