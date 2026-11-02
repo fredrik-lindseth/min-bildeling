@@ -10,7 +10,7 @@ Teksten som fylles inn i utviklerkonsollen på [chrome.google.com/webstore/devco
 - Ikon: `stats/icons/icon-128.png`
 - Promobilde, lite (440x280): `stats/icons/listing/promo-440x280.png`
 - Skjermbilder (1280x800, inntil fem): fra `skjermbilder/butikk/`, for eksempel `seksjon-kostnader`, `seksjon-bilregnestykket`, `seksjon-bruksmonster`, `popup-lys` og `oppsummering-spart`
-- Hjemmeside: https://github.com/fredrik-lindseth/bildeleringen-stats
+- Hjemmeside: https://github.com/fredrik-lindseth/min-bildeling
 - Kontakt-e-post: hei@fredriklindseth.no
 
 Kort beskrivelse er `description` i manifestet. Lang beskrivelse:
@@ -58,7 +58,7 @@ Usikkert: skjemaet spør hvilke datakategorier utvidelsen «samler inn», og det
 
 De tre erklæringene stemmer alle: data selges ikke til tredjeparter, brukes ikke til noe annet enn utvidelsens formål og brukes ikke til kredittvurdering eller utlån.
 
-Personvernerklæring: https://github.com/fredrik-lindseth/bildeleringen-stats/blob/main/docs/personvern.md
+Personvernerklæring: https://github.com/fredrik-lindseth/min-bildeling/blob/main/docs/personvern.md
 
 ## Publisering
 

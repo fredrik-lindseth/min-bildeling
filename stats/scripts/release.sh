@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-GITHUB_REPO="fredrik-lindseth/bildeleringen-stats"
+GITHUB_REPO="fredrik-lindseth/min-bildeling"
 
 usage() {
   echo "Bruk: $0 [--yes] [--title TEKST] <notatfil>" >&2

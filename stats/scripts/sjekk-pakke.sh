@@ -45,9 +45,9 @@ PRIVAT="${BILDELERINGEN_PERSONDATA:-$HOME/.config/bildeleringen/persondata.txt}"
 # dele.no (Bildeleringen og Trondheim Bilkollektiv) og den oppdiktede
 # medlemskaps-id-en i demodataene. Bunnlinjen i dashbordet lenker til den
 # offentlige profilen og til Forgejo-speilet, med nøyaktig denne teksten.
-TILLATT_SED='s#github\.com/fredrik-lindseth/bildeleringen-stats##g
+TILLATT_SED='s#github\.com/fredrik-lindseth/min-bildeling##g
 s#<a href="https://fredriklindseth\.no">Fredrik Lindseth</a>##g
-s#git\.fredriklindseth\.no/fredrik/bildeleringen-stats##g
+s#git\.fredriklindseth\.no/fredrik/min-bildeling##g
 s#"delebil@fredriklindseth\.no"#""#g
 s#Copyright \(c\) [0-9]{4} Fredrik##g
 s#3212bcbe-8e34-4c28-9439-a44e6d5cf9c0##g

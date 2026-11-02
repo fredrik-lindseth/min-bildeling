@@ -68,13 +68,13 @@ Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar 
 
 ### Firefox
 
-Utvidelsen er signert av Mozilla, men ligger ikke i katalogen på addons.mozilla.org ennå. Last ned `.xpi`-filen fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases) og åpne den i Firefox, eller gå til `about:addons`, tannhjulet og «Installer tillegg fra fil…». Den oppdateres ikke av seg selv før den er i katalogen.
+Utvidelsen er signert av Mozilla, men ligger ikke i katalogen på addons.mozilla.org ennå. Last ned `.xpi`-filen fra [Releases](https://github.com/fredrik-lindseth/min-bildeling/releases) og åpne den i Firefox, eller gå til `about:addons`, tannhjulet og «Installer tillegg fra fil…». Den oppdateres ikke av seg selv før den er i katalogen.
 
 ### Chrome
 
 Chrome Nettmarked kommer senere. Inntil videre installeres den for hånd, og den blir stående til du fjerner den:
 
-1. Last ned `-chrome`-zip-en fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases) og pakk den ut
+1. Last ned `-chrome`-zip-en fra [Releases](https://github.com/fredrik-lindseth/min-bildeling/releases) og pakk den ut
 2. Gå til `chrome://extensions` og slå på Utviklermodus
 3. Klikk «Last inn upakket» og velg mappen du pakket ut
 

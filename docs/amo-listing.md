@@ -29,20 +29,20 @@ Utvidelsen er laget av et medlem og er ikke tilknyttet eller godkjent av Dele AS
 ## Kategori og lenker
 
 - Kategori: Andre (eventuelt Bokmerker og produktivitet)
-- Hjemmeside: https://github.com/fredrik-lindseth/bildeleringen-stats
+- Hjemmeside: https://github.com/fredrik-lindseth/min-bildeling
 - Support-e-post: hei@fredriklindseth.no
 - Personvernerklæring: innholdet i [personvern.md](personvern.md)
 - Lisens: MIT
 
 ## Notes to reviewer
 
-Min bildeling shows members of Norwegian car-sharing co-ops on dele.no statistics about their own trips. The source is plain JavaScript, HTML and CSS with no build step, bundler or transpiler: the uploaded files are the source, and the repository is https://github.com/fredrik-lindseth/bildeleringen-stats.
+Min bildeling shows members of Norwegian car-sharing co-ops on dele.no statistics about their own trips. The source is plain JavaScript, HTML and CSS with no build step, bundler or transpiler: the uploaded files are the source, and the repository is https://github.com/fredrik-lindseth/min-bildeling.
 
 To try it without an account, open `dashboard/dashboard.html?demo=1` from the extension (for example `moz-extension://<uuid>/dashboard/dashboard.html?demo=1`). Demo mode uses synthetic data and an in-memory store, and makes no network requests.
 
 With an account, the user logs in to app.dele.no as usual. The content script reads the user's own bearer token and membership id from the site's `localStorage` key `persist:data`, which is where the dele.no web app keeps its session. If the content script is not injected yet (Firefox may skip already open tabs after install or restart), `background.js` falls back to `scripting.executeScript` on an open app.dele.no tab to read the same key. That is the only use of the `scripting` permission. The token is kept in memory and sent only in the `authorization` header to `https://app.dele.no/api`, exactly as the site itself does. It never leaves the browser in any other way and is not stored or logged.
 
-Responses are stored in `browser.storage.local`. There is no analytics, no telemetry and no backend of our own, so `data_collection_permissions` is `required: ["none"]`. Which endpoints are called and how often is documented for Dele's developers in https://github.com/fredrik-lindseth/bildeleringen-stats/blob/main/docs/api-bruk.md (Norwegian).
+Responses are stored in `browser.storage.local`. There is no analytics, no telemetry and no backend of our own, so `data_collection_permissions` is `required: ["none"]`. Which endpoints are called and how often is documented for Dele's developers in https://github.com/fredrik-lindseth/min-bildeling/blob/main/docs/api-bruk.md (Norwegian).
 
 `innerHTML` is only used with static markup or with values passed through `escapeHtml()` in `dashboard/dashboard.js`, which escapes via `textContent`.
 
