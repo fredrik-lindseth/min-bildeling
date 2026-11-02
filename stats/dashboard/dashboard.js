@@ -1547,6 +1547,10 @@ let transportYear = null;
 // Skjemaet åpnet med «Legg inn tall» for et år uten tall. Står over
 // gjentegningen under synk, men lukkes når året byttes.
 let transportFormOpen = false;
+// Året og de lagrede tallene skjemaet sist ble bygget fra. renderAll kjøres
+// hvert andre sekund under synk, og et nytt skjema ville kastet det brukeren
+// holder på å skrive og flyttet fokus. Bygges bare når dette endrer seg.
+let transportFormSource = null;
 
 function getTransportYears(reservations) {
   const years = new Set();
@@ -1554,6 +1558,19 @@ function getTransportYears(reservations) {
     years.add(new Date(r.start).getFullYear());
   }
   return [...years].sort((a, b) => b - a);
+}
+
+function transportFormSourceKey(year, savedData) {
+  return JSON.stringify([year, savedData?.[year] ?? null]);
+}
+
+// Bygger skjemaet på nytt bare når året eller de lagrede tallene for året er
+// endret, altså ved årsbytte, lagring, import og første opptegning.
+function ensureTransportForm(year, savedData) {
+  const key = transportFormSourceKey(year, savedData);
+  if (key === transportFormSource) return;
+  buildTransportForm(year, savedData);
+  transportFormSource = key;
 }
 
 function buildTransportForm(year, savedData) {
@@ -1659,7 +1676,9 @@ function showTransportYear(reservations, savedData, year) {
   $("transport-entry").hidden = !formShown;
   $("transport-empty").hidden = formShown;
   $("transport-open").hidden = false;
-  $("transport-open").setAttribute("aria-expanded", String(formShown));
+  // Knappen vises bare når skjemaet er lukket, så den skal ikke si at
+  // skjemaet er åpent fordi året har tall.
+  $("transport-open").setAttribute("aria-expanded", String(transportFormOpen));
   if (!formShown) {
     setText("transport-empty-text", `Legg inn taxi, buss og fly for ${year} for å se hele transportregnskapet.`);
   }
@@ -1679,14 +1698,11 @@ async function renderTransport(reservations) {
   }
   $("transport-year-selector").hidden = false;
 
-  // Build year selector
+  // Valglisten bygges bare når årene endres, så den beholder fokus under synk.
   const select = $("transport-year");
-  select.innerHTML = "";
-  for (const y of years) {
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.textContent = y;
-    select.appendChild(opt);
+  const shownYears = [...select.options].map((o) => Number(o.value));
+  if (shownYears.join() !== years.join()) {
+    select.replaceChildren(...years.map((y) => new Option(String(y), String(y))));
   }
 
   // Default to current or most recent year
@@ -1698,7 +1714,7 @@ async function renderTransport(reservations) {
   // Load saved transport data
   const savedData = await loadTransportData(storage);
 
-  buildTransportForm(transportYear, savedData);
+  ensureTransportForm(transportYear, savedData);
   showTransportYear(reservations, savedData, transportYear);
 
   // Tildelte handlere, ikke addEventListener: renderTransport kjøres hvert
@@ -1708,7 +1724,7 @@ async function renderTransport(reservations) {
     transportFormOpen = false;
     $("transport-save-status").textContent = "";
     const freshData = await loadTransportData(storage);
-    buildTransportForm(transportYear, freshData);
+    ensureTransportForm(transportYear, freshData);
     showTransportYear(reservations, freshData, transportYear);
   };
 
@@ -1742,6 +1758,9 @@ async function renderTransport(reservations) {
 
     freshData[transportYear] = yearData;
     await saveTransportData(storage, freshData);
+    // Feltene viser allerede det som ble lagret. Uten dette ville neste
+    // opptegning bygd skjemaet på nytt og tatt fokus fra brukeren.
+    transportFormSource = transportFormSourceKey(transportYear, freshData);
 
     // Skjemaet blir stående, også når året ble tømt, så «Lagret» kan leses.
     transportFormOpen = true;
