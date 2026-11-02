@@ -312,6 +312,12 @@ a:focus-visible,
   gap: var(--space-4);
 }
 
+.section__help {
+  max-width: var(--measure);
+  margin-bottom: var(--space-5);
+  color: var(--color-text-secondary);
+}
+
 .section__title {
   font-size: var(--text-lg);
   font-weight: 600;
