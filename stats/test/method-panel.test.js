@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { methodModel, methodText, formatFactorValue, formatSourceDate } from "../lib/method-panel.js";
 import { CO2_METHOD, CO2_PER_KM, PRIVATE_CAR_AVG_CO2, co2Comparison } from "../lib/co2.js";
+import { AVERAGE_CAR, SOURCES as AVERAGE_CAR_SOURCES } from "../lib/snittbil.js";
 import {
   TRANSPORT_METHOD,
   TRANSPORT_MODES,
@@ -60,8 +61,18 @@ test("CO₂-tabellen viser faktorene regnestykket bruker", () => {
   assert.deepEqual(valueOf(CO2_METHOD, "Bensinbil"), range("Bensin"));
   assert.deepEqual(valueOf(CO2_METHOD, "Dieselbil"), range("Diesel"));
   assert.deepEqual(valueOf(CO2_METHOD, "Elbil"), range("Elektrisitet"));
-  assert.equal(valueOf(CO2_METHOD, "Snitt for norske privatbiler"), PRIVATE_CAR_AVG_CO2);
-  assert.equal(CO2_METHOD.factors.length, Object.keys(CO2_PER_KM).length + 1, "et nytt drivstoff mangler i tabellen");
+  assert.equal(valueOf(CO2_METHOD, "Snitt for norske personbiler"), PRIVATE_CAR_AVG_CO2);
+  assert.equal(valueOf(CO2_METHOD, "Kjørelengde per personbil"), AVERAGE_CAR.kmPerCar.value);
+  assert.equal(CO2_METHOD.factors.length, Object.keys(CO2_PER_KM).length + 2, "et nytt drivstoff mangler i tabellen");
+
+  // Begge SSB-tabellene står som kilder med lenke og dato.
+  const sources = methodModel(CO2_METHOD).sources;
+  for (const s of Object.values(AVERAGE_CAR_SOURCES)) {
+    const shown = sources.find((x) => x.name === s.name);
+    assert.ok(shown, s.name);
+    assert.ok(shown.url, `${s.name} mangler lenke`);
+    assert.ok(s.date, `${s.name} mangler dato`);
+  }
 
   // Sammenligningen regner faktisk med snittet i tabellen.
   const trip = { start: "2026-03-01T10:00:00Z", price: { total: 100 }, drivenKm: 100, canceled: null, noTrips: false,

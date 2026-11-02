@@ -1,5 +1,6 @@
-import { getFuelType } from "./ownership-cost.js";
+import { getFuelType, yearFraction } from "./ownership-cost.js";
 import { filterDriven } from "./stats.js";
+import { AVERAGE_CAR, SOURCES as AVERAGE_CAR_SOURCES } from "./snittbil.js";
 
 // CO₂ emission factors (grams per km) by fuel type and car category
 // Sources: Miljødirektoratet, SSB Registered Vehicle Statistics
@@ -19,9 +20,18 @@ export const CO2_PER_KM = {
   },
 };
 
-// Norwegian registered passenger car fleet average: ~110 g/km (tank-to-wheel)
-// Used only in co2Comparison() for reference. Not shown prominently in UI.
-export const PRIVATE_CAR_AVG_CO2 = 110;
+/** Gram CO₂ per km for en norsk personbil: SSBs utslipp delt på kjørelengden. */
+export function averageCarCO2PerKm(car = AVERAGE_CAR) {
+  return Math.round((car.co2Kilotonnes.value * 1000) / car.totalMillionKm.value);
+}
+
+// Snittet «CO₂ spart» regnes mot, og som gjennomsnittsbilen i Klima bruker.
+export const PRIVATE_CAR_AVG_CO2 = averageCarCO2PerKm();
+
+/** Kg CO₂ en gjennomsnittlig personbil slipper ut på et helt år. */
+export function averageCarKgPerYear(car = AVERAGE_CAR) {
+  return (car.kmPerCar.value * averageCarCO2PerKm(car)) / 1000;
+}
 
 // Laveste og høyeste faktor for et drivstoff, over alle kategoriene.
 function factorRange(fuel) {
@@ -41,13 +51,19 @@ export const CO2_METHOD = {
     { label: "Dieselbil", value: factorRange("Diesel"), unit: "g/km", note: BY_CATEGORY, source: "faktorer" },
     { label: "Elbil", value: factorRange("Elektrisitet"), unit: "g/km", note: "Bare utslipp fra eksos er med.", source: "faktorer" },
     {
-      label: "Snitt for norske privatbiler", value: PRIVATE_CAR_AVG_CO2, unit: "g/km",
-      note: "Spart utslipp er forskjellen mot dette snittet.", source: "faktorer",
+      label: "Snitt for norske personbiler", value: PRIVATE_CAR_AVG_CO2, unit: "g/km",
+      note: `Utslippet fra personbilene delt på kjørelengden deres i ${AVERAGE_CAR.year}. Elbilene teller med. Spart utslipp er forskjellen mot dette snittet.`,
+      source: ["ssbUtslipp", "ssbKjorelengde"],
+    },
+    {
+      label: "Kjørelengde per personbil", value: AVERAGE_CAR.kmPerCar.value, unit: `km i ${AVERAGE_CAR.year}`,
+      source: "ssbKjorelengde",
     },
   ],
   notes: ["Ukjent kategori regnes som småbil, og ukjent drivstoff som bensin."],
   sources: {
     faktorer: { name: "Miljødirektoratet og SSB: Utslippsfaktorer for norsk bilpark" },
+    ...AVERAGE_CAR_SOURCES,
   },
 };
 
@@ -162,4 +178,45 @@ export function monthlyCO2(reservations) {
   return Object.entries(byMonth)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, co2Kg]) => ({ month, co2Kg }));
+}
+
+/**
+ * Året brukeren sammenlignes med gjennomsnittsbilen for: siste hele
+ * kalenderår med turer, eller inneværende år hittil når det er det eneste.
+ * Et delår sammenlignes aldri med et helt landsår, så fraction skalerer snittet.
+ * Returnerer { year, fraction } eller null.
+ */
+export function comparisonYear(years, now) {
+  const current = now.getFullYear();
+  const past = years.filter((y) => y < current);
+  if (past.length > 0) return { year: Math.max(...past), fraction: 1 };
+  if (years.includes(current)) return { year: current, fraction: yearFraction(current, now) };
+  return null;
+}
+
+/**
+ * Brukerens kjøring og utslipp i ett år mot en gjennomsnittlig norsk
+ * personbil. Tallene er per bil, ikke per innbygger, fordi brukerens tall er
+ * kjørte km. dataYear er året SSB-tallene gjelder.
+ */
+export function averageCarComparison(reservations, { now = new Date(), car = AVERAGE_CAR } = {}) {
+  const driven = filterDriven(reservations).filter((r) => r.drivenKm > 0);
+  const years = [...new Set(driven.map((r) => new Date(r.start).getFullYear()))];
+  const picked = comparisonYear(years, now);
+  if (!picked) return null;
+
+  const { year, fraction } = picked;
+  const stats = totalCO2(driven.filter((r) => new Date(r.start).getFullYear() === year));
+  if (!stats) return null;
+
+  return {
+    year,
+    fraction,
+    partial: fraction < 1,
+    userKm: stats.totalKm,
+    userCO2Kg: stats.totalKg,
+    carKm: car.kmPerCar.value * fraction,
+    carCO2Kg: averageCarKgPerYear(car) * fraction,
+    dataYear: car.year,
+  };
 }
