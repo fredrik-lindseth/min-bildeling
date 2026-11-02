@@ -119,14 +119,23 @@ try {
         expression: `(() => {
           window.scrollTo(0, 0);
           const r = document.getElementById(${JSON.stringify(anchor)}).getBoundingClientRect();
-          return JSON.stringify({ y: r.top, height: r.height });
+          // Utsnittet starter under klebrige elementer over seksjonen, så
+          // ikke halve navigasjonen kommer med over den første seksjonen.
+          let floor = 0;
+          for (const el of document.querySelectorAll("body *")) {
+            if (getComputedStyle(el).position !== "sticky") continue;
+            const b = el.getBoundingClientRect();
+            if (b.bottom <= r.top) floor = Math.max(floor, b.bottom);
+          }
+          return JSON.stringify({ y: r.top, height: r.height, floor });
         })()`,
         target: { context },
         awaitPromise: false,
       });
       const box = JSON.parse(result.value);
       const pad = 24;
-      clip = { type: "box", x: 0, y: Math.max(0, box.y - pad), width: shot.width, height: box.height + 2 * pad };
+      const top = Math.max(box.floor, box.y - pad);
+      clip = { type: "box", x: 0, y: top, width: shot.width, height: box.y + box.height + pad - top };
     }
     const { data } = await send("browsingContext.captureScreenshot", {
       context,
