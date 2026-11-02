@@ -58,7 +58,7 @@ export function emptyCounters() {
  * @param {object} opts
  * @param {Function} opts.fetch
  * @param {string} opts.token        authorization-headeren slik dele.no lagrer den
- * @param {string} opts.clientId     f.eks. "bildeleringen-stats/1.2.0"
+ * @param {string} opts.clientId     f.eks. "min-bildeling/1.2.0"
  * @param {Function} opts.sleep      (ms) => Promise
  * @param {Function} opts.now        () => ms
  * @param {Function} opts.random     () => [0, 1)

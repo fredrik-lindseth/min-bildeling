@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "dele.no Internal API",
-    "description": "Uoffisiell dokumentasjon av dele.no (Bildeleringen) sitt interne API, observert fra app.dele.no. Brukes av Bildeleringen Stats-utvidelsen.",
+    "description": "Uoffisiell dokumentasjon av dele.no (Bildeleringen) sitt interne API, observert fra app.dele.no. Brukes av utvidelsen Min bildeling.",
     "version": "1.0.0"
   },
   "servers": [

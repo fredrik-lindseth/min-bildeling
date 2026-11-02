@@ -1398,12 +1398,12 @@ function initCategoryFiles() {
     const { settings, categories, tripCategories } = await loadCategoryState();
     downloadJson(
       { tripCategories: knownTripCategories(tripCategories, categories), categorySettings: settings },
-      "bildeleringen-turkategorier.json",
+      "min-bildeling-turkategorier.json",
     );
   });
   $("keyword-export").addEventListener("click", async () => {
     const { settings, userKeywords } = await loadCategoryState();
-    downloadJson({ userKeywords, categorySettings: settings }, "bildeleringen-nokkelord.json");
+    downloadJson({ userKeywords, categorySettings: settings }, "min-bildeling-nokkelord.json");
   });
   const buttons = [
     ["trip-import", "categories", setTripStatus],
@@ -2443,7 +2443,7 @@ document.addEventListener("click", async (e) => {
     });
 
     const link = document.createElement("a");
-    link.download = `bildeleringen-${section.id}.png`;
+    link.download = `min-bildeling-${section.id}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   } catch (err) {
@@ -2607,7 +2607,7 @@ async function handleDevExport() {
       type: "application/json",
     });
     const today = new Date().toISOString().slice(0, 10);
-    downloadBlob(blob, `bildeleringen-backup-${today}.json`);
+    downloadBlob(blob, `min-bildeling-backup-${today}.json`);
     setDevStatus(`Eksporterte ${formatTrips(payload.reservations.length)}.`, "ok");
     clearDevStatusLater();
   } catch (err) {
@@ -2805,7 +2805,7 @@ async function handleBackupExport() {
     const today = new Date().toISOString().slice(0, 10);
     downloadBlob(
       new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }),
-      `bildeleringen-sikkerhetskopi-${today}.json`,
+      `min-bildeling-sikkerhetskopi-${today}.json`,
     );
     setBackupStatus(includeReservations
       ? `Lagret kopi med ${formatTrips(backup.reservations.length)}.`

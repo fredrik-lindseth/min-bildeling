@@ -12,7 +12,7 @@ Begge butikkene får samme løp: unlisted først, installert og sjekket i egen n
 ./stats/scripts/package.sh
 ```
 
-Det gir `stats/dist/bildeleringen-stats-v<versjon>.zip` til Firefox og `-chrome-v<versjon>.zip` til Chrome, pluss den utpakkede Chrome-utgaven i `stats/dist/chrome/`. Chrome-manifestet lages av `chrome-manifest.mjs` fra `stats/manifest.json`, som er eneste kilde.
+Det gir `stats/dist/min-bildeling-v<versjon>.zip` til Firefox og `-chrome-v<versjon>.zip` til Chrome, pluss den utpakkede Chrome-utgaven i `stats/dist/chrome/`. Chrome-manifestet lages av `chrome-manifest.mjs` fra `stats/manifest.json`, som er eneste kilde.
 
 Byggevakten `sjekk-pakke.sh` går over begge zip-ene og sletter dem ved funn. Den ser etter persondata, rot fra utviklingen, endrede vendor-filer og manglende manifestkrav, og melder fil og linje uten innholdet. Navn, adresser og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Ny vendor-versjon krever ny `stats/scripts/vendor.sha256`.
 
@@ -25,7 +25,7 @@ Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addon
 ./stats/scripts/amo-upload.sh --yes    # sender inn som unlisted og henter den signerte xpi-en
 ```
 
-Xpi-en havner i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi` og blir liggende når `package.sh` kjører på nytt. Blir den ikke signert innen ti minutter, hent den fra [utviklersiden](https://addons.mozilla.org/developers/addons). Lim notatet til reviewer fra [amo-listing.md](amo-listing.md) inn under «Notes to Reviewer».
+Xpi-en havner i `stats/dist/min-bildeling-v<versjon>-signert.xpi` og blir liggende når `package.sh` kjører på nytt. Blir den ikke signert innen ti minutter, hent den fra [utviklersiden](https://addons.mozilla.org/developers/addons). Lim notatet til reviewer fra [amo-listing.md](amo-listing.md) inn under «Notes to Reviewer».
 
 Når Dele har sagt ok, bytt tillegget til listed. Teksten står i [amo-listing.md](amo-listing.md), personvernerklæringen i [personvern.md](personvern.md), ikonet i `stats/icons/listing/icon-256.png`. Listed får strengere review, ofte for hånd. Unlisted oppdateres ved å installere ny xpi.
 

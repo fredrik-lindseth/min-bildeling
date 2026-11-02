@@ -1,10 +1,10 @@
-# AMO-listing for Bildeleringen Stats
+# AMO-listing for Min bildeling
 
 Teksten som limes inn på addons.mozilla.org når tillegget går fra unlisted til listed. Skjermbildene ligger i `skjermbilder/` og lages med `stats/scripts/skjermbilder.sh`. Ikonet er `stats/icons/listing/icon-256.png`.
 
 ## Navn
 
-Bildeleringen Stats
+Min bildeling
 
 ## Sammendrag
 
@@ -36,7 +36,7 @@ Utvidelsen er laget av et medlem og er ikke tilknyttet eller godkjent av Dele AS
 
 ## Notes to reviewer
 
-Bildeleringen Stats shows members of Norwegian car-sharing co-ops on dele.no statistics about their own trips. The source is plain JavaScript, HTML and CSS with no build step, bundler or transpiler: the uploaded files are the source, and the repository is https://github.com/fredrik-lindseth/bildeleringen-stats.
+Min bildeling shows members of Norwegian car-sharing co-ops on dele.no statistics about their own trips. The source is plain JavaScript, HTML and CSS with no build step, bundler or transpiler: the uploaded files are the source, and the repository is https://github.com/fredrik-lindseth/bildeleringen-stats.
 
 To try it without an account, open `dashboard/dashboard.html?demo=1` from the extension (for example `moz-extension://<uuid>/dashboard/dashboard.html?demo=1`). Demo mode uses synthetic data and an in-memory store, and makes no network requests.
 

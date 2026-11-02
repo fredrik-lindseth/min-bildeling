@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bygger zip-ene til Bildeleringen Stats: én for Firefox (AMO) og én for
+# Bygger zip-ene til Min bildeling: én for Firefox (AMO) og én for
 # Chrome Web Store. Chrome-pakken er de samme filene med et manifest uten
 # Firefox-nøklene, laget av scripts/chrome-manifest.mjs.
 # Bruk: ./scripts/package.sh
@@ -11,12 +11,12 @@ cd "$(dirname "$0")/.."
 
 VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 OUTDIR="dist"
-ZIPNAME="bildeleringen-stats-v${VERSION}.zip"
-CHROME_ZIPNAME="bildeleringen-stats-chrome-v${VERSION}.zip"
+ZIPNAME="min-bildeling-v${VERSION}.zip"
+CHROME_ZIPNAME="min-bildeling-chrome-v${VERSION}.zip"
 # Utpakket Chrome-utgave, til «Last inn upakket» på chrome://extensions.
 CHROME_DIR="$OUTDIR/chrome"
 
-echo "Packaging Bildeleringen Stats v${VERSION}..."
+echo "Packaging Min bildeling v${VERSION}..."
 
 # Signerte xpi-er fra AMO kan ikke bygges på nytt, så de blir liggende.
 mkdir -p "$OUTDIR"

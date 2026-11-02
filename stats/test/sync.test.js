@@ -111,7 +111,7 @@ function harness(storage, api, overrides = {}) {
     fetch: api.fetch,
     storage,
     getAuth: async () => ({ token: "Bearer test", membershipId: "m-1" }),
-    clientId: "bildeleringen-stats/test",
+    clientId: "min-bildeling/test",
     owner: "side-a",
     now: () => clock,
     sleep: async (ms) => {
@@ -165,7 +165,7 @@ test("alle kall bærer X-Client og authorization", async () => {
   const { run } = harness(makeStorage(), api);
   await run();
   for (const c of api.calls) {
-    assert.equal(c.headers["X-Client"], "bildeleringen-stats/test");
+    assert.equal(c.headers["X-Client"], "min-bildeling/test");
     assert.equal(c.headers.authorization, "Bearer test");
   }
 });
@@ -868,7 +868,7 @@ function slowWorld(reservations, { latencyMs, slowCall = null }) {
   const opts = (owner) => ({
     fetch,
     getAuth: async () => ({ token: "Bearer test", membershipId: "m-1" }),
-    clientId: "bildeleringen-stats/test",
+    clientId: "min-bildeling/test",
     owner,
     now: () => clock,
     sleep: async (ms) => {

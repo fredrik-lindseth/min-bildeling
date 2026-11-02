@@ -1,4 +1,4 @@
-# Personvernerklæring for Bildeleringen Stats
+# Personvernerklæring for Min bildeling
 
 Utvidelsen samler ikke inn noe om deg. Utvidelsen har ingen server, ingen analyse og ingen sporing, og ingenting sendes til noen.
 

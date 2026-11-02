@@ -1,5 +1,5 @@
 #!/bin/bash
-# Byggevakt for Bildeleringen Stats: stopper en pakke som inneholder
+# Byggevakt for Min bildeling: stopper en pakke som inneholder
 # persondata, rot fra utviklingen eller endrede vendor-filer.
 #
 # Bruk: ./stats/scripts/sjekk-pakke.sh [--chrome] <pakke.zip | utpakket mappe>
@@ -132,7 +132,9 @@ while IFS= read -r f; do
     *.pdf)                        feil "$f: pdf" ;;
   esac
   case "$(basename "$f")" in
+    # Eksporter fra før navnebyttet heter bildeleringen-*.json.
     bildeleringen-*.json) feil "$f: dataeksport (bildeleringen-*.json)" ;;
+    min-bildeling-*.json) feil "$f: dataeksport (min-bildeling-*.json)" ;;
   esac
 done < <(cd "$ROOT" && find . -type f)
 

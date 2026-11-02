@@ -1,6 +1,6 @@
 # Bildeleringen: regler for agenter
 
-Repoet har to selvstendige utvidelser: `stats/` (statistikk) og `flex/` (fleksibelt booking-søk, regler i `flex/AGENTS.md`). Reglene under gjelder begge der ikke annet står.
+Repoet har to selvstendige utvidelser: `stats/` (statistikk, utvidelsen heter Min bildeling) og `flex/` (fleksibelt booking-søk, regler i `flex/AGENTS.md`). Reglene under gjelder begge der ikke annet står.
 
 ## Les først
 

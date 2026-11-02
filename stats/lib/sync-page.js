@@ -41,7 +41,7 @@ async function getAuth() {
  */
 export function startSync(opts = {}) {
   if (inFlight) return inFlight;
-  const clientId = `bildeleringen-stats/${browserAPI.runtime.getManifest().version}`;
+  const clientId = `min-bildeling/${browserAPI.runtime.getManifest().version}`;
   inFlight = runSyncWhenFree({
     fetch: (url, init) => fetch(url, init),
     storage,

@@ -1,6 +1,6 @@
-# Slik bruker Bildeleringen Stats API-et til dele.no
+# Slik bruker Min bildeling API-et til dele.no
 
-Bildeleringen Stats er en nettleserutvidelse som viser et medlem statistikk over egen bildeling. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dokumentet er skrevet for utviklerne hos Dele. En test binder tallene her til koden.
+Min bildeling er en nettleserutvidelse som viser et medlem statistikk over egen bildeling. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dokumentet er skrevet for utviklerne hos Dele. En test binder tallene her til koden.
 
 ## Endepunkter
 
@@ -11,7 +11,7 @@ To endepunkter, begge GET:
 | `/api/reservations/historic?page=N&size=100&sort=start,desc&membershipId=<id>` | Listen over reservasjoner, 100 per side             |
 | `/api/reservations/{id}`                                                       | Detaljene for én reservasjon (pris, kilometer, bil) |
 
-Listen mangler pris, kilometer og bil, så detaljkallet trengs én gang per reservasjon. Alle kall har `authorization` med medlemmets token og `X-Client: bildeleringen-stats/<versjon>`, så dere kan kjenne igjen trafikken.
+Listen mangler pris, kilometer og bil, så detaljkallet trengs én gang per reservasjon. Alle kall har `authorization` med medlemmets token og `X-Client: min-bildeling/<versjon>`, så dere kan kjenne igjen trafikken.
 
 ## Når kall skjer
 

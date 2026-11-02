@@ -1,5 +1,5 @@
 #!/bin/bash
-# Lager en release av Bildeleringen Stats: pakker zip-ene, tagger, pusher
+# Lager en release av Min bildeling: pakker zip-ene, tagger, pusher
 # main og taggen til alle konfigurerte remotes og publiserer GitHub-releasen.
 #
 # Bruk: ./stats/scripts/release.sh [--yes] [--title TEKST] <notatfil>
@@ -53,10 +53,10 @@ while IFS= read -r remote; do REMOTES+=("$remote"); done < <(git remote)
 
 VERSION=$(grep '"version"' stats/manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 TAG="v${VERSION}"
-ZIP="stats/dist/bildeleringen-stats-${TAG}.zip"
-CHROME_ZIP="stats/dist/bildeleringen-stats-chrome-${TAG}.zip"
+ZIP="stats/dist/min-bildeling-${TAG}.zip"
+CHROME_ZIP="stats/dist/min-bildeling-chrome-${TAG}.zip"
 # Firefox-brukere installerer den signerte xpi-en fra AMO (amo-upload.sh --yes).
-XPI="stats/dist/bildeleringen-stats-${TAG}-signert.xpi"
+XPI="stats/dist/min-bildeling-${TAG}-signert.xpi"
 TITLE="${TITLE:-$TAG}"
 
 # I tørrkjøring samles alle problemer så de vises på én gang.
@@ -71,7 +71,7 @@ problem() {
   PROBLEMS=$((PROBLEMS + 1))
 }
 
-echo "Release av Bildeleringen Stats ${TAG}"
+echo "Release av Min bildeling ${TAG}"
 echo ""
 echo "Sjekker:"
 
@@ -115,7 +115,7 @@ done
 echo ""
 
 STEPS=(
-  "git tag -a ${TAG} -m 'Bildeleringen Stats ${TAG}'"
+  "git tag -a ${TAG} -m 'Min bildeling ${TAG}'"
 )
 for remote in "${REMOTES[@]}"; do
   STEPS+=("git push --atomic ${remote} main refs/tags/${TAG}")
@@ -134,7 +134,7 @@ if [ "$YES" -eq 0 ]; then
   exit 0
 fi
 
-git tag -a "$TAG" -m "Bildeleringen Stats ${TAG}"
+git tag -a "$TAG" -m "Min bildeling ${TAG}"
 for remote in "${REMOTES[@]}"; do
   echo "Pusher main og ${TAG} til ${remote}..."
   git push --atomic "$remote" main "refs/tags/${TAG}"

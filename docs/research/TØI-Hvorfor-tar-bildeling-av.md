@@ -27,7 +27,7 @@
 - Norske forutsetninger: høy digital kompetanse, delingskultur, høye bilavgifter
 - Politisk medvind: elbil-politikk, bompengefritak, fri parkering
 
-## Relevans for Bildeleringen Stats
+## Relevans for Min bildeling
 
 - **Lav relevans** for kalkulatoren direkte
 - Gir kontekst om at Bildeleringen er del av kooperativmodellen (sterkere miljøeffekt enn P2P)

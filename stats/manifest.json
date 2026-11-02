@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Bildeleringen Stats",
+  "name": "Min bildeling",
   "version": "1.0.0",
   "description": "Statistikk over bildelingen din på dele.no",
   "permissions": ["storage", "unlimitedStorage", "scripting"],

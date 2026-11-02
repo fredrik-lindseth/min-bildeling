@@ -1,6 +1,6 @@
 # Research / Kilder
 
-Forskningsrapporter og artikler brukt som grunnlag for estimater i Bildeleringen Stats.
+Forskningsrapporter og artikler brukt som grunnlag for estimater i Min bildeling.
 
 ## Høy relevans
 

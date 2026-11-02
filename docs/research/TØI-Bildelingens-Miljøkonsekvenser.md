@@ -40,7 +40,7 @@
 
 → Kompliseres av systemkompleksitet, metodiske utfordringer og kontinuerlige innovasjoner.
 
-## Relevans for Bildeleringen Stats
+## Relevans for Min bildeling
 
 - **CO₂-metodikk:** Bekrefter at rebound-effekter finnes — vi bør ikke overclaime besparelser
 - **Framing:** Praktisk og økonomisk motivasjon er sterkere enn miljø — dashboardet bør lede med kostnader, ikke klima

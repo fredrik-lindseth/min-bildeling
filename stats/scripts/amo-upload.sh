@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sender Bildeleringen Stats til addons.mozilla.org som unlisted, så
+# Sender Min bildeling til addons.mozilla.org som unlisted, så
 # Mozilla signerer den. Bruker AMO-API-et v5 med curl, openssl, jq og
 # node (bare innebygd crypto), uten web-ext og npm.
 #
@@ -53,8 +53,8 @@ fi
 API="${AMO_API:-https://addons.mozilla.org}/api/v5"
 GUID="$(jq -r '.browser_specific_settings.gecko.id' "$STATS/manifest.json")"
 VERSION="$(jq -r '.version' "$STATS/manifest.json")"
-ZIP="$STATS/dist/bildeleringen-stats-v${VERSION}.zip"
-XPI="$STATS/dist/bildeleringen-stats-v${VERSION}-signert.xpi"
+ZIP="$STATS/dist/min-bildeling-v${VERSION}.zip"
+XPI="$STATS/dist/min-bildeling-v${VERSION}-signert.xpi"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -91,7 +91,7 @@ amo() {
 }
 kode() { cat "$TMP/kode"; }
 
-echo "AMO-innsending av Bildeleringen Stats v${VERSION} (${GUID}), unlisted"
+echo "AMO-innsending av Min bildeling v${VERSION} (${GUID}), unlisted"
 echo ""
 
 "$STATS/scripts/package.sh" >/dev/null

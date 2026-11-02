@@ -1,4 +1,4 @@
-# Bildeleringen Stats
+# Min bildeling
 
 Nettleserutvidelse som viser hva Bildeleringen koster deg og hvordan du bruker det.
 

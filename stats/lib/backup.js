@@ -19,6 +19,8 @@ import {
 } from "./categories.js";
 import { TRANSPORT_MODES } from "./transport.js";
 
+// Formatnavnet er fra før utvidelsen het Min bildeling. Det står i alle
+// eksporterte filer, så det beholdes for at gamle kopier skal kunne leses.
 export const BACKUP_FORMAT = "bildeleringen-stats-backup";
 // Versjon 2 har categorySettings. Versjon 1 leses fortsatt, og gamle
 // kategorinøkler i den flyttes til målet (LEGACY_CATEGORIES).

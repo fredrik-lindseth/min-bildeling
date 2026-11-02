@@ -61,7 +61,7 @@ Studie av Bergens befolkning (N=3256) og bildelingsmedlemmer (N=700) i Bergen.
 2. Kostnader — reduserer transportkostnader
 3. Miljø — ønske om mer miljøvennlig reise (40% enig)
 
-## Relevans for Bildeleringen Stats
+## Relevans for Min bildeling
 
 - **Bilregnestykket:** 75% har ikke bil → sammenligningen "bildeling vs. eie" er direkte relevant
 - **Transportkalkulator:** Mobilitetsmiksen (38% gåing, 21% kollektiv) gir grunnlag for helhetlig transportbilde

@@ -122,6 +122,9 @@ forvent_funn "privat mÃ¸nster (arbeidsgiver)" "$TMP/sak" "side.html:1: privat mÃ
 sak; echo '[]' > "$TMP/sak/bildeleringen-eksport.json"
 forvent_funn "dataeksport" "$TMP/sak" "bildeleringen-eksport.json: dataeksport"
 
+sak; echo '[]' > "$TMP/sak/min-bildeling-sikkerhetskopi-2026-01-01.json"
+forvent_funn "dataeksport, nytt navn" "$TMP/sak" "min-bildeling-sikkerhetskopi-2026-01-01.json: dataeksport"
+
 sak; touch "$TMP/sak/lib/.DS_Store"
 forvent_funn ".DS_Store" "$TMP/sak" "lib/.DS_Store: .DS_Store"
 

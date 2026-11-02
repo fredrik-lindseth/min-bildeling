@@ -1,5 +1,5 @@
 /**
- * Content script for Bildeleringen Stats.
+ * Content script for Min bildeling.
  *
  * Runs on app.dele.no pages (document_idle) and extracts the auth token
  * and membership ID from the app's persisted Redux state in localStorage.
@@ -32,7 +32,7 @@ function extractAuth() {
       membershipId: membership.id,
     };
   } catch (e) {
-    console.error("[Bildeleringen Stats] Failed to extract auth:", e);
+    console.error("[Min bildeling] Failed to extract auth:", e);
     return null;
   }
 }

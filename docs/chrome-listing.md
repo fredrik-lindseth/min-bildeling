@@ -1,10 +1,10 @@
-# Chrome Web Store-listing for Bildeleringen Stats
+# Chrome Web Store-listing for Min bildeling
 
-Teksten som fylles inn i utviklerkonsollen på [chrome.google.com/webstore/devconsole](https://chrome.google.com/webstore/devconsole). Pakken er `stats/dist/bildeleringen-stats-chrome-v<versjon>.zip` fra `package.sh`.
+Teksten som fylles inn i utviklerkonsollen på [chrome.google.com/webstore/devconsole](https://chrome.google.com/webstore/devconsole). Pakken er `stats/dist/min-bildeling-chrome-v<versjon>.zip` fra `package.sh`.
 
 ## Butikkoppføring
 
-- Navn: Bildeleringen Stats (fra manifestet)
+- Navn: Min bildeling (fra manifestet)
 - Språk: norsk bokmål
 - Kategori: Verktøy
 - Ikon: `stats/icons/icon-128.png`
