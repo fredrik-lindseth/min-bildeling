@@ -992,3 +992,12 @@ a:focus-visible,
   font-variant-numeric: normal;
   letter-spacing: 0.01px;
 }
+
+.site-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-6);
+  border-top: var(--line);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
