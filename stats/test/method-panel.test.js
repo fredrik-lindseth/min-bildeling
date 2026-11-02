@@ -71,7 +71,7 @@ test("CO₂-tabellen viser faktorene regnestykket bruker", () => {
     const shown = sources.find((x) => x.name === s.name);
     assert.ok(shown, s.name);
     assert.ok(shown.url, `${s.name} mangler lenke`);
-    assert.ok(s.date, `${s.name} mangler dato`);
+    assert.notEqual(shown.date, "udatert", `${s.name} mangler dato`);
   }
 
   // Sammenligningen regner faktisk med snittet i tabellen.

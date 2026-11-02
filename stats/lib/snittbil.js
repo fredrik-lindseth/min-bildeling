@@ -14,7 +14,8 @@
 //    (Personbiler) og 15 (Personbiler i alt), Alder Ialt og ContentsCode
 //    GjsnittKjorelengde (km per bil) og Kjorelengde (mill. km).
 // 3. Bruk siste år som finnes i begge tabellene, og bytt year, verdiene og
-//    datoene under samlet. Kjør `cd stats && node --test`.
+//    datoene under samlet. Året står også i Estimater-tabellen i
+//    docs/arkitektur.md. Kjør `cd stats && node --test`.
 
 // Kildene vises i «Slik beregnes det» med navn, lenke og dato.
 export const SOURCES = {
