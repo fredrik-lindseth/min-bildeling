@@ -7,24 +7,38 @@
  * denne installasjonen og gir ingen mening i en annen.
  */
 
-import { DEFAULT_CATEGORIES, LEGACY_CATEGORIES, normalizeTripCategories, normalizeUserKeywords } from "./categories.js";
+import {
+  DEFAULT_CATEGORIES,
+  LEGACY_CATEGORIES,
+  CUSTOM_PREFIX,
+  normalizeTripCategories,
+  normalizeUserKeywords,
+  normalizeCategorySettings,
+  resolveCategories,
+  resolveCategoryOrder,
+} from "./categories.js";
 import { TRANSPORT_MODES } from "./transport.js";
 
 export const BACKUP_FORMAT = "bildeleringen-stats-backup";
-export const BACKUP_VERSION = 1;
+// Versjon 2 har categorySettings. Versjon 1 leses fortsatt, og gamle
+// kategorinøkler i den flyttes til målet (LEGACY_CATEGORIES).
+export const BACKUP_VERSION = 2;
 
 /**
  * Bygg sikkerhetskopien. Turene og lastSync er valgfrie: de kan hentes fra
  * dele.no på nytt, men med dem slipper en ny installasjon en full synk.
  */
 export function createBackup(data, { includeReservations = true, now = new Date() } = {}) {
+  const categorySettings = normalizeCategorySettings(data.categorySettings);
+  const categories = resolveCategories(categorySettings);
   const backup = {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: now.toISOString(),
-    tripCategories: normalizeTripCategories(data.tripCategories ?? {}).categories,
+    tripCategories: normalizeTripCategories(data.tripCategories ?? {}, categories).categories,
     transportData: normalizeTransportData(data.transportData).data,
-    userKeywords: normalizeUserKeywords(data.userKeywords),
+    userKeywords: normalizeUserKeywords(data.userKeywords, categories),
+    categorySettings,
   };
   if (includeReservations) {
     backup.reservations = Array.isArray(data.reservations) ? data.reservations : [];
@@ -94,7 +108,7 @@ export function isStoredReservation(item) {
  * kategorieksporten, nøkkelordeksporten og utviklerpanelets turkopi.
  *
  * Returns { error } med en norsk melding, eller
- * { backup: { tripCategories, transportData, userKeywords, reservations, lastSync },
+ * { backup: { tripCategories, transportData, userKeywords, categorySettings, reservations, lastSync },
  *   skipped: { categories, transport, reservations } }.
  * reservations og lastSync er null når filen ikke har turer.
  */
@@ -111,20 +125,27 @@ export function parseBackup(raw) {
     }
     return parseParts(raw);
   }
-  if ("tripCategories" in raw || "reservations" in raw || "transportData" in raw || "userKeywords" in raw) {
-    return parseParts(raw);
-  }
-  // Nøkkelordeksporten er bare { kategori: [ord] }.
-  if (Object.keys(raw).length > 0 && Object.keys(raw).every((key) => (Object.hasOwn(DEFAULT_CATEGORIES, key) || Object.hasOwn(LEGACY_CATEGORIES, key)))) {
+  const parts = ["tripCategories", "reservations", "transportData", "userKeywords", "categorySettings"];
+  if (parts.some((key) => key in raw)) return parseParts(raw);
+  // Den eldste nøkkelordeksporten er bare { kategori: [ord] }.
+  if (Object.keys(raw).length > 0 && Object.keys(raw).every(isCategoryKey)) {
     return parseParts({ userKeywords: raw });
   }
   return { error: "Filen er ikke en sikkerhetskopi." };
 }
 
+function isCategoryKey(key) {
+  return Object.hasOwn(DEFAULT_CATEGORIES, key) || Object.hasOwn(LEGACY_CATEGORIES, key) || key.startsWith(CUSTOM_PREFIX);
+}
+
 function parseParts(raw) {
-  const { categories, skipped: skippedCategories } = normalizeTripCategories(raw.tripCategories ?? {});
+  // Kategorivalg og ord for egne kategorier gjelder bare når filen har med
+  // kategorien selv, så de valideres mot filens kategorier.
+  const categorySettings = normalizeCategorySettings(raw.categorySettings);
+  const fileCategories = resolveCategories(categorySettings);
+  const { categories, skipped: skippedCategories } = normalizeTripCategories(raw.tripCategories ?? {}, fileCategories);
   const transport = normalizeTransportData(raw.transportData);
-  const userKeywords = normalizeUserKeywords(raw.userKeywords);
+  const userKeywords = normalizeUserKeywords(raw.userKeywords, fileCategories);
 
   let reservations = null;
   let skippedReservations = 0;
@@ -138,6 +159,7 @@ function parseParts(raw) {
     tripCategories: categories,
     transportData: transport.data,
     userKeywords,
+    categorySettings,
     reservations,
     lastSync: reservations && Number.isFinite(raw.lastSync) ? raw.lastSync : null,
   };
@@ -145,6 +167,7 @@ function parseParts(raw) {
     Object.keys(categories).length === 0 &&
     Object.keys(transport.data).length === 0 &&
     Object.keys(userKeywords).length === 0 &&
+    !hasSettings(categorySettings) &&
     reservations === null;
   if (empty) return { error: "Fant ingenting å importere i filen." };
 
@@ -162,7 +185,9 @@ function parseParts(raw) {
  * Med overwrite vinner filen for det den har med: kategorivalg og transporttall
  * i filen erstatter de lagrede, og nøkkelordene i filen erstatter hele den
  * lagrede listen for samme kategori, så ord som bare står her, forsvinner.
- * Kategorier og år filen ikke har med, står.
+ * Kategorier og år filen ikke har med, står. categorySettings flettes i
+ * mergeSettings(), før kategorivalg og ord, så egne kategorier fra filen
+ * finnes når valgene for dem legges inn.
  * Turene flettes alltid på id, og de lagrede beholdes, siden de kan være
  * hentet senere enn filen ble laget.
  *
@@ -186,7 +211,12 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     transportYears: 0,
     reservationsAdded: 0,
     reservationsKept: 0,
+    customCategoriesAdded: 0,
+    keywordsRemoved: 0,
   };
+
+  const categorySettings = mergeSettings(current.categorySettings, incoming.categorySettings, overwrite, counts);
+  const categories = resolveCategories(categorySettings);
 
   const tripCategories = { ...(current.tripCategories ?? {}) };
   for (const [id, key] of Object.entries(incoming.tripCategories)) {
@@ -203,8 +233,9 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     }
   }
 
-  const userKeywords = normalizeUserKeywords(current.userKeywords);
+  const userKeywords = normalizeUserKeywords(current.userKeywords, categories);
   for (const [key, words] of Object.entries(incoming.userKeywords)) {
+    if (!Object.hasOwn(categories, key)) continue;
     const existing = userKeywords[key] ?? [];
     const fresh = words.filter((w) => !existing.includes(w));
     counts.keywordsAdded += fresh.length;
@@ -234,7 +265,7 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     if (changed) counts.transportYears++;
   }
 
-  const next = { tripCategories, userKeywords, transportData };
+  const next = { tripCategories, userKeywords, transportData, categorySettings };
 
   if (incoming.reservations) {
     const stored = Array.isArray(current.reservations) ? current.reservations : [];
@@ -253,6 +284,41 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
   }
 
   return { next, counts };
+}
+
+// Egne kategorier som mangler her, legges til, og med overwrite får de
+// filens navn. Fjernede standardord slås sammen, eller tas fra filen for
+// kategoriene den har med når den skal vinne. Rekkefølgen her står når den
+// finnes, og resolveCategoryOrder() setter inn det som mangler.
+function mergeSettings(currentRaw, incomingRaw, overwrite, counts) {
+  const current = normalizeCategorySettings(currentRaw);
+  const incoming = normalizeCategorySettings(incomingRaw);
+
+  const custom = { ...current.custom };
+  for (const [key, value] of Object.entries(incoming.custom)) {
+    if (!custom[key]) {
+      custom[key] = { ...value };
+      counts.customCategoriesAdded++;
+    } else if (overwrite) {
+      custom[key] = { ...value };
+    }
+  }
+
+  const removed = { ...current.removed };
+  for (const [key, words] of Object.entries(incoming.removed)) {
+    const existing = removed[key] ?? [];
+    const fresh = words.filter((w) => !existing.includes(w));
+    counts.keywordsRemoved += fresh.length;
+    removed[key] = overwrite ? [...words] : [...existing, ...fresh];
+  }
+
+  const order = overwrite ? (incoming.order ?? current.order) : (current.order ?? incoming.order);
+  const merged = { custom, removed, order };
+  return { ...merged, order: order ? resolveCategoryOrder(merged) : null };
+}
+
+function hasSettings(settings) {
+  return Object.keys(settings.custom).length > 0 || Object.keys(settings.removed).length > 0 || settings.order !== null;
 }
 
 // Køen til en synk som står midt i, uten id-ene som nettopp ble importert.
@@ -287,9 +353,15 @@ function withoutImported(syncState, added) {
 export function describeImport(counts) {
   const parts = [];
   if (counts.reservationsAdded > 0) parts.push(count(counts.reservationsAdded, "tur", "turer"));
+  if (counts.customCategoriesAdded > 0) {
+    parts.push(count(counts.customCategoriesAdded, "egen kategori", "egne kategorier"));
+  }
   const categories = counts.categoriesAdded + counts.categoriesReplaced;
   if (categories > 0) parts.push(count(categories, "kategorivalg", "kategorivalg"));
   if (counts.keywordsAdded > 0) parts.push(count(counts.keywordsAdded, "nøkkelord", "nøkkelord"));
+  if (counts.keywordsRemoved > 0) {
+    parts.push(count(counts.keywordsRemoved, "fjernet standardord", "fjernede standardord"));
+  }
   if (counts.transportYears > 0) parts.push(`transporttall for ${count(counts.transportYears, "år", "år")}`);
 
   const kept = counts.categoriesKept + counts.transportKept;

@@ -2154,6 +2154,7 @@ const DEV_STORAGE_KEYS = [
   "tripCategories",
   "transportData",
   "userKeywords",
+  "categorySettings",
   "syncState",
   "syncLock",
   "syncHistory",

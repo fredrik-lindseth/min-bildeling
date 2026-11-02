@@ -304,3 +304,128 @@ test("mergeBackup endrer ikke det den får inn", () => {
   mergeBackup(current, incoming({ tripCategories: { b: "jobb" }, transportData: { 2025: { buss: { trips: 1 } } } }), { overwrite: true });
   assert.deepEqual(current, snapshot);
 });
+
+// ---------- Versjon 2: egne kategorier ----------
+
+const KATT = { custom: { "egen-katt": { label: "Katt" } }, removed: { hoytid: ["jul"] }, order: null };
+
+test("createBackup har categorySettings og versjon 2", () => {
+  const backup = createBackup({
+    tripCategories: { a: "egen-katt", b: "egen-hund" },
+    userKeywords: { "egen-katt": ["katt"] },
+    categorySettings: KATT,
+  });
+  assert.equal(BACKUP_VERSION, 2);
+  assert.equal(backup.version, 2);
+  assert.deepEqual(backup.categorySettings, KATT);
+  assert.deepEqual(backup.tripCategories, { a: "egen-katt" });
+  assert.deepEqual(backup.userKeywords, { "egen-katt": ["katt"] });
+  assert.deepEqual(createBackup({}).categorySettings, { custom: {}, removed: {}, order: null });
+});
+
+test("parseBackup leser versjon 1 og flytter gamle kategorinøkler", () => {
+  const { backup, skipped } = parseBackup({
+    format: BACKUP_FORMAT,
+    version: 1,
+    tripCategories: { a: "flyplass", b: "hyttetur", c: "skyss" },
+    userKeywords: { hyttetur: ["Naustet"], flyplass: ["gardermoen"] },
+  });
+  assert.deepEqual(backup.tripCategories, { a: "transport", b: "aktivitet", c: "transport" });
+  assert.deepEqual(backup.userKeywords, { transport: ["gardermoen"], aktivitet: ["naustet"] });
+  assert.deepEqual(backup.categorySettings, { custom: {}, removed: {}, order: null });
+  assert.equal(skipped.categories, 0);
+});
+
+test("parseBackup godtar egne kategorier bare når filen har dem med", () => {
+  const withSettings = parseBackup({ tripCategories: { a: "egen-katt" }, categorySettings: KATT });
+  assert.deepEqual(withSettings.backup.tripCategories, { a: "egen-katt" });
+  assert.equal(withSettings.skipped.categories, 0);
+
+  const without = parseBackup({ tripCategories: { a: "egen-katt", b: "jobb" } });
+  assert.deepEqual(without.backup.tripCategories, { b: "jobb" });
+  assert.equal(without.skipped.categories, 1);
+});
+
+test("parseBackup kjenner nøkkelord- og kategorieksporten med categorySettings", () => {
+  const keywords = parseBackup({ userKeywords: { "egen-katt": ["katt"] }, categorySettings: KATT }).backup;
+  assert.deepEqual(keywords.userKeywords, { "egen-katt": ["katt"] });
+  assert.deepEqual(keywords.categorySettings.custom, KATT.custom);
+  // Bare innstillinger er også noe å importere.
+  assert.equal(parseBackup({ categorySettings: KATT }).error, undefined);
+  assert.match(parseBackup({ categorySettings: {} }).error, /ingenting/);
+  // Den eldste nøkkelordeksporten med gamle nøkler.
+  assert.deepEqual(parseBackup({ skyss: ["sfo"] }).backup.userKeywords, { transport: ["sfo"] });
+  assert.ok(parseBackup({ skyss: ["sfo"], tull: ["x"] }).error);
+});
+
+test("mergeBackup legger til egne kategorier og slår sammen fjernede ord", () => {
+  const current = {
+    categorySettings: {
+      custom: { "egen-hund": { label: "Hund" } },
+      removed: { hoytid: ["påske"] },
+      order: ["egen-hund", "helse"],
+    },
+    userKeywords: { "egen-hund": ["hund"] },
+  };
+  const file = incoming({
+    tripCategories: { a: "egen-katt" },
+    userKeywords: { "egen-katt": ["katt"] },
+    categorySettings: {
+      custom: { "egen-katt": { label: "Katt" }, "egen-hund": { label: "Bikkje" } },
+      removed: { hoytid: ["jul"] },
+      order: ["helse", "egen-katt"],
+    },
+  });
+  const { next, counts } = mergeBackup(current, file);
+  assert.deepEqual(next.categorySettings.custom, {
+    "egen-hund": { label: "Hund" },
+    "egen-katt": { label: "Katt" },
+  });
+  assert.deepEqual(next.categorySettings.removed, { hoytid: ["påske", "jul"] });
+  // Lagret rekkefølge står, og det som mangler fylles inn.
+  assert.deepEqual(next.categorySettings.order.slice(0, 2), ["egen-hund", "helse"]);
+  assert.equal(next.categorySettings.order.at(-1), "egen-katt");
+  assert.equal(next.categorySettings.order.length, 12);
+  assert.deepEqual(next.tripCategories, { a: "egen-katt" });
+  assert.deepEqual(next.userKeywords, { "egen-hund": ["hund"], "egen-katt": ["katt"] });
+  assert.equal(counts.customCategoriesAdded, 1);
+  assert.equal(counts.keywordsRemoved, 1);
+});
+
+test("mergeBackup med overwrite tar navn, fjernede ord og rekkefølge fra filen", () => {
+  const current = {
+    categorySettings: {
+      custom: { "egen-hund": { label: "Hund" } },
+      removed: { hoytid: ["påske"], helse: ["lege"] },
+      order: null,
+    },
+  };
+  const file = incoming({
+    categorySettings: {
+      custom: { "egen-hund": { label: "Bikkje" } },
+      removed: { hoytid: ["jul"] },
+      order: ["helse", "egen-hund"],
+    },
+  });
+  const { next, counts } = mergeBackup(current, file, { overwrite: true });
+  assert.deepEqual(next.categorySettings.custom, { "egen-hund": { label: "Bikkje" } });
+  assert.deepEqual(next.categorySettings.removed, { hoytid: ["jul"], helse: ["lege"] });
+  assert.equal(next.categorySettings.order[0], "helse");
+  assert.ok(next.categorySettings.order.includes("egen-hund"));
+  assert.equal(counts.customCategoriesAdded, 0);
+
+  // Uten lagret rekkefølge tas filens også uten overwrite.
+  const kept = mergeBackup({}, file).next.categorySettings;
+  assert.equal(kept.order[0], "helse");
+  assert.equal(mergeBackup({}, incoming({})).next.categorySettings.order, null);
+});
+
+test("describeImport teller egne kategorier", () => {
+  const none = mergeBackup({}, incoming({})).counts;
+  assert.equal(
+    describeImport({ ...none, customCategoriesAdded: 1, keywordsAdded: 2 }),
+    "Importerte 1 egen kategori og 2 nøkkelord.",
+  );
+  assert.equal(describeImport({ ...none, customCategoriesAdded: 2 }), "Importerte 2 egne kategorier.");
+  assert.equal(describeImport({ ...none, keywordsRemoved: 1 }), "Importerte 1 fjernet standardord.");
+});

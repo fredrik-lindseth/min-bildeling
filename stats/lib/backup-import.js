@@ -12,11 +12,18 @@
 import { mergeBackup } from "./backup.js";
 import { withSyncLock } from "./sync.js";
 
-export const BACKUP_STORAGE_KEYS = ["tripCategories", "transportData", "userKeywords", "reservations", "lastSync"];
+export const BACKUP_STORAGE_KEYS = [
+  "tripCategories",
+  "transportData",
+  "userKeywords",
+  "categorySettings",
+  "reservations",
+  "lastSync",
+];
 
 /**
  * @param {object} opts
- *   backup: { tripCategories, transportData, userKeywords, reservations, lastSync } fra parseBackup()
+ *   backup: { tripCategories, transportData, userKeywords, categorySettings, reservations, lastSync } fra parseBackup()
  *   overwrite: filen vinner der den er ulik det som er lagret
  *   owner: siden som importerer. takeFrom: synken i samme side, som tas over.
  *   onWait({ syncLock, syncState }): en annen side synker, og importen venter.
