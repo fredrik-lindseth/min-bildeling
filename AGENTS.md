@@ -25,7 +25,7 @@ Repoet har to selvstendige utvidelser: `stats/` (statistikk) og `flex/` (fleksib
 ## UI
 
 - Alle farger via CSS custom properties i `:root`, ingen hex eller rgb utenfor. Maks fem chart-farger (`--color-chart-1` til `-5`).
-- I stats står alle farger og størrelser én gang i `stats/lib/tokens.css`, fargene som `light-dark(lys, mørk)`. Ett hjørne (`var(--radius)`, 2 px), 1 px linjer, ingen skygger, ingen `!important`. `stats/scripts/sjekk-stil.sh` og `kontrast.sh` håndhever det. Diagramfarger hentes med `resolveColor()` i `lib/chart-helpers.js`, ikke med `getPropertyValue()`.
+- I stats står alle farger og størrelser én gang i `stats/lib/tokens.css`, fargene som `light-dark(lys, mørk)`. Formreglene står i `docs/design.md`, og `stats/scripts/sjekk-stil.sh` og `kontrast.sh` håndhever det. Diagramfarger hentes med `resolveColor()` i `lib/chart-helpers.js`, ikke med `getPropertyValue()`.
 - Lys og mørk modus må virke (`prefers-color-scheme`). Nye variabler trenger mørk variant.
 - Norsk UI-tekst. Console-logging kan være engelsk.
 - Estimater (eierkostnad, CO₂) får «Slik beregnes det» med kilder og «ca.» eller «~» foran tallet.

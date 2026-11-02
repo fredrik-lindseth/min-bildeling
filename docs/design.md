@@ -145,7 +145,7 @@ Bare to vekter: 400 og 600. Tall i lister og regnestykker står i 600. Hovedtall
 
 Avstandsskala på 4 px: `--space-1` 4, `--space-2` 8, `--space-3` 12, `--space-4` 16, `--space-5` 24, `--space-6` 32, `--space-7` 48, `--space-8` 64. Seksjoner har 48 px luft over og under og en 1 px border mellom seg. Innhold i paneler har 16 px vertikalt og 24 px horisontalt.
 
-Ett hjørne: `--radius: 2px` overalt, også i popup og årsoppsummering. Det matcher flex-utvidelsen. Ingen skygger noe sted. Paneler skilles fra flaten med 1 px `--color-border`. Kontroller som skal kunne ses som kontroller, har 1 px `--color-border-strong`.
+Ett hjørne: `--radius: 6px` overalt, også i popup og årsoppsummering, som Firefox sine egne paneler. Ingen skygger noe sted. Paneler skilles fra flaten med 1 px `--color-border`. Kontroller som skal kunne ses som kontroller, har 1 px `--color-border-strong`.
 
 Innhold er venstrejustert. Tall i tabeller og nøkkeltall-lister er høyrejustert. Ingenting sentreres, unntatt i årsoppsummeringen, der hver slide er én påstand midt på skjermen.
 

@@ -20,24 +20,47 @@ Nettleserutvidelse som viser hva Bildeleringen koster deg og hvordan du bruker d
 
 ## Slik ser det ut
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/dashboard-kostnader-mork.png">
-  <img src="skjermbilder/dashboard-kostnader-lys.png" alt="Dashboardet med kostnader per måned og nøkkeltall" width="1280">
-</picture>
+Bildene viser ekte bruk, unntatt Turkategorier og Transport, som viser demodata.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/dashboard-bruksmonster-mork.png">
-  <img src="skjermbilder/dashboard-bruksmonster-lys.png" alt="Bruksmønster med turer per ukedag og klokkeslett" width="1280">
-</picture>
+### Popup
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="skjermbilder/popup-mork.png">
-  <img src="skjermbilder/popup-lys.png" alt="Popupen med forbruket denne måneden" width="350">
-</picture>
+![Popupen med forbruket denne måneden og de siste seks månedene](skjermbilder/popup-mork.png)
 
-<img src="skjermbilder/summary-brukt-mork.png" alt="Årsoppsummeringen: brukt på bildeling i året, med antall turer" width="640">
+### Dashboard
 
-<img src="skjermbilder/summary-spart-mork.png" alt="Årsoppsummeringen: spart mot å eie bil, regnet mot en bilkategori" width="640">
+![Kostnader per måned og per år](skjermbilder/seksjon-kostnader.png)
+
+![Bruksmønster: turer per ukedag og klokkeslett, og mest brukte biler](skjermbilder/seksjon-bruksmonster.png)
+
+![Bookingmønster: hvor lang tid i forveien, og mest brukte stasjoner](skjermbilder/seksjon-bookingmonster.png)
+
+![Kilometer per måned og per bil](skjermbilder/seksjon-kilometer.png)
+
+![Trender: år mot år, glidende snitt og sesong](skjermbilder/seksjon-trender.png)
+
+![Bilregnestykket: bildeling mot å eie en Volvo EX40](skjermbilder/seksjon-bilregnestykket.png)
+
+![Turkategorier med forslag fra turnotatene](skjermbilder/seksjon-turkategorier.png)
+
+![Klimaregnskap: CO₂ per måned og per drivstofftype](skjermbilder/seksjon-klima.png)
+
+![Min transport: bildeling sammen med taxi, buss og fly](skjermbilder/seksjon-transport.png)
+
+![Sikkerhetskopi: eksport og import](skjermbilder/seksjon-sikkerhetskopi.png)
+
+### Årsoppsummering
+
+![Brukt på bildeling i året](skjermbilder/oppsummering-brukt.png)
+
+![Kilometer kjørt i året](skjermbilder/oppsummering-kjort.png)
+
+![Favorittbilen i året](skjermbilder/oppsummering-favorittbil.png)
+
+![Den travleste måneden](skjermbilder/oppsummering-travleste.png)
+
+![Spart mot å eie bil](skjermbilder/oppsummering-spart.png)
+
+![CO₂-utslipp i året](skjermbilder/oppsummering-co2.png)
 
 ## Installasjon
 

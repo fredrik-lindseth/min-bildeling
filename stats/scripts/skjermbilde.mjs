@@ -3,7 +3,8 @@
 //
 // node skjermbilde.mjs <firefox> <profil> <utmappe> <navn> <bredde>x<høyde> <url> [<navn> <str> <url> ...]
 //
-// Høyden 0 betyr hele dokumentet (popupen, som ikke har fast høyde).
+// Høyden 0 betyr hele dokumentet (popupen, som ikke har fast høyde). Med 0
+// og et anker i adressen tas bare elementet ankeret peker på, i full høyde.
 //
 // Firefox sin egen --screenshot tar bildet ved load og fotograferer alltid
 // dokumentet fra toppen, så en seksjon lenger ned kan ikke tas med den.
@@ -109,9 +110,28 @@ try {
       target: { context },
       awaitPromise: true,
     });
+    const anchor = new URL(shot.url).hash.slice(1);
+    let clip;
+    if (!shot.height && anchor) {
+      // Til toppen først, så den klebrige navigasjonen ligger der den hører
+      // til i dokumentet og ikke over seksjonen.
+      const { result } = await send("script.evaluate", {
+        expression: `(() => {
+          window.scrollTo(0, 0);
+          const r = document.getElementById(${JSON.stringify(anchor)}).getBoundingClientRect();
+          return JSON.stringify({ y: r.top, height: r.height });
+        })()`,
+        target: { context },
+        awaitPromise: false,
+      });
+      const box = JSON.parse(result.value);
+      const pad = 24;
+      clip = { type: "box", x: 0, y: Math.max(0, box.y - pad), width: shot.width, height: box.height + 2 * pad };
+    }
     const { data } = await send("browsingContext.captureScreenshot", {
       context,
       origin: shot.height ? "viewport" : "document",
+      ...(clip && { clip }),
     });
     await writeFile(join(outDir, `${shot.name}.png`), Buffer.from(data, "base64"));
   }

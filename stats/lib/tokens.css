@@ -64,7 +64,7 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  --radius: 2px;
+  --radius: 6px;
 }
 
 @media (max-width: 720px) {

@@ -10,7 +10,6 @@
 # fotograferer alltid fra toppen av dokumentet, så #bruksmonster gir feil
 # utsnitt. skjermbilde.mjs styrer derfor Firefox over WebDriver BiDi: fast
 # viewport, venter på load, fonter og to animasjonsrammer, og tar så bildet.
-# Seksjonsutsnitt hentes med et anker, som dashboardet hopper til selv.
 #
 # Demodataene regnes fra dagens dato, så tallene skifter over tid. Utsnitt og
 # vindusstørrelser er faste.
@@ -98,18 +97,24 @@ shoot() {
 }
 
 D="dashboard/dashboard.html?demo=1"
-for mode in lys mork; do
-  shoot "$mode" \
-    "dashboard-kostnader-$mode" 1280x800 "$D" \
-    "dashboard-bruksmonster-$mode" 1280x800 "$D#bruksmonster" \
-    "popup-$mode" 350x0 "popup/popup.html?demo=1"
-done
-# Årsoppsummeringen tas bare i mørk, og på to tallsider framfor forsiden,
-# som bare viser årstallet. Ankrene står på <section>-ene i summary.html.
 S="summary/summary.html?demo=1"
-shoot mork \
-  summary-brukt-mork 1280x800 "$S#brukt" \
-  summary-spart-mork 1280x800 "$S#spart"
+for mode in lys mork; do
+  shoot "$mode" "popup-$mode" 350x0 "popup/popup.html?demo=1"
+done
+# Hver seksjon i dashboardet og hvert ark i årsoppsummeringen, så alle
+# visningene kan ses uten å installere. Høyde 0 med anker gir hele seksjonen.
+# Ankrene står på <section>-ene i dashboard.html og summary.html.
+args=()
+for section in kostnader bruksmonster bookingmonster kilometer trender \
+  bilregnestykket turkategorier klima transport sikkerhetskopi; do
+  args+=("seksjon-$section" 1280x0 "$D#$section")
+done
+shoot lys "${args[@]}"
+args=()
+for slide in brukt kjort favorittbil travleste spart co2; do
+  args+=("oppsummering-$slide" 1280x800 "$S#$slide")
+done
+shoot mork "${args[@]}"
 
 echo "Skjermbilder i $OUT_DIR:"
 for raw in "$RAW_DIR"/*.png; do
