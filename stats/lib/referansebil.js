@@ -3,7 +3,8 @@
 // gang i året. Ingen funksjoner, bare data: ownership-cost.js regner.
 //
 // Årlig oppdatering:
-// 1. Ny veiledende pris for samme utgave (P5 Core, eller nærmeste).
+// 1. Vurder om antatt pris for en vanlig utstyrt bil fortsatt er rimelig.
+//    Prisen er et skjønn, ikke en prisliste, så den rundes av.
 // 2. Ny OFV-kalkyle (kommer i juni). Finn de to elbileksemplene prisen ligger
 //    mellom, ta kolonnen for 10 000 km og interpoler lineært med
 //    t = (pris − lav) / (høy − lav). Formelen står ved hver OFV-verdi.
@@ -23,11 +24,6 @@ export const SOURCES = {
     url: "https://www.elbil24.no/nyheter/volvo-ex40-tar-plastisk-kirurgi/85125635",
     date: "2026-09-10",
   },
-  finn: {
-    name: "Finn bilguiden: Volvo EX40 oppdatert, norske priser er klare",
-    url: "https://www.finn.no/bilguiden/nyheter/volvo-ex40-oppdatert-norske-priser-er-klare",
-    date: "2026-09-10",
-  },
   naf: {
     name: "NAF: Avgifter og kostnader for bil 2026",
     url: "https://www.naf.no/politikk-og-samfunn/privatokonomi/avgifter-og-kostnader-for-bil-2026",
@@ -45,38 +41,38 @@ export const SOURCES = {
   },
 };
 
-// OFV-verdiene er elbil eksempel 2 (400 000 kr) og 3 (550 000 kr), kolonnen
-// for 10 000 km, interpolert med t = (439 900 − 400 000) / 150 000 = 0,266.
+// OFV-verdiene er elbil eksempel 3 (550 000 kr) og 4 (750 000 kr), kolonnen
+// for 10 000 km, interpolert med t = (600 000 − 550 000) / 200 000 = 0,25.
 // Datagrunnlaget er fra desember 2025 til april 2026.
 export const REFERENCE_CAR = {
   checked: "2026-11-01",
 
   // EX40 er navnet på XC40 Recharge siden februar 2024.
   model: { value: "Volvo EX40", source: "volvoPrice", date: "2026-09-10" },
-  variant: { value: "P5 Core", source: "volvoPrice", date: "2026-09-10" },
-  // Veiledende pris inkl. frakt og levering. Samme pris hos Finn.
-  price: { value: 439900, source: "volvoPrice", date: "2026-09-10" },
+  // Antatt pris for en vanlig utstyrt bil, avrundet. Ingen bestemt utgave:
+  // den billigste koster fra 439 900 kr, men få kjøper den uten tillegg.
+  price: { value: 600000, source: "volvoPrice", date: "2026-11-02" },
 
   // Lavest kjørelengde OFV regner med. Faste poster under gjelder den.
   ofvKmPerYear: { value: 10000, source: "ofv", date: "2026-06-16" },
 
   // Faste kostnader, kr per år.
-  // Post 1, avskrivning over 3 år: 49 653 + t × (65 741 − 49 653).
-  depreciation: { value: 53932, source: "ofv", date: "2026-06-16" },
+  // Post 1, avskrivning over 3 år: 65 741 + t × (94 002 − 65 741).
+  depreciation: { value: 72806, source: "ofv", date: "2026-06-16" },
   // Post 3, ansvar + kasko, 75 % bonus, snitt for Oslo-området:
-  // 2 674 + t × 554 = 2 821 og 11 007 + t × 713 = 11 197.
-  insurance: { value: 14018, source: "ofv", date: "2026-06-16" },
+  // 3 228 − t × 177 = 3 184 og 11 720 + t × 1 798 = 12 170.
+  insurance: { value: 15354, source: "ofv", date: "2026-06-16" },
   // Elbil 9,16 kr/dag fra 01.03.2026, 365 dager. Samme tall i OFV.
   trafficInsuranceTax: { value: 3343, source: "naf", date: "2026-10-02" },
   // Post 5 vedlikehold (vask, rustbeskyttelse) + post 9 service:
-  // 5 822 + t × 1 865 = 6 318 og 3 566 + t × 128 = 3 600.
-  maintenance: { value: 9918, source: "ofv", date: "2026-06-16" },
+  // 7 687 i begge eksemplene og 3 694 + t × 414 = 3 798.
+  maintenance: { value: 11485, source: "ofv", date: "2026-06-16" },
 
   // Variable kostnader, skaleres med kjørte km.
-  // Post 8 dekk, 37 000 km levetid og to hjulskift: 0,408 + t × 0,094 kr/km.
-  tyresPerKm: { value: 0.433, source: "ofv", date: "2026-06-16" },
-  // Forbruk 1,56 + t × 0,12 kWh/mil.
-  kWhPerKm: { value: 0.159, source: "ofv", date: "2026-06-16" },
+  // Post 8 dekk, 37 000 km levetid og to hjulskift: 0,502 + t × 0,113 kr/km.
+  tyresPerKm: { value: 0.53, source: "ofv", date: "2026-06-16" },
+  // Forbruk 1,68 + t × 0,15 kWh/mil.
+  kWhPerKm: { value: 0.172, source: "ofv", date: "2026-06-16" },
   // 80 % hjemmelading med Norgespris inkl. nettleie og avgifter.
   homeChargingKrPerKWh: { value: 1.05, source: "ofv", date: "2026-06-16" },
   // 20 % hurtiglading, OFVs prisreferanse per mai 2026.

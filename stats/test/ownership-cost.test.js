@@ -1,5 +1,5 @@
 // Tallene her er regnet for hånd fra OFVs «Kostnader ved bilhold 2026»,
-// elbil eksempel 2 og 3, kolonnen 10 000 km/år. Endres en forutsetning i
+// elbil eksempel 3 og 4, kolonnen 10 000 km/år. Endres en forutsetning i
 // referansebil.js, skal forventningen her endres med.
 
 import { test } from "node:test";
@@ -18,19 +18,19 @@ const TRONDHEIM = "8dba8f19-c438-f278-ed7c-912ec6537cb9";
 // Etter årsskiftet er 2026 et helt år, så faste kostnader telles fullt.
 const DONE = { now: new Date(2027, 0, 1) };
 
-// Volvo EX40 P5 Core til 439 900 kr ligger 0,266 av veien fra OFVs
-// elbileksempel til 400 000 kr mot eksempelet til 550 000 kr.
-const T = (439900 - 400000) / (550000 - 400000);
+// Volvo EX40 til 600 000 kr ligger 0,25 av veien fra OFVs elbileksempel
+// til 550 000 kr mot eksempelet til 750 000 kr.
+const T = (600000 - 550000) / (750000 - 550000);
 const ofv = (lo, hi) => lo + T * (hi - lo);
-const DEPRECIATION = Math.round(ofv(49653, 65741));
-const INSURANCE = Math.round(ofv(2674, 3228)) + Math.round(ofv(11007, 11720));
-const MAINTENANCE = Math.round(ofv(5822, 7687)) + Math.round(ofv(3566, 3694));
+const DEPRECIATION = Math.round(ofv(65741, 94002));
+const INSURANCE = Math.round(ofv(3228, 3051)) + Math.round(ofv(11720, 13518));
+const MAINTENANCE = Math.round(ofv(7687, 7687)) + Math.round(ofv(3694, 4108));
 const TAX = 3343;
 const FIXED_WITHOUT_PARKING = DEPRECIATION + INSURANCE + TAX + MAINTENANCE;
 // Dekk og strøm per km: OFV post 8, og forbruk i kWh/mil delt på 10 ganger
 // 80 % hjemmelading til 1,05 kr og 20 % hurtiglading til 5,47 kr.
-const TYRES_PER_KM = 0.433;
-const ENERGY_PER_KM = 0.159 * (0.8 * 1.05 + 0.2 * 5.47);
+const TYRES_PER_KM = 0.53;
+const ENERGY_PER_KM = 0.172 * (0.8 * 1.05 + 0.2 * 5.47);
 
 function trip({ start, category = "Småbil", fuel = "Elektrisitet", km = 50, total = 500, org }) {
   return {
@@ -45,8 +45,8 @@ function trip({ start, category = "Småbil", fuel = "Elektrisitet", km = 50, tot
 }
 
 test("referansebilen er interpolert mellom OFVs elbileksempler", () => {
-  assert.equal(Math.round(ofv(4079, 5019)) / 10000, 0.4329);
-  assert.equal(Math.round(ofv(0.156, 0.168) * 1000) / 1000, 0.159);
+  assert.equal(Math.round(ofv(5019, 6147)) / 10000, 0.5301);
+  assert.equal(Math.round(ofv(0.168, 0.183) * 1000) / 1000, 0.172);
   assert.deepEqual(COMPARISON_CAR.costs, {
     depreciation: DEPRECIATION,
     insurance: INSURANCE,
@@ -54,7 +54,7 @@ test("referansebilen er interpolert mellom OFVs elbileksempler", () => {
     maintenance: MAINTENANCE,
   });
   assert.equal(COMPARISON_CAR.name, "Volvo EX40");
-  assert.equal(COMPARISON_CAR.price, 439900);
+  assert.equal(COMPARISON_CAR.price, 600000);
   assert.equal(COMPARISON_CAR.tyresPerKm, TYRES_PER_KM);
   assert.ok(Math.abs(COMPARISON_CAR.energyPerKm - ENERGY_PER_KM) < 1e-9);
 });
@@ -121,8 +121,8 @@ test("«spart i år» for et realistisk medlem per 1. november", () => {
   assert.equal(own.totalKm, 2000);
   assert.ok(own.yearFraction > 0.83 && own.yearFraction < 0.84, `${own.yearFraction}`);
   assert.equal(own.ownershipCost, Math.round(fullYearFixed * fraction + variable));
-  assert.equal(own.ownershipCost, 74937);
-  assert.equal(own.savings, 58237);
+  assert.equal(own.ownershipCost, 93318);
+  assert.equal(own.savings, 76618);
 
   const done = estimateOwnershipCost(r, 2026, DONE);
   assert.equal(done.yearFraction, 1);
@@ -143,9 +143,9 @@ test("uten år regnes kilometer og bildeling om til ett år", () => {
 
 test("«Slik beregnes det» navngir bilen, OFVs 10 000 km og begge byene", () => {
   const { intro, factors, sources } = OWNERSHIP_METHOD;
-  assert.ok(intro.includes("Volvo EX40 P5 Core"));
+  assert.ok(intro.includes("en ny Volvo EX40, "));
   const value = (label) => factors.find((f) => f.label.startsWith(label))?.value;
-  assert.equal(value("Pris"), 439900);
+  assert.equal(value("Pris"), 600000);
   assert.equal(value("Kjørelengde"), 10000);
   assert.equal(value("Boligsoneparkering i Bergen"), 582);
   assert.equal(value("Boligsoneparkering i Trondheim"), 785);
