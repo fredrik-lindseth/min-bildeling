@@ -2,7 +2,9 @@
 # Byggevakt for Bildeleringen Stats: stopper en pakke som inneholder
 # persondata, rot fra utviklingen eller endrede vendor-filer.
 #
-# Bruk: ./stats/scripts/sjekk-pakke.sh <pakke.zip | utpakket mappe>
+# Bruk: ./stats/scripts/sjekk-pakke.sh [--chrome] <pakke.zip | utpakket mappe>
+#
+# Med --chrome gjelder manifestkravene til Chrome Web Store i stedet for AMO.
 #
 # Exit 0: ren (advarsler kan forekomme). Exit 1: funn. Exit 2: feil bruk.
 #
@@ -23,6 +25,14 @@ set -euo pipefail
 # strict_min_version >= 140. AMO avviser pakken uten dem, så de er feil.
 MANIFEST_KRAV_ER_FEIL=1
 MIN_GECKO_VERSJON=140
+# light-dark() i CSS-en krever Chrome 123.
+MIN_CHROME_VERSJON=123
+
+CHROME=0
+if [ "${1:-}" = "--chrome" ]; then
+  CHROME=1
+  shift
+fi
 
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 VENDOR_SUMS="$SCRIPTDIR/vendor.sha256"
@@ -33,8 +43,11 @@ PRIVAT="${BILDELERINGEN_PERSONDATA:-$HOME/.config/bildeleringen/persondata.txt}"
 # manifestet (ser ut som en e-postadresse), lisenslinjen og
 # de kjente organisasjons-id-ene fra
 # dele.no (Bildeleringen og Trondheim Bilkollektiv) og den oppdiktede
-# medlemskaps-id-en i demodataene.
+# medlemskaps-id-en i demodataene. Bunnlinjen i dashbordet lenker til den
+# offentlige profilen og til Forgejo-speilet, med nøyaktig denne teksten.
 TILLATT_SED='s#github\.com/fredrik-lindseth/bildeleringen-stats##g
+s#<a href="https://fredriklindseth\.no">Fredrik Lindseth</a>##g
+s#git\.fredriklindseth\.no/fredrik/bildeleringen-stats##g
 s#"delebil@fredriklindseth\.no"#""#g
 s#Copyright \(c\) [0-9]{4} Fredrik##g
 s#3212bcbe-8e34-4c28-9439-a44e6d5cf9c0##g
@@ -42,7 +55,7 @@ s#8dba8f19-c438-f278-ed7c-912ec6537cb9##g
 s#00000000-0000-0000-0000-00000000de40##g'
 
 if [ $# -ne 1 ] || [ ! -e "$1" ]; then
-  echo "Bruk: $0 <pakke.zip | utpakket mappe>" >&2
+  echo "Bruk: $0 [--chrome] <pakke.zip | utpakket mappe>" >&2
   exit 2
 fi
 
@@ -123,10 +136,23 @@ while IFS= read -r f; do
   esac
 done < <(cd "$ROOT" && find . -type f)
 
-# 4. Manifestkrav for AMO
+# 4. Manifestkrav for AMO, eller for Chrome med --chrome. Chrome varsler om
+# nøkler bare Firefox kjenner, så de skal være borte der.
 manifest_krav() { if [ "$MANIFEST_KRAV_ER_FEIL" = 1 ]; then feil "$@"; else advar "$@"; fi; }
 if [ ! -f "$ROOT/manifest.json" ]; then
   feil "manifest.json mangler i pakken"
+elif [ "$CHROME" = 1 ]; then
+  for nokkel in browser_specific_settings theme_icons scripts; do
+    if grep -q "\"$nokkel\" *:" "$ROOT/manifest.json"; then
+      feil "manifest.json: $nokkel hører ikke hjemme i Chrome-pakken"
+    fi
+  done
+  min="$(grep -oE '"minimum_chrome_version" *: *"[0-9]+' "$ROOT/manifest.json" | grep -oE '[0-9]+$' || true)"
+  if [ -z "$min" ]; then
+    feil "manifest.json: minimum_chrome_version mangler (må være minst $MIN_CHROME_VERSJON)"
+  elif [ "$min" -lt "$MIN_CHROME_VERSJON" ]; then
+    feil "manifest.json: minimum_chrome_version er $min, må være minst $MIN_CHROME_VERSJON"
+  fi
 else
   grep -q '"data_collection_permissions"' "$ROOT/manifest.json" ||
     manifest_krav "manifest.json: browser_specific_settings.gecko.data_collection_permissions mangler"
