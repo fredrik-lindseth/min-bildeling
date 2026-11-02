@@ -77,7 +77,7 @@ import { stateForSyncError } from "../lib/auth-state.js";
 import { showAuthBanner } from "../lib/auth-banner.js";
 
 import { totalCO2, monthlyCO2, averageCarComparison, CO2_METHOD } from "../lib/co2.js";
-import { createBackup, parseBackup, describeImport } from "../lib/backup.js";
+import { createBackup, parseBackup, describeImport, importPart } from "../lib/backup.js";
 import { importBackup, BACKUP_STORAGE_KEYS } from "../lib/backup-import.js";
 
 import {
@@ -1125,11 +1125,13 @@ function setLedger(prefix, carName, ownershipCost, sharingCost, savings) {
 // Alt kategoriene trenger, lest ferskt fra lageret. Hver handling i
 // redigeringen leser på nytt, så den aldri bygger på en gammel tegning.
 async function loadCategoryState() {
-  const settings = await loadCategorySettings(storage);
+  const userKeywords = await loadUserKeywords(storage);
+  // Lager fra før rettingen kan ha et ord som både eget og fjernet.
+  const settings = normalizeCategorySettings(await loadCategorySettings(storage), userKeywords);
   return {
     settings,
     categories: resolveCategories(settings),
-    userKeywords: await loadUserKeywords(storage),
+    userKeywords,
     tripCategories: await loadCategories(storage),
   };
 }
@@ -1137,9 +1139,8 @@ async function loadCategoryState() {
 // Innstillingene skrives i samme storage.set som ordene og valgene, så
 // lageret aldri har ord eller valg for en kategori som ikke finnes.
 async function saveCategoryState({ settings, userKeywords, tripCategories }) {
-  const categorySettings = normalizeCategorySettings(settings);
-  const items = { categorySettings };
-  if (userKeywords) items.userKeywords = normalizeUserKeywords(userKeywords, resolveCategories(categorySettings));
+  const items = { categorySettings: normalizeCategorySettings(settings, userKeywords) };
+  if (userKeywords) items.userKeywords = normalizeUserKeywords(userKeywords, resolveCategories(items.categorySettings));
   if (tripCategories) items.tripCategories = tripCategories;
   await storage.set(items);
 }
@@ -1365,8 +1366,9 @@ function downloadJson(data, filename) {
 
 // Begge importknappene går gjennom sikkerhetskopiens lesing og fletting, så
 // egne kategorier i filen kommer med, og ingenting lagret blir skrevet over.
-// Turer og transporttall i filen hører til «Sikkerhetskopi» og hoppes over her.
-async function importCategoryFile(file, setStatus) {
+// Hver knapp tar bare sin del av filen (importPart), også fra en full
+// sikkerhetskopi.
+async function importCategoryFile(file, part, setStatus) {
   let parsed;
   try {
     parsed = JSON.parse(await file.text());
@@ -1375,14 +1377,8 @@ async function importCategoryFile(file, setStatus) {
     return;
   }
   const result = parseBackup(parsed);
-  const backup = result.backup && { ...result.backup, transportData: {}, reservations: null, lastSync: null };
-  const empty = !backup || (
-    Object.keys(backup.tripCategories).length === 0 &&
-    Object.keys(backup.userKeywords).length === 0 &&
-    Object.keys(backup.categorySettings.custom).length === 0 &&
-    Object.keys(backup.categorySettings.removed).length === 0
-  );
-  if (empty) {
+  const backup = result.backup ? importPart(result.backup, part) : null;
+  if (!backup) {
     setStatus("Fant ingenting å importere i filen.", { error: true });
     return;
   }
@@ -1409,12 +1405,16 @@ function initCategoryFiles() {
     const { settings, userKeywords } = await loadCategoryState();
     downloadJson({ userKeywords, categorySettings: settings }, "bildeleringen-nokkelord.json");
   });
-  for (const [id, setStatus] of [["trip-import", setTripStatus], ["keyword-import", setKeywordStatus]]) {
+  const buttons = [
+    ["trip-import", "categories", setTripStatus],
+    ["keyword-import", "keywords", setKeywordStatus],
+  ];
+  for (const [id, part, setStatus] of buttons) {
     $(id).addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       // Tøm, så samme fil kan velges igjen.
       e.target.value = "";
-      if (file) await importCategoryFile(file, setStatus);
+      if (file) await importCategoryFile(file, part, setStatus);
     });
   }
 }

@@ -10,6 +10,7 @@ import {
   describeImport,
   normalizeTransportData,
   isStoredReservation,
+  importPart,
 } from "../lib/backup.js";
 
 function trip(id, extra = {}) {
@@ -382,9 +383,9 @@ test("mergeBackup legger til egne kategorier og slår sammen fjernede ord", () =
     "egen-katt": { label: "Katt" },
   });
   assert.deepEqual(next.categorySettings.removed, { hoytid: ["påske", "jul"] });
-  // Lagret rekkefølge står, og det som mangler fylles inn.
-  assert.deepEqual(next.categorySettings.order.slice(0, 2), ["egen-hund", "helse"]);
-  assert.equal(next.categorySettings.order.at(-1), "egen-katt");
+  // Lagret rekkefølge står, og den nye egne kategorien går først, som når
+  // den lages her.
+  assert.deepEqual(next.categorySettings.order.slice(0, 3), ["egen-katt", "egen-hund", "helse"]);
   assert.equal(next.categorySettings.order.length, 12);
   assert.deepEqual(next.tripCategories, { a: "egen-katt" });
   assert.deepEqual(next.userKeywords, { "egen-hund": ["hund"], "egen-katt": ["katt"] });
@@ -418,6 +419,69 @@ test("mergeBackup med overwrite tar navn, fjernede ord og rekkefølge fra filen"
   const kept = mergeBackup({}, file).next.categorySettings;
   assert.equal(kept.order[0], "helse");
   assert.equal(mergeBackup({}, incoming({})).next.categorySettings.order, null);
+});
+
+test("mergeBackup setter en importert egen kategori først, også med overwrite", () => {
+  const current = { categorySettings: { custom: {}, removed: {}, order: ["helse", "jobb"] } };
+  const file = incoming({ categorySettings: { custom: { "egen-katt": { label: "Katt" } }, removed: {}, order: null } });
+  assert.equal(mergeBackup(current, file).next.categorySettings.order[0], "egen-katt");
+  assert.equal(mergeBackup(current, file, { overwrite: true }).next.categorySettings.order[0], "egen-katt");
+  // En egen kategori som alt finnes her, blir stående der brukeren har den.
+  const known = {
+    categorySettings: { custom: { "egen-katt": { label: "Katt" } }, removed: {}, order: ["helse", "egen-katt"] },
+  };
+  assert.equal(mergeBackup(known, file).next.categorySettings.order[0], "helse");
+});
+
+test("mergeBackup lar ikke et eget ord også stå som fjernet", () => {
+  const current = { userKeywords: { hoytid: ["jul"] } };
+  const file = incoming({ categorySettings: { custom: {}, removed: { hoytid: ["jul", "påske"] }, order: null } });
+  const { next, counts } = mergeBackup(current, file);
+  assert.deepEqual(next.userKeywords, { hoytid: ["jul"] });
+  assert.deepEqual(next.categorySettings.removed, { hoytid: ["påske"] });
+  assert.equal(counts.keywordsRemoved, 1);
+
+  // Motsatt vei: ordet kommer som eget ord fra filen og var fjernet her.
+  const removedHere = { categorySettings: { custom: {}, removed: { hoytid: ["jul"] }, order: null } };
+  const back = mergeBackup(removedHere, incoming({ userKeywords: { hoytid: ["jul"] } })).next;
+  assert.deepEqual(back.categorySettings.removed, {});
+});
+
+test("importPart tar bare kategorivalg og egne kategorier valgene bruker", () => {
+  const { backup } = parseBackup({
+    format: BACKUP_FORMAT,
+    version: 2,
+    tripCategories: { a: "egen-katt", b: "jobb" },
+    userKeywords: { "egen-katt": ["katt"], jobb: ["kontor"] },
+    categorySettings: {
+      custom: { "egen-katt": { label: "Katt" }, "egen-hund": { label: "Hund" } },
+      removed: { hoytid: ["jul"] },
+      order: ["egen-hund", "egen-katt"],
+    },
+    transportData: { 2025: { taxi: { trips: 2 } } },
+  });
+  const part = importPart(backup, "categories");
+  assert.deepEqual(part.tripCategories, { a: "egen-katt", b: "jobb" });
+  assert.deepEqual(part.userKeywords, {});
+  assert.deepEqual(part.transportData, {});
+  assert.equal(part.reservations, null);
+  assert.deepEqual(part.categorySettings, { custom: { "egen-katt": { label: "Katt" } }, removed: {}, order: null });
+});
+
+test("importPart for nøkkelord tar ord og innstillinger, ikke valg", () => {
+  const { backup } = parseBackup({
+    tripCategories: { a: "egen-katt" },
+    userKeywords: { "egen-katt": ["katt"] },
+    categorySettings: KATT,
+  });
+  const part = importPart(backup, "keywords");
+  assert.deepEqual(part.tripCategories, {});
+  assert.deepEqual(part.userKeywords, { "egen-katt": ["katt"] });
+  assert.deepEqual(part.categorySettings, KATT);
+
+  // En fil med bare valg har ingenting for nøkkelordknappen, og omvendt.
+  assert.equal(importPart(parseBackup({ tripCategories: { a: "jobb" } }).backup, "keywords"), null);
+  assert.equal(importPart(parseBackup({ userKeywords: { jobb: ["x"] } }).backup, "categories"), null);
 });
 
 test("describeImport teller egne kategorier", () => {

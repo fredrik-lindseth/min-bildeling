@@ -127,9 +127,11 @@ function cleanWords(list) {
  * Clean up categorySettings from storage or a file.
  * Returns { custom: { key: { label } }, removed: { key: [word] }, order }.
  * custom keeps only egen- keys with a label, removed only standard keys
- * (legacy keys are moved), order only known keys or null. Pure function.
+ * (legacy keys are moved), order only known keys or null. With
+ * `userKeywords`, a word the user has as an own word in a category is not
+ * also kept as removed there. Pure function.
  */
-export function normalizeCategorySettings(raw) {
+export function normalizeCategorySettings(raw, userKeywords = null) {
   const settings = { custom: {}, removed: {}, order: null };
   if (!isPlainObject(raw)) return settings;
 
@@ -144,7 +146,10 @@ export function normalizeCategorySettings(raw) {
     for (const [rawKey, words] of Object.entries(raw.removed)) {
       const key = legacyTarget(rawKey);
       if (!Object.hasOwn(DEFAULT_CATEGORIES, key) || !Array.isArray(words)) continue;
-      const list = cleanWords([...(settings.removed[key] ?? []), ...words]);
+      // Et ord som både er eget og fjernet, ville stått to ganger i
+      // redigeringen. Det matcher som eget ord, så det er det som gjelder.
+      const own = isPlainObject(userKeywords) && Array.isArray(userKeywords[key]) ? userKeywords[key] : [];
+      const list = cleanWords([...(settings.removed[key] ?? []), ...words]).filter((w) => !own.includes(w));
       if (list.length > 0) settings.removed[key] = list;
     }
   }

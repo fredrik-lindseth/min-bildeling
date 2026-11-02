@@ -265,7 +265,13 @@ export function mergeBackup(current, incoming, { overwrite = false } = {}) {
     if (changed) counts.transportYears++;
   }
 
-  const next = { tripCategories, userKeywords, transportData, categorySettings };
+  const next = {
+    tripCategories,
+    userKeywords,
+    transportData,
+    categorySettings: normalizeCategorySettings(categorySettings, userKeywords),
+  };
+  counts.keywordsRemoved = countNewRemoved(current.categorySettings, next.categorySettings);
 
   if (incoming.reservations) {
     const stored = Array.isArray(current.reservations) ? current.reservations : [];
@@ -308,13 +314,63 @@ function mergeSettings(currentRaw, incomingRaw, overwrite, counts) {
   for (const [key, words] of Object.entries(incoming.removed)) {
     const existing = removed[key] ?? [];
     const fresh = words.filter((w) => !existing.includes(w));
-    counts.keywordsRemoved += fresh.length;
     removed[key] = overwrite ? [...words] : [...existing, ...fresh];
   }
 
-  const order = overwrite ? (incoming.order ?? current.order) : (current.order ?? incoming.order);
+  const chosen = overwrite ? (incoming.order ?? current.order) : (current.order ?? incoming.order);
+  // En ny egen kategori havner først, som når den lages her, så den vinner
+  // til brukeren flytter den. Uten lagret rekkefølge gjør
+  // resolveCategoryOrder() det selv.
+  const added = Object.keys(incoming.custom).filter((key) => !current.custom[key]);
+  const order = chosen ? [...added.filter((key) => !chosen.includes(key)), ...chosen] : null;
   const merged = { custom, removed, order };
   return { ...merged, order: order ? resolveCategoryOrder(merged) : null };
+}
+
+// Fjernede standardord som er nye etter importen. Telles etter at ord som
+// også er egne ord, er tatt ut, så meldingen ikke melder dem.
+function countNewRemoved(currentRaw, merged) {
+  const before = normalizeCategorySettings(currentRaw).removed;
+  let n = 0;
+  for (const [key, words] of Object.entries(merged.removed)) {
+    n += words.filter((w) => !(before[key] ?? []).includes(w)).length;
+  }
+  return n;
+}
+
+/**
+ * Den delen av en lest fil som én av importknappene i «Nøkkelord og
+ * kategorier» tar med. part er "categories" eller "keywords".
+ *
+ * «Importer kategorier» tar kategorivalgene og bare de egne kategoriene
+ * valgene peker på, så en full sikkerhetskopi ikke drar med seg ord.
+ * «Importer nøkkelord» tar ordene og hele categorySettings, men ingen valg.
+ * Turer og transporttall hører til «Sikkerhetskopi» og er aldri med.
+ * Returns en backup for mergeBackup(), eller null når delen er tom.
+ */
+export function importPart(backup, part) {
+  const settings = normalizeCategorySettings(backup.categorySettings);
+  const base = { tripCategories: {}, transportData: {}, userKeywords: {}, reservations: null, lastSync: null };
+  let picked;
+  if (part === "categories") {
+    const used = new Set(Object.values(backup.tripCategories));
+    const custom = Object.fromEntries(Object.entries(settings.custom).filter(([key]) => used.has(key)));
+    picked = {
+      ...base,
+      tripCategories: { ...backup.tripCategories },
+      categorySettings: { custom, removed: {}, order: null },
+    };
+  } else if (part === "keywords") {
+    picked = { ...base, userKeywords: { ...backup.userKeywords }, categorySettings: settings };
+  } else {
+    throw new Error(`Unknown import part: ${part}`);
+  }
+  const empty =
+    Object.keys(picked.tripCategories).length === 0 &&
+    Object.keys(picked.userKeywords).length === 0 &&
+    Object.keys(picked.categorySettings.custom).length === 0 &&
+    Object.keys(picked.categorySettings.removed).length === 0;
+  return empty ? null : picked;
 }
 
 function hasSettings(settings) {

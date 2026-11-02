@@ -358,6 +358,13 @@ test("loadCategories leser gamle nøkler som målet", async () => {
 
 // ---------- Innstillinger og egne kategorier ----------
 
+test("normalizeCategorySettings tar ut fjernede ord brukeren har som egne ord", () => {
+  const raw = { removed: { hoytid: ["jul", "påske"], helse: ["lege"] } };
+  assert.deepEqual(normalizeCategorySettings(raw, { hoytid: ["jul"], helse: ["lege"] }).removed, { hoytid: ["påske"] });
+  // Et eget ord i en annen kategori gjelder ikke.
+  assert.deepEqual(normalizeCategorySettings(raw, { jobb: ["jul"] }).removed, raw.removed);
+});
+
 test("normalizeCategorySettings rydder søppel", () => {
   const empty = { custom: {}, removed: {}, order: null };
   assert.deepEqual(normalizeCategorySettings(null), empty);

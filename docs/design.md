@@ -83,7 +83,7 @@ Tabeller («Per år» i Trender) har 1 px linjer mellom radene, kolonneoverskrif
 
 Skjemafelt har surface, 1 px border-strong og høyrejustert tekst i tallfelt. «Lagret» (`role="status"`) forsvinner når et felt endres, aldri på tid.
 
-Ordlisten i «Nøkkelord og kategorier» har hver kategori som en `<details>` med nummeret i tertiary foran navnet, i den rekkefølgen kategoriene prøves. Ordene står i et rutenett med kolonner på minst 220 px, én kolonne under 480 px, med treff og tagger («egen», «helt ord», «også sist i ord») i tertiary 12 px. «Fjern» er en stille knapp. Fjernede standardord står sist, gjennomstreket i tertiary med «Ta tilbake». Sletting og tilbakestilling bekreftes i dialogen.
+Ordlisten i «Nøkkelord og kategorier» har hver kategori som en `<details>` med nummeret i tertiary foran navnet, i den rekkefølgen kategoriene prøves. Ordene står i et rutenett med flere kolonner når det er plass og én kolonne på smale skjermer (målene står i `dashboard.css`), med treff og tagger («egen», «helt ord», «også sist i ord») i tertiary 12 px. «Fjern» er en stille knapp. Fjernede standardord står sist, gjennomstreket i tertiary med «Ta tilbake». Sletting og tilbakestilling bekreftes i dialogen.
 
 ### `[hidden]` og display
 
