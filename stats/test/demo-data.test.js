@@ -6,12 +6,23 @@ import {
   DEMO_SEED,
   DEMO_TRIP_TYPES,
   DEMO_EXTREME_NOTES,
+  DEMO_CUSTOM_CATEGORY,
+  demoUserData,
   generateDemoReservations,
   createDemoSession,
   createDemoStorage,
   isDemoMode,
 } from "../lib/demo-data.js";
-import { DEFAULT_KEYWORDS, suggestCategory, loadCategories, saveCategory } from "../lib/categories.js";
+import {
+  DEFAULT_KEYWORDS,
+  mergeKeywords,
+  suggestCategory,
+  loadCategories,
+  saveCategory,
+  loadCategorySettings,
+  loadUserKeywords,
+  resolveCategories,
+} from "../lib/categories.js";
 import {
   filterValid,
   filterDriven,
@@ -69,17 +80,29 @@ test("har noTrips, avbestilte og stasjoner i både Bergen og Trondheim", () => {
   assert.ok(r.some((x) => x.organizationName === "Trondheim Bilkollektiv"));
 });
 
-test("notatene treffer standard-nøkkelordene slik de er ment", () => {
+test("notatene treffer nøkkelordene i demolageret slik de er ment", () => {
+  const { userKeywords, categorySettings } = demoUserData([]);
+  const keywords = mergeKeywords(DEFAULT_KEYWORDS, userKeywords, categorySettings);
   for (const type of DEMO_TRIP_TYPES) {
     for (const notes of type.notes) {
       if (notes == null) continue;
       const expected = type.noteCategory?.[notes] ?? type.category;
-      assert.equal(suggestCategory({ notes }, DEFAULT_KEYWORDS), expected, notes);
+      assert.equal(suggestCategory({ notes }, keywords), expected, notes);
     }
   }
   for (const [notes, category] of Object.entries(DEMO_EXTREME_NOTES)) {
-    assert.equal(suggestCategory({ notes }, DEFAULT_KEYWORDS), category, notes);
+    assert.equal(suggestCategory({ notes }, keywords), category, notes);
   }
+});
+
+test("demolageret har den egne kategorien Hundepass øverst", async () => {
+  const session = createDemoSession({ now: NOW });
+  const settings = await loadCategorySettings(session.storage);
+  const categories = resolveCategories(settings);
+  assert.deepEqual(categories[DEMO_CUSTOM_CATEGORY], { label: "Hundepass", custom: true });
+  assert.equal(Object.keys(categories)[0], DEMO_CUSTOM_CATEGORY);
+  assert.deepEqual(await loadUserKeywords(session.storage), { [DEMO_CUSTOM_CATEGORY]: ["hund"] });
+  assert.ok(session.reservations.some((r) => r.notes === "Hente hunden"));
 });
 
 test("alle seksjoner har innhold og ytterpunktene synes", () => {

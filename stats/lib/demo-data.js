@@ -39,8 +39,12 @@ const CARS = [
 
 const FUEL_KEYS = { Bensin: "GASOLINE", Diesel: "DIESEL", Elektrisitet: "ELECTRIC" };
 
-// Turtyper med notater. `category` er den kategorien standard-nøkkelordene
-// skal gi notatet (sjekkes i testen). null betyr at notatet med vilje ikke
+// En egen kategori i demolageret, så redigeringen av kategorier har noe å vise.
+export const DEMO_CUSTOM_CATEGORY = "egen-hundepass";
+
+// Turtyper med notater. `category` er den kategorien nøkkelordene i
+// demolageret skal gi notatet (sjekkes i testen), med den egne kategorien
+// Hundepass fra demoUserData() øverst. null betyr at notatet med vilje ikke
 // treffer, så forslagslisten og treffprosenten blir realistiske.
 // `noteCategory` overstyrer for enkeltnotater, så turtypene og dermed
 // tilfeldighetene i demodataene kan stå uendret. `tag` skiller turtyper som
@@ -86,6 +90,10 @@ export const DEMO_TRIP_TYPES = [
     weight: 14, km: [5, 70], hours: [1, 5], category: null,
     notes: ["Diverse ærender", "Litt av hvert", "Ærend i byen", null, null, null],
     noteCategory: { "Diverse ærender": "aerend", "Ærend i byen": "aerend" },
+  },
+  {
+    weight: 2, km: [5, 30], hours: [1, 3], category: DEMO_CUSTOM_CATEGORY,
+    notes: ["Hundepass hos naboen", "Hente hunden"],
   },
 ];
 
@@ -393,9 +401,9 @@ export function generateDemoReservations({ seed = DEMO_SEED, now = new Date() } 
 }
 
 /**
- * Brukerdata som ellers kommer fra skjemaene: noen kategorier satt for hånd
- * og transportdata for hvert år, så Transport-seksjonen har noe å
- * sammenligne med.
+ * Brukerdata som ellers kommer fra skjemaene: noen kategorier satt for hånd,
+ * transportdata for hvert år, så Transport-seksjonen har noe å sammenligne
+ * med, og den egne kategorien Hundepass med ordet «hund».
  */
 export function demoUserData(reservations) {
   const tripCategories = {};
@@ -418,7 +426,10 @@ export function demoUserData(reservations) {
     };
   });
 
-  return { tripCategories, transportData };
+  const categorySettings = { custom: { [DEMO_CUSTOM_CATEGORY]: { label: "Hundepass" } }, removed: {}, order: null };
+  const userKeywords = { [DEMO_CUSTOM_CATEGORY]: ["hund"] };
+
+  return { tripCategories, transportData, categorySettings, userKeywords };
 }
 
 /**
