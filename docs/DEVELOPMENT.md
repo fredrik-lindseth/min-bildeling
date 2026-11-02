@@ -12,6 +12,8 @@ Fra repo-roten:
 
 Zip-ene havner i `stats/dist/`: `min-bildeling-v<versjon>.zip` for Firefox og `min-bildeling-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten begge zip-ene for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
 
+Til slutt kjører `valider.sh`. Firefox-zip-en går gjennom Mozillas `addons-linter` (10.15.0, via `npx`), som er de samme reglene AMO bruker: feil stopper, og advarsler stopper med mindre de står med begrunnelse i lista `TILLATT` i scriptet. Chrome har ingen offentlig validator, så `sjekk-chrome.mjs` laster `stats/dist/chrome/` i hodeløs Chrome med en kasteprofil uten nett og feiler på manifestfeil, installasjonsadvarsler og feil fra service workeren. Krever Google Chrome og nett første gang `npx` henter linteren. `--uten-validering` hopper over steget, og `./stats/scripts/valider.sh` kjører det alene.
+
 ### 2. Last inn i Firefox
 
 ```text
@@ -63,6 +65,7 @@ Bildene havner i `skjermbilder/`, og butikksettet på 1280x800 i `skjermbilder/b
 - **Utviklerpanelet:** `?dev=1` på dashbordet i tillegget viser storage, de siste synkene og eksport, import og «Nullstill alt». Av i demomodus.
 - **Firefox via MCP:** `firefox-devtools`-MCP-en kjører en egen Firefox med profilen `~/.firefox-devtools-mcp-profile`. Installer på nytt med `install_extension` bare når `background.js` eller `manifest.json` er endret, ellers last fanen på nytt.
 - **MCP-fallgruver:** Hoper serverne seg opp (`pgrep -fl firefox-devtools-mcp`), kjør `pkill -f firefox-devtools-mcp`. MCP-en kan ikke åpne `moz-extension://` eller `about:debugging`, så bruk demomodus over http. WebDriver svarer `false` på `confirm()` uten å vise noe, derfor `<dialog>`.
+- **Chrome via MCP:** `chrome-devtools-mcp` 1.12.0 er satt opp lokalt med `--categoryExtensions=true`, som gir `install_extension`, `reload_extension` og `list_extensions`. Installer `stats/dist/chrome/`, ikke `stats/`.
 - **Ny UUID:** `install_extension` kan gi tillegget ny intern UUID. Den står i `webextensions.uuids` i `~/.firefox-devtools-mcp-profile/prefs.js`.
 - **Ikoner:** `./stats/scripts/render-icons.sh` rendrer PNG-ene fra SVG-kildene (krever `rsvg-convert`). `render-promo.sh` rendrer promobildet til Chrome Web Store.
 - **Byggevakten alene:** `./stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.

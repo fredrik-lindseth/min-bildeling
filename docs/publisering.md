@@ -16,6 +16,8 @@ Det gir `stats/dist/min-bildeling-v<versjon>.zip` til Firefox og `-chrome-v<vers
 
 Byggevakten `sjekk-pakke.sh` går over begge zip-ene og sletter dem ved funn. Den ser etter persondata, rot fra utviklingen, endrede vendor-filer og manglende manifestkrav, og melder fil og linje uten innholdet. Navn, adresser og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Ny vendor-versjon krever ny `stats/scripts/vendor.sha256`.
 
+Etter vakten validerer `valider.sh` pakkene: `addons-linter` 10.15.0 på Firefox-zip-en og en lasting i hodeløs Chrome for Chrome-utgaven. Eneste godtatte advarsel er `innerHTML` i `vendor/html2canvas.min.js`. Ny advarsel rettes i koden, eller føres i `TILLATT` i `valider.sh` med en grunn som tåler at revieweren leser den. Feiler valideringen, blir pakkene liggende til undersøkelse, men `package.sh` feiler, og da stopper også `release.sh`. `--uten-validering` er for bygg uten nett, ikke for innsending.
+
 ## AMO
 
 Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/) og legg dem i `~/.config/bildeleringen/amo.env` (chmod 600) som `AMO_JWT_ISSUER=...` og `AMO_JWT_SECRET=...`.

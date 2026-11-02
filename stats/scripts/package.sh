@@ -2,9 +2,17 @@
 # Bygger zip-ene til Min bildeling: én for Firefox (AMO) og én for
 # Chrome Web Store. Chrome-pakken er de samme filene med et manifest uten
 # Firefox-nøklene, laget av scripts/chrome-manifest.mjs.
-# Bruk: ./scripts/package.sh
+# Til slutt validerer scripts/valider.sh pakkene med addons-linter og
+# hodeløs Chrome. --uten-validering hopper over det, for eksempel uten nett,
+# siden npx må hente addons-linter første gang.
+# Bruk: ./scripts/package.sh [--uten-validering]
 
 set -e
+
+VALIDER=1
+if [ "${1:-}" = "--uten-validering" ]; then
+  VALIDER=0
+fi
 
 # Kjør alltid fra stats/-rota (skriptet ligger i stats/scripts/)
 cd "$(dirname "$0")/.."
@@ -81,6 +89,15 @@ if ! ./scripts/sjekk-pakke.sh --chrome "$OUTDIR/$CHROME_ZIPNAME"; then
   echo "" >&2
   echo "Pakkene er slettet. Rett funnene over og pakk på nytt." >&2
   exit 1
+fi
+
+# Pakkene blir liggende ved feil her, så funnene kan undersøkes og
+# valider.sh kjøres alene. release.sh stopper likevel, siden scriptet feiler.
+echo ""
+if [ "$VALIDER" -eq 1 ]; then
+  ./scripts/valider.sh
+else
+  echo "Validering hoppet over (--uten-validering). Kjør ./stats/scripts/valider.sh før innsending."
 fi
 
 echo ""
