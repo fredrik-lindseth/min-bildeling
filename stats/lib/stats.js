@@ -1,3 +1,5 @@
+import { formatNOK } from "./formatters.js";
+
 // Helper to extract price from reservation
 function getPrice(r) {
   return r.price?.total ?? null;
@@ -81,6 +83,124 @@ export function costYears(reservations) {
 export function keepSelectedYear(selected, years) {
   if (selected === "all") return "all";
   return years.includes(Number(selected)) ? String(selected) : "all";
+}
+
+// Én rad per år til «Per år»-tabellen. Kostnad og turer teller alt brukeren
+// betalte for, mens km bare finnes på turer som faktisk ble kjørt.
+export function yearSummaries(reservations) {
+  const byYear = new Map();
+  const row = (year) => {
+    if (!byYear.has(year)) byYear.set(year, { year, trips: 0, km: 0, total: 0 });
+    return byYear.get(year);
+  };
+
+  for (const r of filterValid(reservations)) {
+    const entry = row(new Date(r.start).getFullYear());
+    entry.trips++;
+    entry.total += getPrice(r);
+  }
+  for (const r of filterDriven(reservations)) {
+    if (r.drivenKm == null || r.drivenKm <= 0) continue;
+    row(new Date(r.start).getFullYear()).km += r.drivenKm;
+  }
+
+  return [...byYear.values()]
+    .sort((a, b) => a.year - b.year)
+    .map((y) => ({
+      ...y,
+      avgPerTrip: y.total / y.trips,
+      perKm: y.km === 0 ? null : y.total / y.km,
+    }));
+}
+
+// Framtidige bookinger står utenfor, ellers blir «hittil» en prognose. Fjorårets
+// vindu slutter på samme klokkeslett ett år tilbake, så sammenligningen er rettferdig
+// også midt på dagen.
+export function yearToDate(reservations, now = new Date()) {
+  const year = now.getFullYear();
+  const lastYearEnd = new Date(now);
+  // 29. februar blir 1. mars året før, som er nærmeste dag som finnes.
+  lastYearEnd.setFullYear(year - 1);
+
+  const sumBetween = (from, to) => {
+    const inWindow = filterValid(reservations).filter((r) => {
+      const d = new Date(r.start);
+      return d >= from && d <= to;
+    });
+    return {
+      total: inWindow.reduce((sum, r) => sum + getPrice(r), 0),
+      trips: inWindow.length,
+    };
+  };
+
+  const current = sumBetween(new Date(year, 0, 1), now);
+  const last = sumBetween(new Date(year - 1, 0, 1), lastYearEnd);
+  if (current.trips === 0 && last.trips === 0) return null;
+
+  return {
+    year,
+    total: current.total,
+    trips: current.trips,
+    lastYearTotal: last.total,
+    lastYearTrips: last.trips,
+    change: last.total === 0 ? null : (current.total - last.total) / last.total,
+  };
+}
+
+export function describeYearToDate(ytd) {
+  if (ytd.lastYearTrips === 0) return "Ingen turer samme tid i fjor";
+  if (ytd.trips === 0) {
+    return `Ingen turer ennå i år. Samme tid i fjor: ${formatNOK.format(ytd.lastYearTotal)}.`;
+  }
+  // Fjoråret hadde turer, men alle til 0 kr: ingen prosent å regne.
+  if (ytd.change == null) return "Ingen turer samme tid i fjor";
+  const pct = Math.round(ytd.change * 100);
+  if (pct > 0) return `${pct} % mer enn samme tid i fjor`;
+  if (pct < 0) return `${-pct} % mindre enn samme tid i fjor`;
+  return "Som samme tid i fjor";
+}
+
+const YEAR_MS = 365.25 * 24 * 3600000;
+
+// Faktisk sum delt på faktisk tid siden første tur. Under ett år blir snittet
+// en gjetning, så da gir vi ingenting.
+export function averagePerYear(reservations, now = new Date()) {
+  const valid = filterValid(reservations).filter((r) => new Date(r.start) <= now);
+  if (valid.length === 0) return null;
+
+  const since = valid.reduce((first, r) =>
+    new Date(r.start) < new Date(first.start) ? r : first
+  ).start;
+  const years = (now - new Date(since)) / YEAR_MS;
+  if (years < 1) return null;
+
+  const total = valid.reduce((sum, r) => sum + getPrice(r), 0);
+  return { perYear: total / years, since, years };
+}
+
+// Ved likt vinner det tidligste året.
+export function mostExpensiveYear(summaries) {
+  let top = null;
+  for (const { year, total } of summaries) {
+    if (top == null || total > top.total || (total === top.total && year < top.year)) {
+      top = { year, total };
+    }
+  }
+  return top;
+}
+
+// Kr/km mangler for år uten registrerte km. De havner sist uansett retning,
+// så tabellen aldri åpner med en rad tomme celler.
+export function sortYearSummaries(summaries, key, direction = "asc") {
+  const sign = direction === "desc" ? -1 : 1;
+  return [...summaries].sort((a, b) => {
+    const av = a[key];
+    const bv = b[key];
+    if (av == null && bv != null) return 1;
+    if (bv == null && av != null) return -1;
+    if (av != null && bv != null && av !== bv) return (av - bv) * sign;
+    return a.year - b.year;
+  });
 }
 
 export function usagePatterns(reservations) {

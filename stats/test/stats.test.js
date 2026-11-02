@@ -1,7 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { bookingPatterns, costYears, keepSelectedYear } from "../lib/stats.js";
+import {
+  averagePerYear,
+  bookingPatterns,
+  costYears,
+  describeYearToDate,
+  keepSelectedYear,
+  mostExpensiveYear,
+  sortYearSummaries,
+  yearSummaries,
+  yearToDate,
+} from "../lib/stats.js";
 
 function trip(start, extra = {}) {
   return { start, canceled: null, noTrips: false, price: { total: 100 }, ...extra };
@@ -140,4 +150,188 @@ test("snitt, median og fordeling klamper fortsatt til 0", () => {
   assert.equal(avgDays, 96 / 3 / 24);
   assert.equal(medianDays, 1);
   assert.deepEqual(distribution.map((b) => b.count), [1, 1, 1, 0, 0, 0, 0]);
+});
+
+// Lokal tid, som resten av årsinndelingen.
+function at(y, m, d, h = 12, min = 0) {
+  return new Date(y, m, d, h, min).toISOString();
+}
+
+function paid(start, total, extra = {}) {
+  return trip(start, { price: { total }, ...extra });
+}
+
+test("yearSummaries grupperer per år med turer, km, kostnad og snitt", () => {
+  const rows = yearSummaries([
+    paid(at(2024, 2, 1), 300, { drivenKm: 30 }),
+    paid(at(2024, 5, 1), 100, { drivenKm: 10 }),
+    paid(at(2025, 0, 10), 200, { drivenKm: 50 }),
+  ]);
+  assert.deepEqual(rows, [
+    { year: 2024, trips: 2, km: 40, total: 400, avgPerTrip: 200, perKm: 10 },
+    { year: 2025, trips: 1, km: 50, total: 200, avgPerTrip: 200, perKm: 4 },
+  ]);
+});
+
+test("yearSummaries teller ikke avbestilte turer eller turer uten pris", () => {
+  const rows = yearSummaries([
+    paid(at(2024, 2, 1), 300),
+    paid(at(2024, 3, 1), 500, { canceled: at(2024, 2, 30) }),
+    trip(at(2024, 4, 1), { price: { total: null } }),
+  ]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].trips, 1);
+  assert.equal(rows[0].total, 300);
+});
+
+test("yearSummaries henter km bare fra kjørte turer med km over null", () => {
+  const rows = yearSummaries([
+    paid(at(2024, 2, 1), 300, { drivenKm: 20 }),
+    paid(at(2024, 3, 1), 100, { noTrips: true, drivenKm: 99 }),
+    paid(at(2024, 4, 1), 100, { drivenKm: 0 }),
+  ]);
+  assert.equal(rows[0].trips, 3);
+  assert.equal(rows[0].km, 20);
+  assert.equal(rows[0].total, 500);
+});
+
+test("yearSummaries gir kr/km null for år uten km", () => {
+  const [row] = yearSummaries([paid(at(2024, 2, 1), 300)]);
+  assert.equal(row.km, 0);
+  assert.equal(row.perKm, null);
+});
+
+test("yearSummaries gir tom liste uten gyldige turer", () => {
+  assert.deepEqual(yearSummaries([]), []);
+  assert.deepEqual(yearSummaries([trip(at(2024, 1, 1), { canceled: at(2024, 0, 1) })]), []);
+});
+
+const NOW = new Date(2026, 10, 2, 12);
+
+test("yearToDate tar med turer fram til nå og samme øyeblikk i fjor", () => {
+  const ytd = yearToDate(
+    [
+      paid(at(2026, 10, 2, 11), 100),
+      paid(at(2026, 10, 2, 13), 1000),
+      paid(at(2025, 10, 2, 11), 50),
+      paid(at(2025, 10, 2, 13), 1000),
+    ],
+    NOW
+  );
+  assert.equal(ytd.year, 2026);
+  assert.equal(ytd.total, 100);
+  assert.equal(ytd.trips, 1);
+  assert.equal(ytd.lastYearTotal, 50);
+  assert.equal(ytd.lastYearTrips, 1);
+  assert.equal(ytd.change, 1);
+});
+
+test("yearToDate starter 1. januar ved midnatt lokal tid", () => {
+  const ytd = yearToDate(
+    [
+      paid(at(2026, 0, 1, 0, 0), 200),
+      paid(at(2025, 11, 31, 23, 59), 1000),
+      paid(at(2025, 0, 1, 0, 0), 400),
+      paid(at(2024, 11, 31, 23, 59), 1000),
+    ],
+    NOW
+  );
+  assert.equal(ytd.total, 200);
+  assert.equal(ytd.lastYearTotal, 400);
+  assert.equal(ytd.change, -0.5);
+});
+
+test("yearToDate gir change null når fjoråret var tomt", () => {
+  const ytd = yearToDate([paid(at(2026, 4, 1), 200)], NOW);
+  assert.equal(ytd.lastYearTrips, 0);
+  assert.equal(ytd.change, null);
+});
+
+test("yearToDate gir null når begge vinduene er tomme", () => {
+  assert.equal(yearToDate([], NOW), null);
+  assert.equal(yearToDate([paid(at(2026, 11, 20), 200)], NOW), null);
+});
+
+test("yearToDate lar fjorgrensen for 29. februar bli 1. mars", () => {
+  const now = new Date(2028, 1, 29, 12);
+  const ytd = yearToDate(
+    [paid(at(2027, 2, 1, 11), 100), paid(at(2027, 2, 1, 13), 1000)],
+    now
+  );
+  assert.equal(ytd.lastYearTotal, 100);
+});
+
+test("describeYearToDate gir riktig tekst for hvert tilfelle", () => {
+  const base = { year: 2026, total: 100, trips: 1, lastYearTotal: 100, lastYearTrips: 1 };
+  assert.equal(describeYearToDate({ ...base, change: 0.25 }), "25 % mer enn samme tid i fjor");
+  assert.equal(describeYearToDate({ ...base, change: -0.4 }), "40 % mindre enn samme tid i fjor");
+  assert.equal(describeYearToDate({ ...base, change: 0 }), "Som samme tid i fjor");
+  assert.equal(describeYearToDate({ ...base, change: 0.004 }), "Som samme tid i fjor");
+  assert.equal(
+    describeYearToDate({ ...base, lastYearTotal: 0, lastYearTrips: 0, change: null }),
+    "Ingen turer samme tid i fjor"
+  );
+  const text = describeYearToDate({ ...base, total: 0, trips: 0, lastYearTotal: 1500, change: -1 });
+  assert.match(text, /^Ingen turer ennå i år\. Samme tid i fjor: 1\s500\skr\.$/);
+});
+
+test("averagePerYear deler summen på tiden siden første tur", () => {
+  const now = new Date(2026, 0, 1, 12);
+  const since = new Date(now.getTime() - 2 * 365.25 * 24 * 3600000).toISOString();
+  const avg = averagePerYear([paid(since, 10000), paid(at(2025, 5, 1), 10000)], now);
+  assert.equal(avg.since, since);
+  assert.ok(Math.abs(avg.years - 2) < 1e-9);
+  assert.ok(Math.abs(avg.perYear - 10000) < 1e-6);
+});
+
+test("averagePerYear regner fra første gyldige tur, ikke en avbestilt", () => {
+  const now = new Date(2026, 0, 1, 12);
+  const first = at(2024, 0, 1);
+  const avg = averagePerYear(
+    [paid(at(2020, 0, 1), 500, { canceled: at(2019, 11, 1) }), paid(first, 100)],
+    now
+  );
+  assert.equal(avg.since, first);
+});
+
+test("averagePerYear gir null under ett år og uten turer", () => {
+  const now = new Date(2026, 0, 1, 12);
+  assert.equal(averagePerYear([paid(at(2025, 6, 1), 100)], now), null);
+  assert.equal(averagePerYear([], now), null);
+});
+
+test("mostExpensiveYear velger høyeste sum og tidligste år ved likt", () => {
+  assert.deepEqual(
+    mostExpensiveYear([
+      { year: 2022, total: 500 },
+      { year: 2023, total: 900 },
+      { year: 2024, total: 900 },
+    ]),
+    { year: 2023, total: 900 }
+  );
+  assert.equal(mostExpensiveYear([]), null);
+});
+
+test("sortYearSummaries sorterer på valgt kolonne og lar input være", () => {
+  const rows = [
+    { year: 2022, total: 300, perKm: 3 },
+    { year: 2023, total: 100, perKm: null },
+    { year: 2024, total: 300, perKm: 2 },
+  ];
+  const copy = structuredClone(rows);
+  assert.deepEqual(sortYearSummaries(rows, "year").map((r) => r.year), [2022, 2023, 2024]);
+  assert.deepEqual(sortYearSummaries(rows, "year", "desc").map((r) => r.year), [2024, 2023, 2022]);
+  assert.deepEqual(sortYearSummaries(rows, "total", "desc").map((r) => r.year), [2022, 2024, 2023]);
+  assert.deepEqual(sortYearSummaries(rows, "total", "asc").map((r) => r.year), [2023, 2022, 2024]);
+  assert.deepEqual(rows, copy);
+});
+
+test("sortYearSummaries legger manglende kr/km sist i begge retninger", () => {
+  const rows = [
+    { year: 2022, perKm: 3 },
+    { year: 2023, perKm: null },
+    { year: 2024, perKm: 2 },
+  ];
+  assert.deepEqual(sortYearSummaries(rows, "perKm", "asc").map((r) => r.year), [2024, 2022, 2023]);
+  assert.deepEqual(sortYearSummaries(rows, "perKm", "desc").map((r) => r.year), [2022, 2024, 2023]);
 });
