@@ -22,7 +22,7 @@ Trykk «Last inn midlertidig tillegg…» og velg zip-en. Tillegget forsvinner n
 
 ### 2b. Last inn i Chrome
 
-Åpne `chrome://extensions`, slå på Utviklermodus, trykk «Last inn upakket» og velg `stats/dist/chrome/`. Ikke velg `stats/` direkte: Chrome varsler da om Firefox-nøklene i manifestet. Etter ny bygging trykker du på pilen for å laste inn på nytt. Feil fra service workeren står under «Feil» på kortet, og «service worker»-lenken åpner konsollen.
+Åpne `chrome://extensions`, slå på Utviklermodus, trykk «Last inn upakket» og velg `stats/dist/chrome/`. Ikke velg `stats/` direkte: Chrome nekter å laste manifestet fordi det har Firefox-nøkkelen `background.scripts`. Etter ny bygging trykker du på pilen for å laste inn på nytt. Feil fra service workeren står under «Feil» på kortet, og «service worker»-lenken åpner konsollen.
 
 Chrome 137 og nyere ignorerer `--load-extension`. Automatisert lasting går via CDP: start Chrome med `--remote-debugging-pipe --enable-unsafe-extension-debugging` og kall `Extensions.loadUnpacked`.
 
