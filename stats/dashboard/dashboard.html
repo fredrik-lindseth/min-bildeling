@@ -470,7 +470,12 @@
         <select id="transport-year" class="field"></select>
       </div>
 
-      <div class="panel">
+      <div id="transport-empty" class="empty-state empty-state--inline transport-empty" hidden>
+        <p class="empty-state__text" id="transport-empty-text"></p>
+        <button type="button" class="btn" id="transport-open" aria-expanded="false" aria-controls="transport-entry">Legg inn tall</button>
+      </div>
+
+      <div class="panel" id="transport-entry">
         <h3 class="panel__title">Annen transport</h3>
         <form id="transport-form" class="transport-form">
           <!-- JS bygger én rad per transportmiddel -->

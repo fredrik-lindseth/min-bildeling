@@ -819,8 +819,25 @@ a:focus-visible,
   gap: var(--space-2);
 }
 
+/* display: flex slår [hidden], så det må sies igjen. */
+.transport-year[hidden] {
+  display: none;
+}
+
 .transport-year .field {
   width: auto;
+}
+
+/* Et år uten transporttall er én linje med knapp, ikke et tomt skjema. */
+.transport-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.transport-empty[hidden] {
+  display: none;
 }
 
 .transport-row {

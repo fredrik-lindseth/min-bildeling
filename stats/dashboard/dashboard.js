@@ -75,6 +75,7 @@ import {
   loadTransportData,
   saveTransportData,
   transportSummary,
+  hasTransportEntries,
   TRANSPORT_METHOD,
 } from "../lib/transport.js";
 
@@ -1543,6 +1544,9 @@ function renderAverageCarComparison(reservations) {
 // ---------- Rendering: Section 8 - Min transport ----------
 
 let transportYear = null;
+// Skjemaet åpnet med «Legg inn tall» for et år uten tall. Står over
+// gjentegningen under synk, men lukkes når året byttes.
+let transportFormOpen = false;
 
 function getTransportYears(reservations) {
   const years = new Set();
@@ -1647,9 +1651,33 @@ const TRANSPORT_CHART_COLORS = {
   sykkel: NEUTRAL_SERIES,
 };
 
+// Et år uten tall vises som én linje med knapp, ikke som et tomt skjema og
+// en oppsummering der bildelingen er 100 %.
+function showTransportYear(reservations, savedData, year) {
+  const entries = hasTransportEntries(savedData?.[year]);
+  const formShown = entries || transportFormOpen;
+  $("transport-entry").hidden = !formShown;
+  $("transport-empty").hidden = formShown;
+  $("transport-open").hidden = false;
+  $("transport-open").setAttribute("aria-expanded", String(formShown));
+  if (!formShown) {
+    setText("transport-empty-text", `Legg inn taxi, buss og fly for ${year} for å se hele transportregnskapet.`);
+  }
+  renderTransportSummary(reservations, savedData, year);
+}
+
 async function renderTransport(reservations) {
   const years = getTransportYears(reservations);
-  if (years.length === 0) return;
+  if (years.length === 0) {
+    $("transport-year-selector").hidden = true;
+    $("transport-entry").hidden = true;
+    $("transport-summary").hidden = true;
+    $("transport-open").hidden = true;
+    $("transport-empty").hidden = false;
+    setText("transport-empty-text", "Transportregnskapet vises når turene dine er hentet.");
+    return;
+  }
+  $("transport-year-selector").hidden = false;
 
   // Build year selector
   const select = $("transport-year");
@@ -1670,18 +1698,24 @@ async function renderTransport(reservations) {
   // Load saved transport data
   const savedData = await loadTransportData(storage);
 
-  // Build form
   buildTransportForm(transportYear, savedData);
+  showTransportYear(reservations, savedData, transportYear);
 
-  // Render summary if data exists
-  renderTransportSummary(reservations, savedData, transportYear);
-
-  // Year change handler
+  // Tildelte handlere, ikke addEventListener: renderTransport kjøres hvert
+  // andre sekund under synk, og hver lytter skal bare finnes én gang.
   select.onchange = async () => {
     transportYear = Number(select.value);
+    transportFormOpen = false;
+    $("transport-save-status").textContent = "";
     const freshData = await loadTransportData(storage);
     buildTransportForm(transportYear, freshData);
-    renderTransportSummary(reservations, freshData, transportYear);
+    showTransportYear(reservations, freshData, transportYear);
+  };
+
+  $("transport-open").onclick = async () => {
+    transportFormOpen = true;
+    showTransportYear(reservations, await loadTransportData(storage), transportYear);
+    $("transport-fields").querySelector("input, select")?.focus();
   };
 
   // Form submit handler
@@ -1709,12 +1743,10 @@ async function renderTransport(reservations) {
     freshData[transportYear] = yearData;
     await saveTransportData(storage, freshData);
 
-    // Show save status
-    const status = $("transport-save-status");
-    status.textContent = "Lagret";
-
-    // Re-render summary
-    renderTransportSummary(reservations, freshData, transportYear);
+    // Skjemaet blir stående, også når året ble tømt, så «Lagret» kan leses.
+    transportFormOpen = true;
+    $("transport-save-status").textContent = "Lagret";
+    showTransportYear(reservations, freshData, transportYear);
   };
 
   // «Tøm feltene» tømmer alle input-felt (men lagrer ikke før bruker
@@ -1735,12 +1767,12 @@ function renderTransportSummary(reservations, savedData, year) {
     organizationId: homeOrganizationId(reservations),
   });
 
-  // Check if there is any data beyond bildeling
-  const hasOtherModes = Object.keys(summary.modes).some((k) => k !== "bildeling");
-  const hasBildeling = summary.modes.bildeling && summary.modes.bildeling.cost > 0;
-
-  if (!hasOtherModes && !hasBildeling) {
+  // Bildelingen alene gir donuter med én skive og «100 %», så
+  // oppsummeringen venter på tall for et annet transportmiddel.
+  if (!hasTransportEntries(yearData)) {
     $("transport-summary").hidden = true;
+    destroyChart("transportCost");
+    destroyChart("transportCO2");
     return;
   }
 
