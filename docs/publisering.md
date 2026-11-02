@@ -64,7 +64,7 @@ Når Dele har sagt ok, bytt tillegget til listed på AMO. Listingteksten, sammen
 
 ## Release på GitHub
 
-GitHub er kanonisk for releases og issues, så README lenker dit med absolutt URL. Fillenker er relative og virker også i det private speilet.
+GitHub er kanonisk for releases og issues, så README lenker dit med absolutt URL. Fillenker er relative og virker også på Forgejo.
 
 ```bash
 ./stats/scripts/release.sh notater.md          # tørrkjøring

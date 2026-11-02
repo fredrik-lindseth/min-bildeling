@@ -6,7 +6,7 @@ Teksten som fylles inn i utviklerkonsollen på [chrome.google.com/webstore/devco
 
 - Navn: Bildeleringen Stats (fra manifestet)
 - Språk: norsk bokmål
-- Kategori: Verktøy, eventuelt Produktivitet
+- Kategori: Verktøy
 - Ikon: `stats/icons/icon-128.png`
 - Promobilde, lite (440x280): `stats/icons/listing/promo-440x280.png`
 - Skjermbilder (1280x800, inntil fem): fra `skjermbilder/butikk/`, for eksempel `seksjon-kostnader`, `seksjon-bilregnestykket`, `seksjon-bruksmonster`, `popup-lys` og `oppsummering-spart`
