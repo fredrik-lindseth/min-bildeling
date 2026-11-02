@@ -62,10 +62,11 @@ a:hover {
 EOF
 }
 
-# forvent_funn <beskrivelse> <mappe> <tekst som skal stå i utdata>
+# forvent_funn <beskrivelse> <mappe> <tekst som skal stå i utdata> [flagg til vakten]
 forvent_funn() {
   local navn="$1" dir="$2" tekst="$3" ut kode=0
-  ut="$("$VAKT" "$dir" 2>&1)" || kode=$?
+  shift 3
+  ut="$("$VAKT" "$@" "$dir" 2>&1)" || kode=$?
   if [ "$kode" -eq 1 ] && printf '%s' "$ut" | grep -qF -- "$tekst"; then
     ok "$navn"
   else
@@ -147,6 +148,23 @@ forvent_funn "manifest uten data_collection_permissions" "$TMP/sak" "data_collec
 
 sak; sed -i.bak 's/"140.0"/"128.0"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
 forvent_funn "for lav strict_min_version" "$TMP/sak" "strict_min_version er 128"
+
+# Chrome-pakken: manifestet fra chrome-manifest.mjs er rent, og Firefox-nøkler
+# eller manglende minimum_chrome_version stopper den.
+sak; node "$SCRIPTDIR/chrome-manifest.mjs" "$STATS/manifest.json" "$TMP/sak/manifest.json"
+ut="$("$VAKT" --chrome "$TMP/sak" 2>&1)" && kode=0 || kode=$?
+if [ "$kode" -eq 0 ] && ! printf '%s' "$ut" | grep -q 'ADVARSEL'; then
+  ok "Chrome-manifestet fra chrome-manifest.mjs gir ingen funn"
+else
+  ikke "Chrome-manifestet (exit $kode)"; printf '%s\n' "$ut" | sed 's/^/     /'
+fi
+
+sak
+forvent_funn "Firefox-manifest i Chrome-pakken" "$TMP/sak" "browser_specific_settings hører ikke hjemme" --chrome
+
+sak; node "$SCRIPTDIR/chrome-manifest.mjs" "$STATS/manifest.json" "$TMP/sak/manifest.json"
+sed -i.bak '/minimum_chrome_version/d' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "Chrome-manifest uten minimum_chrome_version" "$TMP/sak" "minimum_chrome_version mangler" --chrome
 
 # Ende til ende: package.sh på en kopi av repoet med plantet persondata
 # skal stoppe og slette zip-en.

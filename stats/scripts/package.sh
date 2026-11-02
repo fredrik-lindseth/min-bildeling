@@ -1,6 +1,8 @@
 #!/bin/bash
-# Build a distributable .zip for Bildeleringen Stats
-# Usage: ./scripts/package.sh
+# Bygger zip-ene til Bildeleringen Stats: én for Firefox (AMO) og én for
+# Chrome Web Store. Chrome-pakken er de samme filene med et manifest uten
+# Firefox-nøklene, laget av scripts/chrome-manifest.mjs.
+# Bruk: ./scripts/package.sh
 
 set -e
 
@@ -10,6 +12,9 @@ cd "$(dirname "$0")/.."
 VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 OUTDIR="dist"
 ZIPNAME="bildeleringen-stats-v${VERSION}.zip"
+CHROME_ZIPNAME="bildeleringen-stats-chrome-v${VERSION}.zip"
+# Utpakket Chrome-utgave, til «Last inn upakket» på chrome://extensions.
+CHROME_DIR="$OUTDIR/chrome"
 
 echo "Packaging Bildeleringen Stats v${VERSION}..."
 
@@ -62,10 +67,26 @@ if ! ./scripts/sjekk-pakke.sh "$OUTDIR/$ZIPNAME"; then
   exit 1
 fi
 
+# Chrome: pakk ut Firefox-zip-en, bytt manifestet og pakk på nytt, så
+# filutvalget står ett sted.
+mkdir -p "$CHROME_DIR"
+unzip -q "$OUTDIR/$ZIPNAME" -d "$CHROME_DIR"
+node scripts/chrome-manifest.mjs manifest.json "$CHROME_DIR/manifest.json"
+(cd "$CHROME_DIR" && zip -qr "../$CHROME_ZIPNAME" .)
+
 echo ""
-echo "Created: $OUTDIR/$ZIPNAME"
-echo "Size: $(du -h "$OUTDIR/$ZIPNAME" | cut -f1)"
+if ! ./scripts/sjekk-pakke.sh --chrome "$OUTDIR/$CHROME_ZIPNAME"; then
+  rm -rf "${OUTDIR:?}"/*
+  echo "" >&2
+  echo "Pakkene er slettet. Rett funnene over og pakk på nytt." >&2
+  exit 1
+fi
+
 echo ""
-echo "Install instructions:"
-echo "  Firefox: about:debugging → Load Temporary Add-on → select zip or manifest.json"
-echo "  Chrome:  Unzip → chrome://extensions → Developer mode → Load unpacked"
+for z in "$ZIPNAME" "$CHROME_ZIPNAME"; do
+  echo "Laget $OUTDIR/$z ($(du -h "$OUTDIR/$z" | cut -f1))"
+done
+echo ""
+echo "Prøv dem:"
+echo "  Firefox: about:debugging, «Last inn midlertidig tillegg», velg Firefox-zip-en"
+echo "  Chrome:  chrome://extensions, Utviklermodus, «Last inn upakket», velg stats/$CHROME_DIR"

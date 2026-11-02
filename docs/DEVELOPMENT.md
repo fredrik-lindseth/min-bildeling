@@ -10,7 +10,7 @@ Fra repo-roten:
 ./stats/scripts/package.sh
 ```
 
-Zip-en havner i `stats/dist/bildeleringen-stats-v<versjon>.zip`. Før den lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten zip-en for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
+Zip-ene havner i `stats/dist/`: `bildeleringen-stats-v<versjon>.zip` for Firefox og `bildeleringen-stats-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten begge zip-ene for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
 
 ### 2. Last inn i Firefox
 
@@ -19,6 +19,12 @@ about:debugging#/runtime/this-firefox
 ```
 
 Trykk «Last inn midlertidig tillegg…» og velg zip-en. Tillegget forsvinner når Firefox startes på nytt.
+
+### 2b. Last inn i Chrome
+
+Åpne `chrome://extensions`, slå på Utviklermodus, trykk «Last inn upakket» og velg `stats/dist/chrome/`. Ikke velg `stats/` direkte: Chrome varsler da om Firefox-nøklene i manifestet. Etter ny bygging trykker du på pilen for å laste inn på nytt. Feil fra service workeren står under «Feil» på kortet, og «service worker»-lenken åpner konsollen.
+
+Chrome 137 og nyere ignorerer `--load-extension`. Automatisert lasting går via CDP: start Chrome med `--remote-debugging-pipe --enable-unsafe-extension-debugging` og kall `Extensions.loadUnpacked`.
 
 ### 3. Rask sjekk
 
@@ -44,7 +50,7 @@ Node 24, ingen avhengigheter. Testene dekker de rene funksjonene i `lib/` og at 
 ./stats/scripts/skjermbilder.sh
 ```
 
-Bildene havner i `skjermbilder/`. Krever Firefox, Node og python3.
+Bildene havner i `skjermbilder/`, og butikksettet på 1280x800 i `skjermbilder/butikk/`. Krever Firefox, Node, python3 og ImageMagick. `--butikk` lager bare butikksettet fra bildene som alt ligger der.
 
 ### 6. Send til AMO
 
@@ -58,7 +64,7 @@ Bildene havner i `skjermbilder/`. Krever Firefox, Node og python3.
 - **Firefox via MCP:** `firefox-devtools`-MCP-en kjører en egen Firefox med profilen `~/.firefox-devtools-mcp-profile`. Installer på nytt med `install_extension` bare når `background.js` eller `manifest.json` er endret, ellers last fanen på nytt.
 - **MCP-fallgruver:** Hoper serverne seg opp (`pgrep -fl firefox-devtools-mcp`), kjør `pkill -f firefox-devtools-mcp`. MCP-en kan ikke åpne `moz-extension://` eller `about:debugging`, så bruk demomodus over http. WebDriver svarer `false` på `confirm()` uten å vise noe, derfor `<dialog>`.
 - **Ny UUID:** `install_extension` kan gi tillegget ny intern UUID. Den står i `webextensions.uuids` i `~/.firefox-devtools-mcp-profile/prefs.js`.
-- **Ikoner:** `./stats/scripts/render-icons.sh` rendrer PNG-ene fra SVG-kildene (krever `rsvg-convert`).
+- **Ikoner:** `./stats/scripts/render-icons.sh` rendrer PNG-ene fra SVG-kildene (krever `rsvg-convert`). `render-promo.sh` rendrer promobildet til Chrome Web Store.
 - **Byggevakten alene:** `./stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
 
 Filstruktur, storage og synk står i [arkitektur.md](arkitektur.md), regler for agenter i [AGENTS.md](../AGENTS.md).

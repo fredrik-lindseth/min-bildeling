@@ -1,7 +1,13 @@
 #!/bin/bash
 # Tar skjermbildene til README og AMO-listingen fra demomodus (?demo=1).
 #
-# Bruk: ./stats/scripts/skjermbilder.sh [utmappe]   (standard: skjermbilder/ i repo-roten)
+# Bruk: ./stats/scripts/skjermbilder.sh [--butikk] [utmappe]   (standard: skjermbilder/ i repo-roten)
+#
+# Til slutt lages butikksettet i <utmappe>/butikk/: hvert bilde skalert ned
+# til å passe i 1280x800 og fylt ut til nøyaktig 1280x800 med bakgrunnsfargen
+# øverst til venstre. Chrome Web Store krever den størrelsen, og AMO
+# tar den. README bruker bildene i full størrelse. Med --butikk lages bare
+# butikksettet, fra bildene som alt ligger i utmappen.
 #
 # Sidene serveres over http fra stats/ på en ledig port og fotograferes med
 # hodeløs Firefox, én midlertidig profil for lys og én for mørk modus.
@@ -18,7 +24,40 @@ set -euo pipefail
 
 STATS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO_DIR="$(cd "$STATS_DIR/.." && pwd)"
+BARE_BUTIKK=0
+if [ "${1:-}" = "--butikk" ]; then
+  BARE_BUTIKK=1
+  shift
+fi
 OUT_DIR="${1:-$REPO_DIR/skjermbilder}"
+
+lag_butikksett() {
+  if ! command -v magick >/dev/null; then
+    echo "Butikksettet krever ImageMagick (magick)." >&2
+    exit 1
+  fi
+  local dest="$OUT_DIR/butikk" img name bg
+  mkdir -p "$dest"
+  echo "Butikksett (1280x800) i $dest:"
+  for img in "$OUT_DIR"/*.png; do
+    name="$(basename "$img")"
+    # Noen piksler inn fra hjørnet: seksjonene kan starte med en 1 px kantlinje.
+    bg="$(magick "$img" -format '%[pixel:p{4,4}]' info:)"
+    # «>» skalerer bare ned. Små bilder som popupen står i full størrelse.
+    # Chrome Web Store vil ha PNG uten alfakanal, derfor -alpha remove/off.
+    magick "$img" -resize '1280x800>' -background "$bg" -gravity center \
+      -extent 1280x800 -alpha remove -alpha off -strip -define png:exclude-chunks=date,time \
+      -define png:compression-level=9 "$dest/$name"
+    echo "  $name"
+  done
+}
+
+if [ "$BARE_BUTIKK" = 1 ]; then
+  [ -d "$OUT_DIR" ] || { echo "Fant ikke $OUT_DIR." >&2; exit 1; }
+  OUT_DIR="$(cd "$OUT_DIR" && pwd)"
+  lag_butikksett
+  exit 0
+fi
 
 FIREFOX="${FIREFOX:-}"
 if [ -z "$FIREFOX" ]; then
@@ -128,3 +167,6 @@ for raw in "$RAW_DIR"/*.png; do
   fi
   echo "  $name ($(du -k "$OUT_DIR/$name" | cut -f1) kB)"
 done
+
+echo ""
+lag_butikksett

@@ -72,7 +72,7 @@ I Firefox:
 2. Klikk «Last inn midlertidig tillegg...»
 3. Velg `.zip`-filen
 
-I Chrome:
+I Chrome (123 eller nyere), med `-chrome`-zip-en:
 
 1. Pakk ut zip-filen
 2. Gå til `chrome://extensions` og slå på Utviklermodus
