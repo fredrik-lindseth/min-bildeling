@@ -31,7 +31,7 @@ Når Dele har sagt ok, bytt tillegget til listed. Teksten står i [amo-listing.m
 
 ## Chrome Web Store
 
-Fredrik registrerer utviklerkontoen selv. Stegene, butikkteksten og svarene om tillatelser og databruk står i [chrome-listing.md](chrome-listing.md).
+Utviklerkontoen registreres for hånd. Stegene, butikkteksten og svarene om tillatelser og databruk står i [chrome-listing.md](chrome-listing.md).
 
 ## Skjermbilder og promobilde
 
