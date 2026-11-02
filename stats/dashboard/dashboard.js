@@ -66,7 +66,7 @@ import { historyProgress, describeIncompleteHistory } from "../lib/sync-messages
 import { stateForSyncError } from "../lib/auth-state.js";
 import { showAuthBanner } from "../lib/auth-banner.js";
 
-import { totalCO2, monthlyCO2, CO2_METHOD } from "../lib/co2.js";
+import { totalCO2, monthlyCO2, averageCarComparison, CO2_METHOD } from "../lib/co2.js";
 import { createBackup, parseBackup, describeImport } from "../lib/backup.js";
 import { importBackup, BACKUP_STORAGE_KEYS } from "../lib/backup-import.js";
 
@@ -1485,6 +1485,7 @@ function renderClimate(reservations) {
   const elPct = total.tripCount > 0 ? Math.round((elTrips / total.tripCount) * 100) : 0;
   setText("co2-electric-pct", `${elPct} %`);
 
+  renderAverageCarComparison(reservations);
   renderMethodPanel($("co2-method-detail"), CO2_METHOD, { idPrefix: "co2-metode" });
 
   // Monthly chart
@@ -1513,6 +1514,30 @@ function renderClimate(reservations) {
     `;
     fuelList.appendChild(row);
   }
+}
+
+// Andelen av gjennomsnittsbilen. Et lite tall rundet til 0 % leses som
+// ingenting, så det står som «under 1 %».
+function shareOfAverageCar(user, car) {
+  const pct = Math.round((user / car) * 100);
+  return pct === 0 && user > 0 ? "under 1 %" : `${pct} %`;
+}
+
+function renderAverageCarComparison(reservations) {
+  const cmp = averageCarComparison(reservations);
+  $("co2-comparison").hidden = !cmp;
+  if (!cmp) return;
+
+  setText("co2-comparison-title", cmp.partial
+    ? `Mot en gjennomsnittlig personbil, ${cmp.year} hittil`
+    : `Mot en gjennomsnittlig personbil i ${cmp.year}`);
+  setText("co2-cmp-user-km", `${formatKm.format(cmp.userKm)} km`);
+  setText("co2-cmp-car-km", `${cmp.partial ? "ca. " : ""}${formatKm.format(Math.round(cmp.carKm))} km`);
+  setText("co2-cmp-user-co2", `ca. ${formatKm.format(Math.round(cmp.userCO2Kg))} kg`);
+  setText("co2-cmp-car-co2", `ca. ${formatKm.format(Math.round(cmp.carCO2Kg))} kg`);
+  setText("co2-comparison-note", cmp.partial
+    ? `Snittet er en norsk personbil i ${cmp.dataYear}, regnet for den delen av året som er gått.`
+    : `Det er ${shareOfAverageCar(cmp.userKm, cmp.carKm)} av kjørelengden og ca. ${shareOfAverageCar(cmp.userCO2Kg, cmp.carCO2Kg)} av utslippet til en norsk personbil i ${cmp.dataYear}, det siste året SSB har utslippstall for.`);
 }
 
 // ---------- Rendering: Section 8 - Min transport ----------

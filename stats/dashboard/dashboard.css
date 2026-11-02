@@ -521,6 +521,13 @@ a:focus-visible,
   column-gap: var(--space-5);
 }
 
+/* To og to, så hver rad stiller bildelingen mot gjennomsnittsbilen. Fire
+   kolonner brøt tallene over to linjer. */
+.figures--pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-5);
+}
+
 .figures .pending {
   font-weight: 400;
   color: var(--color-text-tertiary);
@@ -1037,7 +1044,8 @@ a:focus-visible,
   }
 
   .split,
-  .split--even {
+  .split--even,
+  .figures--pairs {
     grid-template-columns: 1fr;
   }
 
