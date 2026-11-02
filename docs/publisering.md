@@ -2,7 +2,7 @@
 
 Dette gjelder stats (`delebil@fredriklindseth.no`). Flex har egen gecko-id og ikke noe `package.sh` ennå. Før den kan publiseres, må Dele sitt symbol i `flex/icons/` byttes.
 
-Begge butikkene får samme løp: unlisted først, installert og sjekket i egen nettleser, og offentlig først når Dele har sagt ok.
+Begge butikkene får samme løp: installert og sjekket i egen nettleser før den gjøres offentlig.
 
 ## Pakk
 
@@ -29,7 +29,7 @@ Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addon
 
 Xpi-en havner i `stats/dist/min-bildeling-v<versjon>-signert.xpi` og blir liggende når `package.sh` kjører på nytt. Blir den ikke signert innen ti minutter, hent den fra [utviklersiden](https://addons.mozilla.org/developers/addons). Lim notatet til reviewer fra [amo-listing.md](amo-listing.md) inn under «Notes to Reviewer».
 
-Når Dele har sagt ok, bytt tillegget til listed. Teksten står i [amo-listing.md](amo-listing.md), personvernerklæringen i [personvern.md](personvern.md), ikonet i `stats/icons/listing/icon-256.png`. Listed får strengere review, ofte for hånd. Unlisted oppdateres ved å installere ny xpi.
+For å bli listed sendes en ny versjon inn i kanalen listed. Teksten står i [amo-listing.md](amo-listing.md), personvernerklæringen i [personvern.md](personvern.md), ikonet i `stats/icons/listing/icon-256.png`. Listed får strengere review, ofte for hånd. Unlisted oppdateres ved å installere ny xpi.
 
 ## Chrome Web Store
 
