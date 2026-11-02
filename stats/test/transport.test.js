@@ -11,6 +11,7 @@ import {
   taxiZeroEmissionFrom,
   TAXI_ZERO_EMISSION_FROM,
   transportSummary,
+  hasTransportEntries,
 } from "../lib/transport.js";
 import { CO2_METHOD } from "../lib/co2.js";
 import { methodText } from "../lib/method-panel.js";
@@ -83,4 +84,14 @@ test("forutsetningene for CO₂ og transport nevner ingen enkeltby", () => {
     ...Object.values(TRANSPORT_MODES).map((m) => m.label),
   ].join("\n");
   assert.doesNotMatch(text, /\b(Bergen|Skyss|bybane|Trondheim|AtB)\b/i);
+});
+
+test("et år har transporttall bare når et tallfelt er over null", () => {
+  assert.equal(hasTransportEntries({}), false);
+  assert.equal(hasTransportEntries(undefined), false);
+  assert.equal(hasTransportEntries({ buss: { trips: 0 } }), false);
+  assert.equal(hasTransportEntries({ buss: { trips: 3 } }), true);
+  assert.equal(hasTransportEntries({ egenbil: { fuelType: "elbil" } }), false);
+  const s = transportSummary({ buss: { trips: 0 }, egenbil: { fuelType: "elbil" }, fly: { trips: 2 } }, null);
+  assert.deepEqual(Object.keys(s.modes), ["fly"]);
 });

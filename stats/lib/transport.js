@@ -141,6 +141,17 @@ export async function saveTransportData(storage, data) {
 // Summary calculation (pure function)
 // ---------------------------------------------------------------------------
 
+// Et transportmiddel teller når et tallfelt er over null. Drivstoffet til
+// egen bil alene er et valg i skjemaet, ikke et tall.
+function entryHasData(entry) {
+  return Object.values(entry ?? {}).some((v) => typeof v === "number" && v > 0);
+}
+
+/** Om brukeren har lagt inn tall for et transportmiddel i året. */
+export function hasTransportEntries(yearData) {
+  return Object.keys(TRANSPORT_MODES).some((mode) => entryHasData(yearData?.[mode]));
+}
+
 /**
  * Build a transport summary combining bildeling stats with manually entered
  * transport data for a given year.
@@ -172,9 +183,7 @@ export function transportSummary(transportData, sharingStats, { year, organizati
     const entry = transportData[mode];
     if (!entry) continue;
 
-    // Check if the entry has any meaningful data
-    const hasData = Object.values(entry).some((v) => typeof v === "number" && v > 0);
-    if (!hasData) continue;
+    if (!entryHasData(entry)) continue;
 
     const km = entry.totalKm || 0;
     // Egen bil: CO₂ depends on user-selected fuel type
