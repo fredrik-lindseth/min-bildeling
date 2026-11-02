@@ -83,6 +83,8 @@ Tabeller («Per år» i Trender) har 1 px linjer mellom radene, kolonneoverskrif
 
 Skjemafelt har surface, 1 px border-strong og høyrejustert tekst i tallfelt. «Lagret» (`role="status"`) forsvinner når et felt endres, aldri på tid.
 
+Ordlisten i «Nøkkelord og kategorier» har hver kategori som en `<details>` med nummeret i tertiary foran navnet, i den rekkefølgen kategoriene prøves. Ordene står i et rutenett med kolonner på minst 220 px, én kolonne under 480 px, med treff og tagger («egen», «helt ord», «også sist i ord») i tertiary 12 px. «Fjern» er en stille knapp. Fjernede standardord står sist, gjennomstreket i tertiary med «Ta tilbake». Sletting og tilbakestilling bekreftes i dialogen.
+
 ### `[hidden]` og display
 
 En klasse som setter `display`, slår `hidden`-attributtet, og elementet blir stående synlig. Skjules en slik klasse med `hidden`, trenger den sin egen regel:
@@ -114,7 +116,7 @@ Tom tilstand er tekst: én linje i text om hva som er, og én i text-secondary o
 Chart.js forstår ikke `light-dark()`, så fargene hentes med `resolveColor()` i `lib/chart-helpers.js`, som gir ferdig `rgb()`. Diagrammene tegnes på nytt ved bytte av modus.
 
 - Maks fem farger, `--color-chart-1` til `-5`, og bildeling er alltid chart-1. Transport: taxi 2, leiebil 3, buss 4, fly 5, egen bil og sykkel i border-strong.
-- Turkategorier: de fem største får chart-1 til -5 etter beløp. Resten samles sist som «Øvrige» i border-strong, aldri en sjette farge.
+- Turkategorier: de fem største får chart-1 til -5 etter beløp, også når noen av dem er egne kategorier. Resten samles sist som «Øvrige» i border-strong, aldri en sjette farge.
 - År mot år: siste år fylt i chart-1, årene før hule med 2 px kant i chart-3, -5, -2 og -4, nærmeste år først.
 - Søyler har `borderRadius: 0`. Linjer er 2 px uten fyll, gradient eller glatting (`tension: 0`).
 - Rutenett i grid, bare vannrett. X-akse i border-strong, aksetekst 12 px i tertiary.

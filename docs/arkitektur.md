@@ -27,22 +27,23 @@ Banneret bygges av `lib/auth-banner.js`. 401 gir `AUTH_EXPIRED`, som alltid er `
 
 ### Storage-nøkler
 
-| Nøkkel           | Struktur                                                                                                  | Skrives av                  |
-| ---------------- | --------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `reservations`   | Detaljsvar, hver med `detailFetchedAt` (ms)                                                               | synken, importen            |
-| `lastSync`       | Siste fullførte synk (ms)                                                                                 | synken, importen            |
-| `syncState`      | `{ phase, initial, startedAt, pendingIds, failed, total, done, fetchedSoFar, calls, reason?, pausedAt? }` | synken, importen            |
-| `syncLock`       | `{ owner, role, expiresAt }` eller null, `role` er `page`, `popup` eller `import`                         | synken, importen            |
-| `syncHistory`    | De tre siste synkene med `calls`, status og varighet                                                      | synken                      |
-| `tripCategories` | `{ reservationId: categoryKey }`                                                                          | dashbordet                  |
-| `transportData`  | `{ "2025": { taxi: {...}, buss: {...} } }`                                                                | dashbordet                  |
-| `userKeywords`   | `{ categoryKey: ["ord", ...] }`                                                                           | dashbordet                  |
+| Nøkkel             | Struktur                                                                                                  | Skrives av       |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------- |
+| `reservations`     | Detaljsvar, hver med `detailFetchedAt` (ms)                                                               | synken, importen |
+| `lastSync`         | Siste fullførte synk (ms)                                                                                 | synken, importen |
+| `syncState`        | `{ phase, initial, startedAt, pendingIds, failed, total, done, fetchedSoFar, calls, reason?, pausedAt? }` | synken, importen |
+| `syncLock`         | `{ owner, role, expiresAt }` eller null, `role` er `page`, `popup` eller `import`                         | synken, importen |
+| `syncHistory`      | De tre siste synkene med `calls`, status og varighet                                                      | synken           |
+| `tripCategories`   | `{ reservationId: categoryKey }`                                                                          | dashbordet       |
+| `transportData`    | `{ "2025": { taxi: {...}, buss: {...} } }`                                                                | dashbordet       |
+| `userKeywords`     | `{ categoryKey: ["ord", ...] }`                                                                           | dashbordet       |
+| `categorySettings` | `{ custom: { "egen-katt": { label } }, removed: { categoryKey: ["ord"] }, order }`                        | dashbordet       |
 
-De tre siste er brukerdata og slettes aldri av synken. `reservations` har bare detaljsvar. Listesvaret mangler pris, km, `canceled`, `noTrips`, `car` og `created`, og et listeelement der ville gitt feil tall uten synlig feil.
+De fire siste er brukerdata og slettes aldri av synken. `reservations` har bare detaljsvar. Listesvaret mangler pris, km, `canceled`, `noTrips`, `car` og `created`, og et listeelement der ville gitt feil tall uten synlig feil.
 
 ### Sikkerhetskopi
 
-`lib/backup.js` har rene funksjoner. `createBackup()` lager én fil med brukerdata og valgfritt turene. `mergeBackup()` legger brukerdata til der de mangler, eller overskriver når brukeren krysser av. Turer flettes på id, og `lastSync` blir den nyeste. Sync-nøklene er aldri med.
+`lib/backup.js` har rene funksjoner. `createBackup()` lager én fil med brukerdata og valgfritt turene. Filen har versjon 2 med `categorySettings`. Versjon 1 leses fortsatt, og gamle kategorinøkler i den flyttes til målet. `mergeBackup()` legger brukerdata til der de mangler, eller overskriver når brukeren krysser av. Turer flettes på id, og `lastSync` blir den nyeste. Sync-nøklene er aldri med.
 
 Turene skrives under synklåsen (`importBackup()` i `lib/backup-import.js` med `withSyncLock()`), ellers ville en pågående synk skrevet over dem. Importen tar de importerte id-ene ut av `pendingIds` og `failed`, skriver alt i ett `storage.set` og slipper låsen. Synken som mistet låsen, stopper med `LOCK_LOST`, venter og henter bare det som mangler.
 
@@ -72,11 +73,13 @@ Tallene står i [api-bruk.md](api-bruk.md), bundet til konstantene av `stats/tes
 
 ### Turkategorier
 
-`DEFAULT_KEYWORDS` i `lib/categories.js` er landsdekkende og skal aldri ha personlige ord. Brukerens ord ligger i `userKeywords` og flettes inn med `mergeKeywords()`.
+`DEFAULT_CATEGORIES` og `DEFAULT_KEYWORDS` i `lib/categories.js` er landsdekkende, og ordlisten skal aldri ha personlige ord. Brukerens endringer lagres som avvik fra standarden, ikke som kopi: egne ord i `userKeywords`, og egne kategorier, fjernede standardord og rekkefølgen i `categorySettings`. `mergeKeywords()` fletter dem, så nye standardord fra en oppdatering kommer med. `order: null` betyr standardrekkefølgen, og den lagres i sin helhet første gang brukeren lager eller flytter en kategori. En standardkategori som mangler i en lagret rekkefølge, settes inn etter forgjengeren sin.
+
+Egne kategorier har nøkler med prefikset `egen-` og et slug av navnet, og nøkkelen står når navnet endres. En ny kategori legges øverst, så den vinner over de andre til brukeren flytter den. Flyplass og Skyss er slått inn i Frakt/transport og Hyttetur i Aktivitet (`LEGACY_CATEGORIES`). `migrateLegacyCategories()` flytter lagrede valg og ord ved oppstart av dashbordet, og lesefunksjonene gjør det samme for det som ikke er flyttet ennå.
 
 Et ord treffer i starten av et ord i notatet, så «lege» treffer «legevakt», men ikke «privilegert». Mellomrom til slutt krever helt ord. `*` først lar ordet også treffe sist i et ord, så «*besøk» treffer «bursdagsbesøket». `STOP_WORDS` fjerner kjente feiltreff, som «juli» for «jul». Første kategori i listen med treff vinner, så kategoriene med tydelig formål står først. `test/categories.test.js` har et korpus med oppdiktede notater.
 
-Et valg i `tripCategories` overstyrer alltid forslaget. Listen «Sjekk forslag» er merket `data-html2canvas-ignore`, så notatene ikke blir med i «Last ned bilde».
+Et valg i `tripCategories` overstyrer alltid forslaget. Slettes en egen kategori, fjernes valgene for den i samme skriving, og `knownTripCategories()` hopper over valg for kategorier som ikke finnes, så turen faller tilbake til forslaget eller ukategorisert. Listen «Sjekk forslag» er merket `data-html2canvas-ignore`, så notatene ikke blir med i «Last ned bilde».
 
 ### Estimater
 

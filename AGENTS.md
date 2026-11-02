@@ -14,10 +14,10 @@ Repoet har to selvstendige utvidelser: `stats/` (statistikk) og `flex/` (fleksib
 - Ingen byggesteg. Vanilla JS, HTML og CSS, ingen bundler eller npm. Vendor-biblioteker i `stats/vendor/`.
 - ES modules overalt, unntatt `content.js`.
 - Cross-browser: `globalThis.browser ?? globalThis.chrome`, så sidene også virker over vanlig http. Hent den fra `lib/browser-polyfill.js` (`browserAPI` og `storage`), ikke skriv oppslaget på nytt.
-- Rene funksjoner: `stats/lib/stats.js`, `co2.js`, `ownership-cost.js` og `flex/lib/flex.js`, `watch.js` kaller aldri browser-API eller storage. I `categories.js` gjelder det alt unntatt `loadCategories`, `saveCategory`, `loadUserKeywords` og `saveUserKeywords`, som får storage som argument.
+- Rene funksjoner: `stats/lib/stats.js`, `co2.js`, `ownership-cost.js` og `flex/lib/flex.js`, `watch.js` kaller aldri browser-API eller storage. I `categories.js` gjelder det alt unntatt `loadCategories`, `saveCategory`, `saveCategories`, `loadUserKeywords`, `saveUserKeywords`, `loadCategorySettings`, `saveCategorySettings` og `migrateLegacyCategories`, som får storage som argument.
 - Velg riktig filter (`filterValid` eller `filterDriven`). Feil filter gir feil tall uten synlig feil.
 - `reservations` skal bare inneholde detaljsvar, aldri listeelementer.
-- Synken skriver API-dataene. Brukerdata (`tripCategories`, `transportData`, `userKeywords`) slettes aldri ved synk.
+- Synken skriver API-dataene. Brukerdata (`tripCategories`, `transportData`, `userKeywords`, `categorySettings`) slettes aldri ved synk.
 - Synken kjører i siden, ikke i background. Test den uten DevTools koblet til tillegget.
 - `docs/api-bruk.md` er skrevet for Dele og må stemme med koden. Endrer du en konstant i `sync.js` eller `api.js`, rett dokumentet. `stats/test/docs.test.js` feiler til det stemmer.
 - Personlige ord (stedsnavn, navn, familie) skal aldri inn i `DEFAULT_KEYWORDS`. Koden er offentlig.
