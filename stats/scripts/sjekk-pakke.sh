@@ -23,8 +23,11 @@ set -euo pipefail
 
 # Manifestkravene for AMO: data_collection_permissions og
 # strict_min_version >= 140. AMO avviser pakken uten dem, så de er feil.
+# data_collection_permissions kom i Firefox for Android 142, og uten et eget
+# gecko_android-krav varsler AMO-validatoren om det.
 MANIFEST_KRAV_ER_FEIL=1
 MIN_GECKO_VERSJON=140
+MIN_GECKO_ANDROID_VERSJON=142
 # light-dark() i CSS-en krever Chrome 123.
 MIN_CHROME_VERSJON=123
 
@@ -139,16 +142,37 @@ while IFS= read -r f; do
 done < <(cd "$ROOT" && find . -type f)
 
 # 4. Manifestkrav for AMO, eller for Chrome med --chrome. Chrome varsler om
-# nøkler bare Firefox kjenner, så de skal være borte der.
+# nøkler bare Firefox kjenner, så de skal være borte der. Firefox ignorerer
+# background.service_worker, og AMO-validatoren varsler om den.
 manifest_krav() { if [ "$MANIFEST_KRAV_ER_FEIL" = 1 ]; then feil "$@"; else advar "$@"; fi; }
+# hovedversjon <sti i manifestet>: heltallet foran første punktum, eller tomt.
+hovedversjon() {
+  node -e '
+    const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const v = process.argv[2].split(".").reduce((o, k) => o?.[k], m);
+    if (typeof v === "string" && /^[0-9]+/.test(v)) console.log(v.match(/^[0-9]+/)[0]);
+  ' "$ROOT/manifest.json" "$1"
+}
+# min_versjon <sti> <minimum> <navn i meldingen>
+min_versjon() {
+  local min
+  min="$(hovedversjon "$1")"
+  if [ -z "$min" ]; then
+    manifest_krav "manifest.json: $3 mangler (må være minst $2)"
+  elif [ "$min" -lt "$2" ]; then
+    manifest_krav "manifest.json: $3 er $min, må være minst $2"
+  fi
+}
 if [ ! -f "$ROOT/manifest.json" ]; then
   feil "manifest.json mangler i pakken"
 elif [ "$CHROME" = 1 ]; then
-  for nokkel in browser_specific_settings theme_icons scripts; do
+  for nokkel in browser_specific_settings gecko_android theme_icons scripts; do
     if grep -q "\"$nokkel\" *:" "$ROOT/manifest.json"; then
       feil "manifest.json: $nokkel hører ikke hjemme i Chrome-pakken"
     fi
   done
+  grep -q '"service_worker" *:' "$ROOT/manifest.json" ||
+    feil "manifest.json: background.service_worker mangler i Chrome-pakken"
   min="$(grep -oE '"minimum_chrome_version" *: *"[0-9]+' "$ROOT/manifest.json" | grep -oE '[0-9]+$' || true)"
   if [ -z "$min" ]; then
     feil "manifest.json: minimum_chrome_version mangler (må være minst $MIN_CHROME_VERSJON)"
@@ -158,11 +182,12 @@ elif [ "$CHROME" = 1 ]; then
 else
   grep -q '"data_collection_permissions"' "$ROOT/manifest.json" ||
     manifest_krav "manifest.json: browser_specific_settings.gecko.data_collection_permissions mangler"
-  min="$(grep -oE '"strict_min_version" *: *"[0-9]+' "$ROOT/manifest.json" | grep -oE '[0-9]+$' || true)"
-  if [ -z "$min" ]; then
-    manifest_krav "manifest.json: strict_min_version mangler (må være minst $MIN_GECKO_VERSJON)"
-  elif [ "$min" -lt "$MIN_GECKO_VERSJON" ]; then
-    manifest_krav "manifest.json: strict_min_version er $min, må være minst $MIN_GECKO_VERSJON"
+  min_versjon browser_specific_settings.gecko.strict_min_version "$MIN_GECKO_VERSJON" \
+    "gecko.strict_min_version"
+  min_versjon browser_specific_settings.gecko_android.strict_min_version "$MIN_GECKO_ANDROID_VERSJON" \
+    "gecko_android.strict_min_version"
+  if grep -q '"service_worker" *:' "$ROOT/manifest.json"; then
+    feil "manifest.json: background.service_worker hører ikke hjemme i Firefox-pakken"
   fi
 fi
 

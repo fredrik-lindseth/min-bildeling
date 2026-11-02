@@ -38,12 +38,14 @@ ren_pakke() {
   cat > "$d/manifest.json" <<EOF
 {
   "manifest_version": 3,
+  "background": { "scripts": ["background.js"], "type": "module" },
   "browser_specific_settings": {
     "gecko": {
       "id": "$GECKO_ID",
       "strict_min_version": "140.0",
       "data_collection_permissions": { "required": ["none"] }
-    }
+    },
+    "gecko_android": { "strict_min_version": "142.0" }
   }
 }
 EOF
@@ -150,7 +152,16 @@ sak; sed -i.bak '/data_collection_permissions/d; s/"140.0",/"140.0"/' "$TMP/sak/
 forvent_funn "manifest uten data_collection_permissions" "$TMP/sak" "data_collection_permissions mangler"
 
 sak; sed -i.bak 's/"140.0"/"128.0"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
-forvent_funn "for lav strict_min_version" "$TMP/sak" "strict_min_version er 128"
+forvent_funn "for lav strict_min_version" "$TMP/sak" "gecko.strict_min_version er 128"
+
+sak; sed -i.bak 's/"142.0"/"140.0"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "for lav gecko_android.strict_min_version" "$TMP/sak" "gecko_android.strict_min_version er 140"
+
+sak; sed -i.bak '/gecko_android/d; s/^    },$/    }/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "manifest uten gecko_android" "$TMP/sak" "gecko_android.strict_min_version mangler"
+
+sak; sed -i.bak 's/"scripts": \["background.js"\]/"service_worker": "background.js"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "service_worker i Firefox-pakken" "$TMP/sak" "service_worker hører ikke hjemme i Firefox-pakken"
 
 # Chrome-pakken: manifestet fra chrome-manifest.mjs er rent, og Firefox-nøkler
 # eller manglende minimum_chrome_version stopper den.
@@ -168,6 +179,11 @@ forvent_funn "Firefox-manifest i Chrome-pakken" "$TMP/sak" "browser_specific_set
 sak; node "$SCRIPTDIR/chrome-manifest.mjs" "$STATS/manifest.json" "$TMP/sak/manifest.json"
 sed -i.bak '/minimum_chrome_version/d' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
 forvent_funn "Chrome-manifest uten minimum_chrome_version" "$TMP/sak" "minimum_chrome_version mangler" --chrome
+
+sak; node "$SCRIPTDIR/chrome-manifest.mjs" "$STATS/manifest.json" "$TMP/sak/manifest.json"
+sed -i.bak 's/"service_worker"/"scripts"/' "$TMP/sak/manifest.json"; rm "$TMP/sak/manifest.json.bak"
+forvent_funn "Chrome-manifest med scripts" "$TMP/sak" "scripts hører ikke hjemme i Chrome-pakken" --chrome
+forvent_funn "Chrome-manifest uten service_worker" "$TMP/sak" "service_worker mangler i Chrome-pakken" --chrome
 
 # Ende til ende: package.sh på en kopi av repoet med plantet persondata
 # skal stoppe og slette zip-en.
