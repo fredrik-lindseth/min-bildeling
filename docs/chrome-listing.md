@@ -11,6 +11,7 @@ Teksten som fylles inn i utviklerkonsollen på [chrome.google.com/webstore/devco
 - Promobilde, lite (440x280): `stats/icons/listing/promo-440x280.png`
 - Skjermbilder (1280x800, inntil fem): fra `skjermbilder/butikk/`, for eksempel `seksjon-kostnader`, `seksjon-bilregnestykket`, `seksjon-bruksmonster`, `popup-lys` og `oppsummering-spart`
 - Hjemmeside: https://github.com/fredrik-lindseth/bildeleringen-stats
+- Kontakt-e-post: hei@fredriklindseth.no
 
 Kort beskrivelse er `description` i manifestet. Lang beskrivelse:
 

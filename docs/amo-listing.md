@@ -30,6 +30,7 @@ Utvidelsen er laget av et medlem og er ikke tilknyttet eller godkjent av Dele AS
 
 - Kategori: Andre (eventuelt Bokmerker og produktivitet)
 - Hjemmeside: https://github.com/fredrik-lindseth/bildeleringen-stats
+- Support-e-post: hei@fredriklindseth.no
 - Personvernerklæring: innholdet i [personvern.md](personvern.md)
 - Lisens: MIT
 

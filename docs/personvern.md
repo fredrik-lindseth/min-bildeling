@@ -8,4 +8,4 @@ Reservasjonene, turkategoriene og det du selv skriver inn i utvidelsen, lagres l
 
 Bilder og filer du eksporterer fra dashbordet, lastes ned til din egen maskin og deles bare hvis du velger å dele dem.
 
-Spørsmål kan sendes via kontaktadressen på utvidelsens side på addons.mozilla.org eller i Chrome Nettmarked.
+Spørsmål kan sendes til hei@fredriklindseth.no.
