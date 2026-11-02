@@ -1009,7 +1009,7 @@ function renderOwnership(reservations) {
   });
 
   $("comparison-note").textContent =
-    `Regnet mot en ny ${COMPARISON_CAR.name} ${COMPARISON_CAR.variant} til ${formatNOK.format(COMPARISON_CAR.price)}.`;
+    `Regnet mot en ny ${COMPARISON_CAR.name} til ${formatNOK.format(COMPARISON_CAR.price)}.`;
 
   renderMethodPanel($("ownership-method-detail"), OWNERSHIP_METHOD, { idPrefix: "eierkostnad-metode" });
 }

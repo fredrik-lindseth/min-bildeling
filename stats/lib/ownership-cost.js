@@ -26,7 +26,6 @@ const FIXED_COSTS = {
  */
 export const COMPARISON_CAR = {
   name: CAR.model.value,
-  variant: CAR.variant.value,
   price: CAR.price.value,
   costs: FIXED_COSTS,
   tyresPerKm: TYRES_PER_KM,
@@ -74,10 +73,11 @@ const percent = (share) => `${Math.round(share * 100)}\u00a0%`;
 const factor = (label, entry, unit, note) => ({ label, value: entry.value, unit, source: entry.source, note });
 
 export const OWNERSHIP_METHOD = {
-  intro: `Det du har betalt for bildeling, sammenlignes med å eie en ny ${CAR.model.value} ${CAR.variant.value}, ` +
+  intro: `Det du har betalt for bildeling, sammenlignes med å eie en ny ${CAR.model.value}, ` +
     "uansett hvilke biler du har brukt.",
   factors: [
-    { ...factor("Pris, ny bil", CAR.price, "kr", "Tidligere XC40 Recharge."), source: [CAR.price.source, "finn"] },
+    factor("Pris, ny bil", CAR.price, "kr",
+      "Antatt pris for en vanlig utstyrt bil, avrundet. Billigste utgave fra 439\u00a0900 kr. Tidligere XC40 Recharge."),
     factor("Verditap over tre år", CAR.depreciation, "kr/år"),
     factor("Forsikring med 75\u00a0% bonus", CAR.insurance, "kr/år"),
     factor("Trafikkforsikringsavgift", CAR.trafficInsuranceTax, "kr/år"),

@@ -126,7 +126,7 @@ icons/
 | --------------------- | ---------------------------------------------------- |
 | Eierkostnader         | OFV kalkyle 2026 (elbil, 10 000 km), NAF             |
 | Parkering             | Bergen eller Trondheim kommune, etter organisasjonen |
-| Volvo EX40            | Volvo Norge-pris 10.09.2026 (Elbil24, Finn)          |
+| Volvo EX40            | Antatt pris 600 000 kr, vanlig utstyrt, avrundet     |
 | CO₂ bildeling         | Miljødirektoratet (per biltype)                      |
 | CO₂ buss              | SSB, buss 2019 (~59 g/passasjer-km)                  |
 | CO₂ taxi              | 0 g/km etter nullutslippskravet, før det 229 g/km    |
