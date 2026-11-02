@@ -271,6 +271,10 @@ test("describeYearToDate gir riktig tekst for hvert tilfelle", () => {
     describeYearToDate({ ...base, lastYearTotal: 0, lastYearTrips: 0, change: null }),
     "Ingen turer samme tid i fjor"
   );
+  assert.match(
+    describeYearToDate({ ...base, lastYearTotal: 0, lastYearTrips: 2, change: null }),
+    /^Samme tid i fjor: 0\skr\.$/
+  );
   const text = describeYearToDate({ ...base, total: 0, trips: 0, lastYearTotal: 1500, change: -1 });
   assert.match(text, /^Ingen turer ennå i år\. Samme tid i fjor: 1\s500\skr\.$/);
 });

@@ -153,7 +153,7 @@ export function describeYearToDate(ytd) {
     return `Ingen turer ennå i år. Samme tid i fjor: ${formatNOK.format(ytd.lastYearTotal)}.`;
   }
   // Fjoråret hadde turer, men alle til 0 kr: ingen prosent å regne.
-  if (ytd.change == null) return "Ingen turer samme tid i fjor";
+  if (ytd.change == null) return `Samme tid i fjor: ${formatNOK.format(0)}.`;
   const pct = Math.round(ytd.change * 100);
   if (pct > 0) return `${pct} % mer enn samme tid i fjor`;
   if (pct < 0) return `${-pct} % mindre enn samme tid i fjor`;

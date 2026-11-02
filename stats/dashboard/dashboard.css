@@ -391,7 +391,7 @@ a:focus-visible,
 }
 
 /* .btn er inline-flex, som slår [hidden]. */
-.panel__head .btn[hidden] {
+.btn[hidden] {
   display: none;
 }
 

@@ -473,7 +473,8 @@ function renderCosts(reservations) {
   // Alle år: tre linjer om årene øverst i nøkkeltallene, og en lenke til
   // tabellen i Trender. Også dette venter på hele historikken.
   const showAll = tripHistory.complete && selectedYear === "all" && yearly.length > 1;
-  $("cost-all-years-link").hidden = !showAll;
+  // Per år-tabellen i Trender vises først med tre måneder, som resten av Trender.
+  $("cost-all-years-link").hidden = !showAll || monthly.length < 3;
   const [ytdRow, avgRow, topRow] = $("cost-figures").querySelectorAll(".figures__all-years");
   const ytd = showAll ? yearToDate(reservations) : null;
   const avg = showAll ? averagePerYear(reservations) : null;
