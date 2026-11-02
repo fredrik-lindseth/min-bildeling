@@ -44,7 +44,9 @@ With an account, the user logs in to app.dele.no as usual. The content script re
 
 Responses are stored in `browser.storage.local`. There is no analytics, no telemetry and no backend of our own, so `data_collection_permissions` is `required: ["none"]`. Which endpoints are called and how often is documented for Dele's developers in https://github.com/fredrik-lindseth/min-bildeling/blob/main/docs/api-bruk.md (Norwegian).
 
-`innerHTML` is only used with static markup or with values passed through `escapeHtml()` in `dashboard/dashboard.js`, which escapes via `textContent`.
+The extension's own code never assigns to `innerHTML`, `outerHTML` or `insertAdjacentHTML`; all DOM is built with `createElement` and `textContent`. Any such use the validator reports is in `vendor/html2canvas.min.js`, a third-party library shipped unmodified and checksum-locked in `scripts/vendor.sha256` (listed below).
+
+The manifest sets `gecko_android.strict_min_version` to 142 because `data_collection_permissions` needs Firefox for Android 142, while desktop stays at 140. `background` has only `scripts`; the Chrome build swaps it for `service_worker`.
 
 Third-party libraries in `vendor/`, unmodified:
 

@@ -20,7 +20,12 @@ async function init() {
   if (demo) document.body.prepend(createDemoBadge(document));
   const data = demo ?? await browserAPI.runtime.sendMessage({ type: "GET_DATA" });
   if (!data?.reservations?.length) {
-    document.querySelector(".summary").innerHTML = '<section class="slide"><p>Ingen turer lagret ennå. Trykk Synkroniser i utvidelsen først.</p></section>';
+    const slide = document.createElement("section");
+    slide.className = "slide";
+    const message = document.createElement("p");
+    message.textContent = "Ingen turer lagret ennå. Trykk Synkroniser i utvidelsen først.";
+    slide.append(message);
+    document.querySelector(".summary").replaceChildren(slide);
     return;
   }
 

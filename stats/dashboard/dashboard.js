@@ -558,7 +558,7 @@ function renderUsage(reservations) {
 
   // Top cars list
   const topCarsList = $("top-cars-list");
-  topCarsList.innerHTML = "";
+  topCarsList.replaceChildren();
   const top5 = patterns.topCars.slice(0, 5);
   if (!tripHistory.complete) {
     const li = document.createElement("li");
@@ -566,16 +566,10 @@ function renderUsage(reservations) {
     li.textContent = describeIncompleteHistory(tripHistory, "Listen");
     topCarsList.appendChild(li);
   } else if (top5.length === 0) {
-    topCarsList.innerHTML = '<li class="ranked__empty">Ingen data</li>';
+    topCarsList.append(el("li", { className: "ranked__empty", text: "Ingen data" }));
   } else {
     for (let i = 0; i < top5.length; i++) {
-      const li = document.createElement("li");
-      li.className = "ranked__item";
-      li.innerHTML = `
-        <span class="ranked__row"><span class="ranked__name">${escapeHtml(top5[i].name)}</span>
-        <span class="ranked__value">${formatTrips(top5[i].count)}</span></span>
-      `;
-      topCarsList.appendChild(li);
+      topCarsList.append(rankedItem(top5[i].name, formatTrips(top5[i].count)));
     }
   }
 }
@@ -802,19 +796,13 @@ function renderMileage(reservations) {
 
   // Km by car list
   const list = $("km-by-car-list");
-  list.innerHTML = "";
+  list.replaceChildren();
   const top5 = mileage.byCar.slice(0, 5);
   if (top5.length === 0) {
-    list.innerHTML = '<li class="ranked__empty">Ingen data</li>';
+    list.append(el("li", { className: "ranked__empty", text: "Ingen data" }));
   } else {
     for (let i = 0; i < top5.length; i++) {
-      const li = document.createElement("li");
-      li.className = "ranked__item";
-      li.innerHTML = `
-        <span class="ranked__row"><span class="ranked__name">${escapeHtml(top5[i][0])}</span>
-        <span class="ranked__value">${formatKm.format(top5[i][1])} km</span></span>
-      `;
-      list.appendChild(li);
+      list.append(rankedItem(top5[i][0], `${formatKm.format(top5[i][1])} km`));
     }
   }
 }
@@ -1190,17 +1178,9 @@ function renderCategoryOverview(reservations, savedCategories, keywords, categor
   }
 
   const tableEl = $("category-table");
-  tableEl.innerHTML = "";
-  for (const [, val] of entries.sort(([, a], [, b]) => b.totalCost - a.totalCost)) {
-    const row = document.createElement("div");
-    row.className = "table-row";
-    row.innerHTML = `
-      <span class="table-row__name">${escapeHtml(val.label)}</span>
-      <span class="table-row__stat">${formatTrips(val.count)}</span>
-      <span class="table-row__stat">${formatNOK.format(val.totalCost)}</span>
-    `;
-    tableEl.appendChild(row);
-  }
+  tableEl.replaceChildren(...entries
+    .sort(([, a], [, b]) => b.totalCost - a.totalCost)
+    .map(([, val]) => tableRow(val.label, formatTrips(val.count), formatNOK.format(val.totalCost))));
 }
 
 // ---------- Sjekk forslag ----------
@@ -1279,7 +1259,7 @@ function renderTripCheck(reservations, savedCategories, keywords, categories) {
   };
 
   const listEl = $("trip-list");
-  listEl.innerHTML = "";
+  listEl.replaceChildren();
   const moreBtn = $("trip-more");
 
   const appendRows = (from, to) => {
@@ -1326,28 +1306,30 @@ function renderTripCheck(reservations, savedCategories, keywords, categories) {
 }
 
 function tripRow(r, savedKey, match, options) {
-  const item = document.createElement("li");
-  item.className = "trip-row";
   const notesId = `trip-notes-${r.id}`;
   const date = formatTripDate.format(new Date(r.start));
   const current = savedKey || match?.category || "";
   const placeholder = current
-    ? ""
-    : `<option value="" selected disabled>Velg kategori</option>`;
-  const optionHtml = options.map(({ key, label }) =>
-    `<option value="${escapeHtml(key)}"${key === current ? " selected" : ""}>${escapeHtml(label)}</option>`
-  ).join("");
+    ? null
+    : el("option", { value: "", selected: true, disabled: true, text: "Velg kategori" });
+  const optionEls = options.map(({ key, label }) =>
+    el("option", { value: key, selected: key === current, text: label }));
 
-  item.innerHTML = `
-    <span class="trip-row__date">${escapeHtml(date)}</span>
-    <span class="trip-row__notes${hasNotes(r) ? "" : " trip-row__notes--empty"}" id="${escapeHtml(notesId)}">${escapeHtml(hasNotes(r) ? r.notes : "Uten notat")}</span>
-    <span class="trip-row__source">${escapeHtml(tripSourceText(savedKey, match))}</span>
-    <select class="field trip-row__select" data-id="${escapeHtml(String(r.id))}"
-      aria-label="Kategori for turen ${escapeHtml(date)}" aria-describedby="${escapeHtml(notesId)}">
-      ${placeholder}${optionHtml}
-    </select>
-  `;
-  return item;
+  return el("li", { className: "trip-row" },
+    el("span", { className: "trip-row__date", text: date }),
+    el("span", {
+      className: `trip-row__notes${hasNotes(r) ? "" : " trip-row__notes--empty"}`,
+      id: notesId,
+      text: hasNotes(r) ? r.notes : "Uten notat",
+    }),
+    el("span", { className: "trip-row__source", text: tripSourceText(savedKey, match) }),
+    el("select", {
+      className: "field trip-row__select",
+      dataset: { id: String(r.id) },
+      "aria-label": `Kategori for turen ${date}`,
+      "aria-describedby": notesId,
+    }, placeholder, ...optionEls),
+  );
 }
 
 function formatCount(n, one, many) {
@@ -1830,17 +1812,10 @@ function renderClimate(reservations) {
 
   // Fuel type breakdown
   const fuelList = $("co2-fuel-list");
-  fuelList.innerHTML = "";
+  fuelList.replaceChildren();
   for (const [fuel, data] of Object.entries(total.byFuelType).sort(([,a],[,b]) => b.kg - a.kg)) {
     if (data.trips === 0) continue;
-    const row = document.createElement("div");
-    row.className = "table-row";
-    row.innerHTML = `
-      <span class="table-row__name">${escapeHtml(fuel)}</span>
-      <span class="table-row__stat">${formatTrips(data.trips)}</span>
-      <span class="table-row__stat">ca. ${formatKm.format(Math.round(data.kg))} kg</span>
-    `;
-    fuelList.appendChild(row);
+    fuelList.append(tableRow(fuel, formatTrips(data.trips), `ca. ${formatKm.format(Math.round(data.kg))} kg`));
   }
 }
 
@@ -1902,7 +1877,7 @@ function ensureTransportForm(year, savedData) {
 
 function buildTransportForm(year, savedData) {
   const container = $("transport-fields");
-  container.innerHTML = "";
+  container.replaceChildren();
   const yearData = (savedData && savedData[year]) || {};
 
   for (const [mode, definition] of Object.entries(TRANSPORT_MODES)) {
@@ -2196,28 +2171,31 @@ function renderTransportSummary(reservations, savedData, year) {
 
   // Tabellen, sortert etter kostnad, høyest først
   const tableEl = $("transport-table");
-  tableEl.innerHTML = "";
-  for (const [, mode] of sortedModes) {
-    const row = document.createElement("div");
-    row.className = "table-row";
-    row.innerHTML = `
-      <span class="table-row__name">${escapeHtml(mode.label)}</span>
-      <span class="table-row__stat">${formatNOK.format(mode.cost)}</span>
-      <span class="table-row__stat">ca. ${formatKm.format(Math.round(mode.co2Kg))} kg</span>
-      <span class="table-row__stat">${formatKm.format(mode.km)} km</span>
-    `;
-    tableEl.appendChild(row);
-  }
+  tableEl.replaceChildren(...sortedModes.map(([, mode]) => tableRow(
+    mode.label,
+    formatNOK.format(mode.cost),
+    `ca. ${formatKm.format(Math.round(mode.co2Kg))} kg`,
+    `${formatKm.format(mode.km)} km`,
+  )));
 
   renderMethodPanel($("transport-method-detail"), TRANSPORT_METHOD, { idPrefix: "transport-metode" });
 }
 
 // ---------- Utility ----------
 
-function escapeHtml(str) {
-  const el = document.createElement("span");
-  el.textContent = str;
-  return el.innerHTML;
+// Rad i topplistene (biler etter turer og etter km).
+function rankedItem(name, value) {
+  return el("li", { className: "ranked__item" },
+    el("span", { className: "ranked__row" },
+      el("span", { className: "ranked__name", text: name }),
+      el("span", { className: "ranked__value", text: value })));
+}
+
+// Rad i tabellene for kategori, drivstoff og transport: navn og så tallene.
+function tableRow(name, ...stats) {
+  return el("div", { className: "table-row" },
+    el("span", { className: "table-row__name", text: name }),
+    ...stats.map((stat) => el("span", { className: "table-row__stat", text: stat })));
 }
 
 // ---------- Sync ----------
