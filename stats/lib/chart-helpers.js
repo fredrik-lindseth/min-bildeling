@@ -52,7 +52,9 @@ export function applyChartTheme() {
   tooltip.backgroundColor = resolveColor("--color-surface");
   tooltip.borderColor = resolveColor("--color-border");
   tooltip.borderWidth = 1;
-  tooltip.cornerRadius = 2;
+  // Samme hjørne som resten av flaten. --radius er en ren lengde, så
+  // getPropertyValue holder her, i motsetning til fargene.
+  tooltip.cornerRadius = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--radius")) || 0;
   tooltip.titleColor = resolveColor("--color-text");
   tooltip.bodyColor = resolveColor("--color-text");
   tooltip.titleFont = { weight: "600" };
