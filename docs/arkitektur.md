@@ -56,7 +56,7 @@ Ved første oppstart, uten `lastSync` og med tomt lager eller en uferdig første
 
 Stats-funksjonene bruker ett av to filtre fra `lib/stats.js`. Feil filter gir feil tall uten synlig feil.
 
-- `filterValid()`: `canceled == null` og `price.total != null`. Tar med noTrips, siden brukeren betalte. Brukes av `costStats()`, `monthlyCosts()`, `yearlyCosts()`, `bookingPatterns()` og `currentMonthStats()`.
+- `filterValid()`: `canceled == null` og `price.total != null`. Tar med noTrips, siden brukeren betalte. Brukes av `costStats()`, `monthlyCosts()`, `yearlyCosts()`, `yearSummaries()`, `yearToDate()`, `averagePerYear()`, `bookingPatterns()` og `currentMonthStats()`. Km i `yearSummaries()` følger `filterDriven()` og `drivenKm > 0`, som `mileageStats()`.
 - `filterDriven()`: `filterValid()` og `!noTrips`, altså bare faktisk kjøring. Brukes av `usagePatterns()`, `mileageStats()`, `totalCO2()`, `monthlyCO2()` og funksjonene i `lib/ownership-cost.js`.
 
 `bookingPatterns()` krever i tillegg `created != null` og dropper reservasjoner uten feltet, siden eldre data kan mangle det. Negative ledetider (booking opprettet etter start, rettelser, spontanbruk) settes til 0.

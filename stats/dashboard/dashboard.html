@@ -93,13 +93,27 @@
           <h3 class="panel__title">M&aring;nedlige kostnader</h3>
           <div class="chart-frame"><canvas id="monthly-cost-chart"></canvas></div>
         </div>
-        <dl class="figures" id="cost-figures">
-          <div><dt>Snitt per tur</dt><dd id="cost-avg-trip">&ndash;</dd></div>
-          <div><dt>Median per tur</dt><dd id="cost-median-trip">&ndash;</dd></div>
-          <div><dt>Dyrest tur</dt><dd id="cost-max-trip">&ndash;</dd></div>
-          <div><dt>Billigst tur</dt><dd id="cost-min-trip">&ndash;</dd></div>
-          <div><dt>Kostnad per km</dt><dd id="cost-per-km">&ndash;</dd></div>
-        </dl>
+        <div>
+          <dl class="figures" id="cost-figures">
+            <div class="figures__row--captioned figures__all-years" hidden>
+              <dt>I år hittil</dt><dd id="cost-ytd">&ndash;</dd>
+              <dd class="figures__caption" id="cost-ytd-context"></dd>
+            </div>
+            <div class="figures__row--captioned figures__all-years" hidden>
+              <dt>Snitt per år</dt><dd id="cost-avg-year">&ndash;</dd>
+              <dd class="figures__caption" id="cost-avg-year-context"></dd>
+            </div>
+            <div class="figures__all-years" hidden>
+              <dt id="cost-top-year-label">Dyreste år</dt><dd id="cost-top-year">&ndash;</dd>
+            </div>
+            <div><dt>Snitt per tur</dt><dd id="cost-avg-trip">&ndash;</dd></div>
+            <div><dt>Median per tur</dt><dd id="cost-median-trip">&ndash;</dd></div>
+            <div><dt>Dyrest tur</dt><dd id="cost-max-trip">&ndash;</dd></div>
+            <div><dt>Billigst tur</dt><dd id="cost-min-trip">&ndash;</dd></div>
+            <div><dt>Kostnad per km</dt><dd id="cost-per-km">&ndash;</dd></div>
+          </dl>
+          <p class="figures__more" id="cost-all-years-link" hidden><a href="#per-aar">Se alle år</a></p>
+        </div>
       </div>
     </section>
 
@@ -239,7 +253,10 @@
 
       <div id="trends-content" class="stack">
         <div class="panel" id="yoy-container" hidden>
-          <h3 class="panel__title">År mot år</h3>
+          <div class="panel__head">
+            <h3 class="panel__title">År mot år</h3>
+            <button type="button" class="btn btn--quiet" id="yoy-toggle" aria-pressed="false" hidden>Vis alle år</button>
+          </div>
           <div class="chart-legend" id="yoy-legend" aria-hidden="true"></div>
           <div class="chart-frame"><canvas id="yoy-chart"></canvas></div>
         </div>
@@ -252,6 +269,26 @@
         <div class="panel" id="seasonal-container" hidden>
           <h3 class="panel__title">Sesongsammenligning</h3>
           <div class="chart-frame"><canvas id="seasonal-chart"></canvas></div>
+        </div>
+
+        <div class="panel" id="per-aar" hidden>
+          <h3 class="panel__title">Per år</h3>
+          <div class="year-table-wrap">
+            <table class="year-table" id="year-table">
+              <caption class="visually-hidden">Turer, kilometer og kostnad per år</caption>
+              <thead>
+                <tr>
+                  <th scope="col" aria-sort="ascending"><button type="button" class="year-table__sort" data-key="year">År</button></th>
+                  <th scope="col" aria-sort="none"><button type="button" class="year-table__sort" data-key="trips">Turer</button></th>
+                  <th scope="col" aria-sort="none"><button type="button" class="year-table__sort" data-key="km">Km</button></th>
+                  <th scope="col" aria-sort="none"><button type="button" class="year-table__sort" data-key="total">Kostnad</button></th>
+                  <th scope="col" aria-sort="none"><button type="button" class="year-table__sort" data-key="avgPerTrip">Snitt per tur</button></th>
+                  <th scope="col" aria-sort="none"><button type="button" class="year-table__sort" data-key="perKm">Kr/km</button></th>
+                </tr>
+              </thead>
+              <tbody id="year-table-body"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
