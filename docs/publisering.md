@@ -9,7 +9,7 @@ Repoet har to Firefox-utvidelser med hver sin gecko-id, så de signeres og distr
 
 Stats går ut på addons.mozilla.org (AMO) i denne rekkefølgen: unlisted, signert xpi, installert og verifisert i Fredriks egen Firefox, og først når Dele har sagt ok, listed. Chrome Web Store følger samme løp, se [Chrome](#chrome) nederst. Flex har ikke eget `package.sh` ennå og kommer når den skal ut.
 
-## 1. Bygg zip-en
+## 1. Bygg zip-ene
 
 Øk `"version"` i `stats/manifest.json` først, så kjør fra repo-roten:
 
@@ -17,9 +17,9 @@ Stats går ut på addons.mozilla.org (AMO) i denne rekkefølgen: unlisted, signe
 ./stats/scripts/package.sh     # gir stats/dist/bildeleringen-stats-v<versjon>.zip og -chrome-v<versjon>.zip
 ```
 
-Chrome-zip-en er de samme filene med et manifest uten Firefox-nøklene (`browser_specific_settings`, `theme_icons`, `background.scripts`) og med `minimum_chrome_version` 123, laget av `stats/scripts/chrome-manifest.mjs`. `stats/manifest.json` er fortsatt eneste kilde. Utpakket ligger den i `stats/dist/chrome/`.
+Chrome-zip-en er de samme filene med et manifest uten Firefox-nøklene (`browser_specific_settings`, `theme_icons`, `background.scripts`) og med `minimum_chrome_version` (grensen står i scriptet), laget av `stats/scripts/chrome-manifest.mjs`. `stats/manifest.json` er fortsatt eneste kilde. Utpakket ligger den i `stats/dist/chrome/`.
 
-`package.sh` kjører kontrast- og stilsjekken først og byggevakten `stats/scripts/sjekk-pakke.sh` på den ferdige zip-en, og sletter zip-en ved funn. Vakten ser etter e-post, telefonnummer, koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene til AMO (`data_collection_permissions` og en høy nok `strict_min_version`, grensen står i scriptet) er feil, ikke advarsler. Chrome-zip-en sjekkes med `--chrome`, som krever at Firefox-nøklene er borte og at `minimum_chrome_version` er minst 123. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
+`package.sh` kjører kontrast- og stilsjekken først og byggevakten `stats/scripts/sjekk-pakke.sh` på begge de ferdige zip-ene, og sletter pakkene ved funn. Vakten ser etter e-post, telefonnummer, koordinater, eyJ-tokens, ukjente UUID-er, dataeksporter (`bildeleringen-*.json`), testfiler, svg-kilder, `listing/`, `.DS_Store`, vendor-filer som ikke stemmer med `stats/scripts/vendor.sha256` og farger utenfor `:root` i CSS. Funn meldes som fil og linje, uten innholdet. Navn, arbeidsgiver, adresse og stedsnavn står bare i `~/.config/bildeleringen/persondata.txt`, én regex per linje, aldri i repoet. Mangler filen, gir vakten en advarsel. Manifestkravene til AMO (`data_collection_permissions` og en høy nok `strict_min_version`, grensen står i scriptet) er feil, ikke advarsler. Chrome-zip-en sjekkes med `--chrome`, som krever at Firefox-nøklene er borte og at `minimum_chrome_version` er høy nok. Ny vendor-versjon krever ny sjekksumliste, og `stats/scripts/sjekk-pakke.test.sh` viser at vakten slår til.
 
 Pakken har med `LICENSE`, men ikke README, siden README viser skjermbilder som ligger utenfor pakken.
 

@@ -10,7 +10,7 @@ Fra repo-roten:
 ./stats/scripts/package.sh
 ```
 
-Zip-ene havner i `stats/dist/`: `bildeleringen-stats-v<versjon>.zip` for Firefox og `bildeleringen-stats-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten zip-en for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
+Zip-ene havner i `stats/dist/`: `bildeleringen-stats-v<versjon>.zip` for Firefox og `bildeleringen-stats-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten begge zip-ene for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
 
 ### 2. Last inn i Firefox
 
