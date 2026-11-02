@@ -55,6 +55,8 @@ VERSION=$(grep '"version"' stats/manifest.json | head -1 | sed 's/.*: *"\([^"]*\
 TAG="v${VERSION}"
 ZIP="stats/dist/bildeleringen-stats-${TAG}.zip"
 CHROME_ZIP="stats/dist/bildeleringen-stats-chrome-${TAG}.zip"
+# Firefox-brukere installerer den signerte xpi-en fra AMO (amo-upload.sh --yes).
+XPI="stats/dist/bildeleringen-stats-${TAG}-signert.xpi"
 TITLE="${TITLE:-$TAG}"
 
 # I tørrkjøring samles alle problemer så de vises på én gang.
@@ -99,6 +101,8 @@ elif [ ! -s "$NOTES" ]; then
   problem "notatfilen '${NOTES}' finnes ikke eller er tom"
 fi
 
+[ -f "$XPI" ] || problem "mangler ${XPI} (kjør ./stats/scripts/amo-upload.sh --yes først)"
+
 [ "$PROBLEMS" -eq 0 ] && echo "  alt i orden"
 echo ""
 
@@ -116,7 +120,7 @@ STEPS=(
 for remote in "${REMOTES[@]}"; do
   STEPS+=("git push --atomic ${remote} main refs/tags/${TAG}")
 done
-STEPS+=("gh release create ${TAG} ${ZIP} ${CHROME_ZIP} --repo ${GITHUB_REPO} --verify-tag --title '${TITLE}' --notes-file '${NOTES:-<notatfil>}'")
+STEPS+=("gh release create ${TAG} ${XPI} ${ZIP} ${CHROME_ZIP} --repo ${GITHUB_REPO} --verify-tag --title '${TITLE}' --notes-file '${NOTES:-<notatfil>}'")
 
 if [ "$YES" -eq 0 ]; then
   echo "Tørrkjøring. Med --yes ville dette blitt kjørt:"
@@ -135,7 +139,7 @@ for remote in "${REMOTES[@]}"; do
   echo "Pusher main og ${TAG} til ${remote}..."
   git push --atomic "$remote" main "refs/tags/${TAG}"
 done
-gh release create "$TAG" "$ZIP" "$CHROME_ZIP" \
+gh release create "$TAG" "$XPI" "$ZIP" "$CHROME_ZIP" \
   --repo "$GITHUB_REPO" \
   --verify-tag \
   --title "$TITLE" \

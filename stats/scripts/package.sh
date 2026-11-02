@@ -18,8 +18,9 @@ CHROME_DIR="$OUTDIR/chrome"
 
 echo "Packaging Bildeleringen Stats v${VERSION}..."
 
-rm -rf "$OUTDIR"
+# Signerte xpi-er fra AMO kan ikke bygges på nytt, så de blir liggende.
 mkdir -p "$OUTDIR"
+find "$OUTDIR" -mindepth 1 -maxdepth 1 ! -name '*-signert.xpi' -exec rm -rf {} +
 
 # Kontrastbrudd stopper pakkingen før noe bygges. dist/ er tømt først, så en
 # gammel zip ikke blir liggende og ser gyldig ut.
@@ -76,7 +77,7 @@ node scripts/chrome-manifest.mjs manifest.json "$CHROME_DIR/manifest.json"
 
 echo ""
 if ! ./scripts/sjekk-pakke.sh --chrome "$OUTDIR/$CHROME_ZIPNAME"; then
-  rm -rf "${OUTDIR:?}"/*
+  find "${OUTDIR:?}" -mindepth 1 -maxdepth 1 ! -name '*-signert.xpi' -exec rm -rf {} +
   echo "" >&2
   echo "Pakkene er slettet. Rett funnene over og pakk på nytt." >&2
   exit 1

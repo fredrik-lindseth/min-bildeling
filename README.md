@@ -64,21 +64,19 @@ Bildene viser ekte bruk, unntatt Turkategorier og Transport, som viser demodata.
 
 ## Installasjon
 
-Last ned `.zip` fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases).
+Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar noen minutter hvis du har mange turer. La dashbordet stå åpent til den er ferdig.
 
-I Firefox:
+### Firefox
 
-1. Gå til `about:debugging#/runtime/this-firefox`
-2. Klikk «Last inn midlertidig tillegg...»
-3. Velg `.zip`-filen
+Utvidelsen er signert av Mozilla, men ligger ikke i katalogen på addons.mozilla.org ennå. Last ned `.xpi`-filen fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases) og åpne den i Firefox, eller gå til `about:addons`, tannhjulet og «Installer tillegg fra fil…». Den oppdateres ikke av seg selv før den er i katalogen.
 
-I Chrome (123 eller nyere), med `-chrome`-zip-en:
+### Chrome
 
-1. Pakk ut zip-filen
+Chrome Nettmarked kommer senere. Inntil videre installeres den for hånd, og den blir stående til du fjerner den:
+
+1. Last ned `-chrome`-zip-en fra [Releases](https://github.com/fredrik-lindseth/bildeleringen-stats/releases) og pakk den ut
 2. Gå til `chrome://extensions` og slå på Utviklermodus
-3. Klikk «Last inn upakket» og velg mappen
-
-Du må være innlogget på [app.dele.no](https://app.dele.no). Første synk tar noen minutter hvis du har mange turer. La dashboardet stå åpent til den er ferdig.
+3. Klikk «Last inn upakket» og velg mappen du pakket ut
 
 ## Personvern
 

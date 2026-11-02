@@ -25,7 +25,7 @@ Lag API-nøkler på [addons.mozilla.org/developers/addon/api/key/](https://addon
 ./stats/scripts/amo-upload.sh --yes    # sender inn som unlisted og henter den signerte xpi-en
 ```
 
-Xpi-en havner i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi`. Blir den ikke signert innen ti minutter, hent den fra [utviklersiden](https://addons.mozilla.org/developers/addons). Lim notatet til reviewer fra [amo-listing.md](amo-listing.md) inn under «Notes to Reviewer».
+Xpi-en havner i `stats/dist/bildeleringen-stats-v<versjon>-signert.xpi` og blir liggende når `package.sh` kjører på nytt. Blir den ikke signert innen ti minutter, hent den fra [utviklersiden](https://addons.mozilla.org/developers/addons). Lim notatet til reviewer fra [amo-listing.md](amo-listing.md) inn under «Notes to Reviewer».
 
 Når Dele har sagt ok, bytt tillegget til listed. Teksten står i [amo-listing.md](amo-listing.md), personvernerklæringen i [personvern.md](personvern.md), ikonet i `stats/icons/listing/icon-256.png`. Listed får strengere review, ofte for hånd. Unlisted oppdateres ved å installere ny xpi.
 
@@ -60,4 +60,4 @@ Sjekk så at:
 ./stats/scripts/release.sh --yes notater.md    # tagg, push og publiser
 ```
 
-Krever ren arbeidskopi på `main` og en versjon uten tagg. Scriptet pakker, tagger `v<versjon>`, pusher til alle remotene og legger begge zip-ene ved releasen. `--title` setter tittelen.
+Krever ren arbeidskopi på `main` og en versjon uten tagg. Scriptet pakker, tagger `v<versjon>`, pusher til alle remotene og legger den signerte xpi-en og begge zip-ene ved releasen. Release krever at xpi-en finnes. `--title` setter tittelen.
