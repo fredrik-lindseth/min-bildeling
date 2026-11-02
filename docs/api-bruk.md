@@ -1,76 +1,56 @@
 # Slik bruker Bildeleringen Stats API-et til dele.no
 
-Bildeleringen Stats er en nettleserutvidelse som viser et medlem statistikk over egen bildeling: kostnader, kilometer, bilvalg og CO₂. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dokumentet er skrevet for utviklerne hos Dele, så dere kan se hva utvidelsen gjør mot API-et og hvor ofte. En test binder tallene her til konstantene i koden, så dokumentet følger med når koden endres.
+Bildeleringen Stats er en nettleserutvidelse som viser et medlem statistikk over egen bildeling. Den leser bare reservasjonene til den som er innlogget, med medlemmets eget token fra app.dele.no. Dokumentet er skrevet for utviklerne hos Dele. En test binder tallene her til koden.
 
 ## Endepunkter
 
-Utvidelsen bruker to endepunkter, begge med GET, og ingen andre:
+To endepunkter, begge GET:
 
 | Endepunkt                                                                      | Brukes til                                          |
 | ------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `/api/reservations/historic?page=N&size=100&sort=start,desc&membershipId=<id>` | Listen over medlemmets reservasjoner, 100 per side  |
+| `/api/reservations/historic?page=N&size=100&sort=start,desc&membershipId=<id>` | Listen over reservasjoner, 100 per side             |
 | `/api/reservations/{id}`                                                       | Detaljene for én reservasjon (pris, kilometer, bil) |
 
-Listen mangler pris, kjørte kilometer og bilinformasjon, så detaljkallet trengs én gang per reservasjon.
-
-Alle kall har headeren `authorization` med medlemmets token, slik app.dele.no selv sender den, og `X-Client: bildeleringen-stats/<versjon>`, så dere kan kjenne igjen trafikken i loggene. User-Agent er nettleserens egen, siden en utvidelse ikke kan sette den.
+Listen mangler pris, kilometer og bil, så detaljkallet trengs én gang per reservasjon. Alle kall har `authorization` med medlemmets token og `X-Client: bildeleringen-stats/<versjon>`, så dere kan kjenne igjen trafikken.
 
 ## Når kall skjer
 
-Kall skjer bare når medlemmet selv har utvidelsen åpen:
+Bare når medlemmet har utvidelsen åpen:
 
-- når dashbordet eller popupen åpnes og det er over én time siden forrige fullførte synkronisering,
-- når dashbordet eller popupen åpnes og en synkronisering ble avbrutt, uansett hvor lenge siden, så den fortsetter der den slapp, eller
-- når medlemmet trykker Synkroniser eller Prøv igjen.
+- når dashbordet eller popupen åpnes og det er over én time siden forrige fullførte synkronisering
+- når en avbrutt synkronisering skal fortsette
+- når medlemmet trykker Synkroniser
 
-Første gang dashbordet åpnes i en ny installasjon, starter det ikke synkroniseringen før medlemmet har valgt mellom å importere en sikkerhetskopi og å starte synkroniseringen. En sikkerhetskopi fra en tidligere installasjon har med reservasjonene og detaljene, så da hentes bare det som er nytt siden kopien ble laget. Importeres kopien mens en synkronisering pågår, tas de importerte reservasjonene ut av køen, og synkroniseringen fortsetter med resten.
+Det er ingen bakgrunnspolling. En ny installasjon venter til medlemmet har valgt mellom å importere en sikkerhetskopi og å synkronisere, og med en kopi hentes bare det som er nytt.
 
-Det finnes ingen bakgrunnspolling, ingen alarmer og ingen synkronisering når nettleseren står i ro. Én synkronisering kjører om gangen, også med flere vinduer åpne. Vinduet som synkroniserer, holder en lås i det lokale lageret som gjelder i 45 sekunder og fornyes hvert 15. sekund. Lukkes vinduet, går låsen ut av seg selv. Har et vindu mistet låsen, for eksempel etter et svar som tok over 45 sekunder, stopper det før neste kall.
-
-Popupen henter høyst 25 detaljer om gangen, siden den lukkes så fort medlemmet klikker utenfor. Hver ny åpning eller hvert trykk på Synkroniser i popupen henter 25 til. Resten hentes når dashbordet er åpent.
+Én synkronisering kjører om gangen, også med flere vinduer åpne. Låsen gjelder i 45 sekunder og fornyes hvert 15. sekund. Et vindu som har mistet låsen, for eksempel etter et svar som tok over 45 sekunder, stopper før neste kall. Popupen henter høyst 25 detaljer om gangen, og hver ny åpning henter 25 til. Resten hentes fra dashbordet.
 
 ## Hvor mange kall
 
-Første gang henter utvidelsen alle sider av listen og én detalj per reservasjon. Et medlem med 662 reservasjoner gir 7 listekall og 662 detaljkall. Kallene går ett om gangen med 250 ms pause mellom dem, så det tar rundt fire til fem minutter når fanen er i forgrunnen. Ligger den i bakgrunnen, holder Firefox igjen tidtakerne, og da tar det nærmere et kvarter. Detaljene lagres fortløpende i grupper på 20. Blir synkroniseringen avbrutt, fortsetter neste der den slapp. Bare detaljene som var hentet etter siste lagring, altså høyst én gruppe, hentes en gang til. Det gjelder også når dashbordet tar over en synkronisering popupen holdt på med.
+Første gang hentes alle sider av listen og én detalj per reservasjon. 662 reservasjoner gir 7 listekall og 662 detaljkall, ett om gangen med 250 ms pause mellom dem. Det tar fire–fem minutter i en fane i forgrunnen. Detaljene lagres i grupper på 20, så en avbrutt synkronisering fortsetter der den slapp.
 
-Senere hentes listen bare til første side med en reservasjon utvidelsen kjenner fra før, og det er nesten alltid én side. Svarets `x-totalelements` brukes som kontroll: dekker kjente og nye reservasjoner ikke totalen, leses flere sider. Detaljer hentes for nye reservasjoner og for de som fortsatt kan endre seg. Pausen er da 100 ms.
+Senere leses listen bare til første kjente reservasjon, nesten alltid én side, med `x-totalelements` som kontroll. Detaljer hentes for nye reservasjoner og for de som fortsatt kan endre seg. Pausen er da 100 ms.
 
-### Hvilke detaljer hentes på nytt
+En reservasjon kan få endelig pris en stund etter at den er avsluttet. Detaljen hentes derfor på nytt høyst én gang i døgnet, til den er hentet minst sju dager etter reservasjonens slutt. Deretter aldri igjen.
 
-En reservasjon kan få endelig pris og kilometer en stund etter at den er avsluttet. Utvidelsen henter derfor detaljen på nytt høyst én gang i døgnet, fram til den har en versjon hentet minst sju dager etter reservasjonens slutt. Deretter hentes den aldri igjen.
+API-et sender `Cache-Control: no-store` uten `ETag` eller `Last-Modified`, så betingede kall er ikke mulig. Med en `ETag` på detaljkallet kunne utvidelsen fått 304 tilbake.
 
-API-et sender `Cache-Control: no-store` og verken `ETag` eller `Last-Modified`, så betingede kall er ikke mulig i dag. Regelen over og pagineringen som stopper ved første kjente reservasjon, er utvidelsens cache. Med en `ETag` på detaljkallet kunne utvidelsen sendt `If-None-Match` og fått 304 tilbake.
+En typisk dag med popupen åpnet to ganger og dashbordet én gang gir 4–6 kall. En dag uten nye turer gir ett listekall per åpning, med minst en time mellom.
 
-### En typisk dag
+## Feil
 
-Et medlem åpner popupen om morgenen, tar en tur på ettermiddagen og ser på dashbordet om kvelden:
+- **429, 502, 503, 504, nettverksfeil og 500 på listen** gjelder tjenesten. Utvidelsen venter så lenge `Retry-After` sier. Uten den venter den 2 s, så 4 s, med ±50 % tilfeldig variasjon.
+- **Tre slike feil på rad** stopper synkroniseringen, og automatiske forsøk venter da i minst ti minutter. Ber `Retry-After` om mer enn to minutter, stopper den med en gang.
+- **500 på en detalj** gjelder bare den reservasjonen. Den prøves én gang til, og svarer den 500 igjen, hoppes den over. Feiler tre ulike reservasjoner på rad med 5xx, regnes det som feil i tjenesten.
+- **404 eller annen 4xx på en detalj** hopper over den reservasjonen.
+- **401** stopper og ber medlemmet logge inn igjen.
 
-| Tidspunkt                                      | Kall                                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 08:00, popupen åpnes (over en time siden sist) | 1 listekall og 1–3 detaljkall for turer som sluttet den siste uken og ikke er hentet i dag |
-| 08:30, popupen åpnes igjen                     | ingen                                                                                      |
-| 21:00, dashbordet åpnes                        | 1 listekall og 1 detaljkall for dagens tur                                                 |
+En reservasjon som er hoppet over, prøves igjen tidligst etter én time, så etter fire, seksten og 64 timer, deretter én gang i uken. Svarer den 404 fire ganger, regnes den som slettet.
 
-Det blir 4–6 kall den dagen. En dag uten nye eller nylig avsluttede turer gir ett listekall per åpning, med minst én time mellom.
+## Lagring
 
-## Når API-et svarer med feil
-
-Utvidelsen skiller mellom feil i hele tjenesten og feil i én reservasjon.
-
-- **429, 502, 503, 504 og nettverksfeil**, og 500 på et listekall, gjelder tjenesten. Utvidelsen venter så lenge `Retry-After` sier, i sekunder eller som dato. Uten `Retry-After` venter den 2 s, så 4 s, med tilfeldig variasjon på ±50 % så flere klienter ikke prøver samtidig.
-- **Tre slike feil på rad** stopper synkroniseringen. Det som er hentet, er lagret, og medlemmet får beskjed om at tjenesten ikke svarer akkurat nå. Automatiske forsøk venter da i minst ti minutter. Ber `Retry-After` om mer enn to minutter, stopper synkroniseringen med en gang.
-- **500 på en detalj** gjelder som regel bare den ene reservasjonen. Den prøves én gang til, og svarer den 500 igjen, hoppes den over og synkroniseringen går videre. Feiler tre ulike reservasjoner på rad med 5xx, regnes det som feil i tjenesten, og synkroniseringen stopper som over.
-- **404 eller annen 4xx på en detalj** hopper over den ene reservasjonen.
-- **401** stopper synkroniseringen og ber medlemmet logge inn på app.dele.no igjen.
-
-En reservasjon som er hoppet over, prøves igjen ved senere synkroniseringer med økende mellomrom: tidligst etter én time, så etter fire, seksten og 64 timer, deretter én gang i uken. Svarer den 404 fire ganger, regnes den som slettet og prøves ikke igjen. Medlemmet ser hvor mange reservasjoner som mangler detaljer eller ikke kunne oppdateres, og kan prøve igjen med en gang ved å trykke Synkroniser.
-
-## Hva som lagres, og hvor
-
-Svarene lagres i nettleserens lokale utvidelseslager (`browser.storage.local`) på medlemmets maskin, sammen med tidspunktet hver detalj ble hentet. Dataene ligger der til medlemmet sletter dem eller fjerner utvidelsen. Ingenting sendes til tredjepart eller til servere utenfor dele.no. Utvidelsen har ingen analyse, sporing eller egen backend.
-
-Utviklerpanelet i utvidelsen viser antall kall (listekall, detaljkall, nye forsøk og feil) for de tre siste synkroniseringene.
+Svarene lagres i `browser.storage.local` på medlemmets maskin til medlemmet sletter dem. Ingenting sendes andre steder enn til dele.no. Utvidelsen har ingen analyse, sporing eller egen backend.
 
 ## Kontakt
 
-Ser dere noe dere vil ha endret, for eksempel pauser, grenser eller en header, tar jeg gjerne imot beskjed på hei@fredriklindseth.no.
+Vil dere ha noe endret, som pauser, grenser eller en header, send en e-post til hei@fredriklindseth.no.
