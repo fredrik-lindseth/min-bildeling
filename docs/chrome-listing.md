@@ -66,7 +66,7 @@ Personvernerklæring: https://github.com/fredrik-lindseth/bildeleringen-stats/bl
 2. I utviklerkonsollen: «Nytt element», last opp Chrome-zip-en.
 3. Fyll inn butikkoppføringen og personvernpraksisen fra dette dokumentet.
 4. Under Distribusjon: velg synlighet «Ikke oppført» (unlisted). Send til gjennomgang.
-5. Når den er godkjent, installer fra lenken i egen Chrome og gå gjennom sjekklisten i [publisering.md](publisering.md) del 3. Den utpakkede utgaven har et annet lager enn butikkutgaven, så ta en sikkerhetskopi først og importer den etterpå.
+5. Når den er godkjent, installer fra lenken i egen Chrome og gå gjennom sjekklisten i [publisering.md](publisering.md#sjekk-i-egen-nettleser). Den utpakkede utgaven har et annet lager enn butikkutgaven, så ta en sikkerhetskopi først og importer den etterpå.
 6. Når Dele har sagt ok, bytt synlighet til «Offentlig».
 
 Ny versjon: øk `version` i `stats/manifest.json`, bygg, last opp zip-en under «Pakke» på elementet og send til gjennomgang.
