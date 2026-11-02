@@ -291,6 +291,8 @@ Under første synk står en forklaring («Henter turene dine fra Dele. Første g
 
 Inline tom tilstand i en seksjon sier hvor mye data som trengs, for eksempel «Trender vises når du har turer fra minst tre måneder.» Et panel som bare gir mening med mer data, skjules i stedet for å stå tomt: «År mot år», «Per år» og «Sesongsammenligning» vises først med turer fra to år.
 
+Min transport slås sammen til én linje med knappen «Legg inn tall» når det valgte året ikke har tall for andre transportmidler, framfor å vise et tomt skjema og en oppsummering der bildelingen er alt.
+
 ## Diagrammer
 
 Chart.js-fargene hentes fra tokenene gjennom måleelementet beskrevet over, og hentes på nytt når `prefers-color-scheme` endrer seg (lytt på `matchMedia(...).change` og oppdater diagrammene).

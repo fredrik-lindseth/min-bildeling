@@ -13,7 +13,7 @@ Nettleserutvidelse som viser hva Bildeleringen koster deg og hvordan du bruker d
   - Trender (år mot år, rullerende snitt, sesong)
   - Bilregnestykket (bildeling mot egen bil, også Volvo EX40)
   - Turkategorier (sortert automatisk etter turnotatene)
-  - Klimaregnskap (CO₂ per drivstofftype og bil)
+  - Klimaregnskap (CO₂ per drivstofftype og bil, mot en gjennomsnittlig personbil)
   - Transportkalkulator (taxi, leiebil, buss, fly, sykkel, totalbilde)
 - **Årsoppsummering**: året ditt, én side per tall.
 - **PNG-eksport** av hver seksjon.
