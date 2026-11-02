@@ -24,7 +24,7 @@ PALETT = 1.3
 T = "lib/tokens.css"
 
 PARS = [
-    # Tekst på flatene (tabellen «Kontrast» i docs/design.md)
+    # Tekst på flatene
     (T, "--color-text", "--color-bg", TEKST, "brødtekst og hovedtall"),
     (T, "--color-text", "--color-surface", TEKST, "tekst i panel, header og banner"),
     (T, "--color-text-secondary", "--color-bg", TEKST, "etiketter, forklarende setning"),
