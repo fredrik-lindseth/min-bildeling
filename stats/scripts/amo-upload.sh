@@ -53,7 +53,7 @@ fi
 API="${AMO_API:-https://addons.mozilla.org}/api/v5"
 GUID="$(jq -r '.browser_specific_settings.gecko.id' "$STATS/manifest.json")"
 VERSION="$(jq -r '.version' "$STATS/manifest.json")"
-ZIP="$STATS/dist/min-bildeling-v${VERSION}.zip"
+ZIP="$STATS/dist/min-bildeling-firefox-v${VERSION}.zip"
 XPI="$STATS/dist/min-bildeling-v${VERSION}-signert.xpi"
 
 TMP="$(mktemp -d)"

@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 
 VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 OUTDIR="dist"
-ZIPNAME="min-bildeling-v${VERSION}.zip"
+ZIPNAME="min-bildeling-firefox-v${VERSION}.zip"
 CHROME_ZIPNAME="min-bildeling-chrome-v${VERSION}.zip"
 # Utpakket Chrome-utgave, til «Last inn upakket» på chrome://extensions.
 CHROME_DIR="$OUTDIR/chrome"

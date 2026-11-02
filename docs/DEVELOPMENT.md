@@ -10,7 +10,7 @@ Fra repo-roten:
 ./stats/scripts/package.sh
 ```
 
-Zip-ene havner i `stats/dist/`: `min-bildeling-v<versjon>.zip` for Firefox og `min-bildeling-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten begge zip-ene for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
+Zip-ene havner i `stats/dist/`: `min-bildeling-firefox-v<versjon>.zip` for Firefox og `min-bildeling-chrome-v<versjon>.zip` for Chrome, og Chrome-utgaven ligger også utpakket i `stats/dist/chrome/`. Før de lages, kjører kontrast- og stilsjekken, og etterpå sjekker byggevakten begge zip-ene for persondata, utviklingsrot og endrede vendor-filer. Ved funn blir det ingen zip.
 
 Til slutt kjører `valider.sh`. Firefox-zip-en går gjennom Mozillas `addons-linter` (10.15.0, via `npx`), som er de samme reglene AMO bruker: feil stopper, og advarsler stopper med mindre de står med begrunnelse i lista `TILLATT` i scriptet. Chrome har ingen offentlig validator, så `sjekk-chrome.mjs` laster `stats/dist/chrome/` i hodeløs Chrome med en kasteprofil uten nett og feiler på manifestfeil, installasjonsadvarsler og feil fra service workeren. Krever Google Chrome og nett første gang `npx` henter linteren. `--uten-validering` hopper over steget, og `./stats/scripts/valider.sh` kjører det alene.
 

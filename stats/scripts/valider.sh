@@ -27,7 +27,7 @@ TILLATT=(
 )
 
 VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
-ZIP="dist/min-bildeling-v${VERSION}.zip"
+ZIP="dist/min-bildeling-firefox-v${VERSION}.zip"
 CHROME_DIR="dist/chrome"
 
 for f in "$ZIP" "$CHROME_DIR/manifest.json"; do

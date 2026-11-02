@@ -53,7 +53,7 @@ while IFS= read -r remote; do REMOTES+=("$remote"); done < <(git remote)
 
 VERSION=$(grep '"version"' stats/manifest.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 TAG="v${VERSION}"
-ZIP="stats/dist/min-bildeling-${TAG}.zip"
+ZIP="stats/dist/min-bildeling-firefox-${TAG}.zip"
 CHROME_ZIP="stats/dist/min-bildeling-chrome-${TAG}.zip"
 # Firefox-brukere installerer den signerte xpi-en fra AMO (amo-upload.sh --yes).
 XPI="stats/dist/min-bildeling-${TAG}-signert.xpi"
