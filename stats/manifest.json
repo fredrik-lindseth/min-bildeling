@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Min bildeling",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Statistikk over bildelingen din på dele.no",
   "permissions": ["storage", "unlimitedStorage", "scripting"],
   "host_permissions": ["https://app.dele.no/*"],
