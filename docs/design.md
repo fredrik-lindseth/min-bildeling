@@ -166,16 +166,18 @@ brukt på bildeling i 2025, fordelt på 61 turer.
 
 ```
 Bilregnestykket                                   Last ned bilde
-ca. 38 000 kr
+ca. 96 000 kr
 mindre per år enn å eie en Volvo EX40.
 
-Volvo EX40, per år            ca. 52 200 kr
+Volvo EX40, per år           ca. 110 000 kr
 Bildeling, per år             − 14 200 kr
 ──────────────────────────────────────────
-Forskjell                     ca. 38 000 kr
+Forskjell                     ca. 96 000 kr
 Hvilken bil det regnes mot, i én setning.
 Slik beregnes det
 ```
+
+Tallene i skissene er oppdiktede og viser bare formen. Forutsetningene for bilen står i `stats/lib/referansebil.js`.
 
 Kostnader-hovedtallet står uten «ca.» fordi det er summen av faktiske beløp (`price.total`). «ca.» står bare foran estimater: Bilregnestykket, egen bil-kostnaden og CO₂-tallene.
 

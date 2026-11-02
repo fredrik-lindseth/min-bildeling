@@ -45,7 +45,7 @@ export const SOURCES = {
 // for 10 000 km, interpolert med t = (600 000 − 550 000) / 200 000 = 0,25.
 // Datagrunnlaget er fra desember 2025 til april 2026.
 export const REFERENCE_CAR = {
-  checked: "2026-11-01",
+  checked: "2026-11-02",
 
   // EX40 er navnet på XC40 Recharge siden februar 2024.
   model: { value: "Volvo EX40", source: "volvoPrice", date: "2026-09-10" },
