@@ -388,27 +388,30 @@
 
       <details class="panel keyword-card" id="keyword-card">
         <summary class="keyword-card__summary">
-          Egne n&oslash;kkelord
+          Nøkkelord og kategorier
           <span class="keyword-card__total" id="keyword-total"></span>
         </summary>
         <p class="keyword-card__help">
-          Skill ordene med komma. Et ord treffer starten av et ord i notatet, så «lege» treffer «legevakt».
+          Hver kategori har en liste med ord. Et ord treffer starten av et ord i notatet, så «lege» treffer «legevakt».
           Med * først treffer det også sist i et ord: «*besøk» treffer «bursdagsbesøket».
-          Første kategori ovenfra med treff vinner.
+          Kategorien øverst med treff vinner. Du kan fjerne ord, legge til egne og lage egne kategorier.
           <span id="keyword-stop-words"></span>
         </p>
-        <form id="keyword-form" class="keyword-form">
-          <div id="keyword-fields"></div>
-          <div class="form-actions">
-            <button type="submit" class="btn">Lagre</button>
-            <button type="button" id="keyword-export" class="btn btn--quiet">Eksporter JSON</button>
-            <label class="btn btn--quiet keyword-import">
-              Importer JSON
-              <input type="file" id="keyword-import" accept="application/json,.json" class="visually-hidden">
-            </label>
-            <span id="keyword-status" class="form-status" role="status" aria-live="polite"></span>
-          </div>
+        <div id="keyword-editor" class="keyword-editor"></div>
+        <form class="keyword-new" id="keyword-new">
+          <label for="keyword-new-name">Ny kategori</label>
+          <input type="text" class="field" id="keyword-new-name" autocomplete="off">
+          <button type="submit" class="btn">Legg til</button>
         </form>
+        <p class="keyword-card__help">Nye kategorier legges øverst og vinner over de andre. Flytt dem om de tar for mye.</p>
+        <div class="form-actions">
+          <button type="button" id="keyword-export" class="btn btn--quiet">Eksporter nøkkelord</button>
+          <label class="btn btn--quiet keyword-import">
+            Importer nøkkelord
+            <input type="file" id="keyword-import" accept="application/json,.json" class="visually-hidden">
+          </label>
+          <span id="keyword-status" class="form-status" role="status" aria-live="polite"></span>
+        </div>
       </details>
     </section>
 

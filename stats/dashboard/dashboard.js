@@ -35,11 +35,9 @@ import { formatNOK, formatSyncPhrase } from "../lib/formatters.js";
 import { estimateOwnershipCost, homeOrganizationId, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
 import {
-  DEFAULT_CATEGORIES,
   loadCategories,
   saveCategory,
   saveCategories,
-  normalizeTripCategories,
   categoryStats,
   autoSuggestAll,
   DEFAULT_KEYWORDS,
@@ -47,10 +45,22 @@ import {
   matchKeyword,
   keywordHits,
   normalizeUserKeywords,
+  normalizeCategorySettings,
+  resolveCategories,
+  knownTripCategories,
   STOP_WORDS,
   parseKeywordInput,
   loadUserKeywords,
-  saveUserKeywords,
+  loadCategorySettings,
+  migrateLegacyCategories,
+  addCustomCategory,
+  renameCustomCategory,
+  removeCustomCategory,
+  addKeyword,
+  removeKeyword,
+  resetCategory,
+  moveCategory,
+  categoryChanges,
 } from "../lib/categories.js";
 
 import { storage as extensionStorage } from "../lib/browser-polyfill.js";
@@ -1112,20 +1122,42 @@ function setLedger(prefix, carName, ownershipCost, sharingCost, savings) {
 
 // ---------- Rendering: Section 6 - Turkategorier ----------
 
-async function renderCategories(reservations) {
-  const savedCategories = await loadCategories(storage);
-  const userKeywords = await loadUserKeywords(storage);
-  const keywords = mergeKeywords(DEFAULT_KEYWORDS, userKeywords);
+// Alt kategoriene trenger, lest ferskt fra lageret. Hver handling i
+// redigeringen leser på nytt, så den aldri bygger på en gammel tegning.
+async function loadCategoryState() {
+  const settings = await loadCategorySettings(storage);
+  return {
+    settings,
+    categories: resolveCategories(settings),
+    userKeywords: await loadUserKeywords(storage),
+    tripCategories: await loadCategories(storage),
+  };
+}
 
-  renderCategoryOverview(reservations, savedCategories, keywords);
-  renderTripCheck(reservations, savedCategories, keywords);
-  renderKeywordCard(reservations, userKeywords, keywords);
+// Innstillingene skrives i samme storage.set som ordene og valgene, så
+// lageret aldri har ord eller valg for en kategori som ikke finnes.
+async function saveCategoryState({ settings, userKeywords, tripCategories }) {
+  const categorySettings = normalizeCategorySettings(settings);
+  const items = { categorySettings };
+  if (userKeywords) items.userKeywords = normalizeUserKeywords(userKeywords, resolveCategories(categorySettings));
+  if (tripCategories) items.tripCategories = tripCategories;
+  await storage.set(items);
+}
+
+async function renderCategories(reservations) {
+  const state = await loadCategoryState();
+  const savedCategories = knownTripCategories(state.tripCategories, state.categories);
+  const keywords = mergeKeywords(DEFAULT_KEYWORDS, state.userKeywords, state.settings);
+
+  renderCategoryOverview(reservations, savedCategories, keywords, state.categories);
+  renderTripCheck(reservations, savedCategories, keywords, state.categories);
+  renderKeywordCard(reservations, state, keywords);
 }
 
 // Forslagene teller med i oversikten, men et lagret valg går alltid foran.
-function renderCategoryOverview(reservations, savedCategories, keywords) {
+function renderCategoryOverview(reservations, savedCategories, keywords, categories) {
   const suggestions = autoSuggestAll(reservations, savedCategories, keywords);
-  const stats = categoryStats(reservations, { ...suggestions, ...savedCategories });
+  const stats = categoryStats(reservations, { ...suggestions, ...savedCategories }, categories);
 
   const entries = Object.entries(stats).filter(([, v]) => v.totalCost > 0);
   if (entries.length === 0) {
@@ -1179,9 +1211,13 @@ const tripCheck = { filter: "check", shown: TRIP_PAGE_SIZE };
 const formatTripDate = new Intl.DateTimeFormat("nb-NO", {
   day: "numeric", month: "short", year: "numeric",
 });
-const CATEGORY_OPTIONS = Object.entries(DEFAULT_CATEGORIES)
-  .map(([key, { label }]) => ({ key, label }))
-  .sort((a, b) => a.label.localeCompare(b.label, "nb"));
+
+// Valgene bygges ved hver tegning, så egne kategorier er med.
+function categoryOptions(categories) {
+  return Object.entries(categories)
+    .map(([key, { label }]) => ({ key, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "nb"));
+}
 
 function hasNotes(r) {
   return typeof r.notes === "string" && r.notes.trim() !== "";
@@ -1199,7 +1235,7 @@ function tripSourceText(saved, match) {
   return "Ingen forslag";
 }
 
-function renderTripCheck(reservations, savedCategories, keywords) {
+function renderTripCheck(reservations, savedCategories, keywords, categories) {
   const driven = filterDriven(reservations)
     .sort((a, b) => String(b.start).localeCompare(String(a.start)));
   const section = $("trip-check");
@@ -1209,6 +1245,7 @@ function renderTripCheck(reservations, savedCategories, keywords) {
   const saved = { ...savedCategories };
   const matches = new Map(driven.map((r) => [r.id, matchKeyword(r.notes, keywords)]));
   const pending = driven.filter((r) => !saved[r.id] && matches.get(r.id));
+  const options = categoryOptions(categories);
 
   // Radene ligger fast til neste tegning, så en tur ikke forsvinner fra
   // listen i det brukeren velger kategori for den.
@@ -1221,7 +1258,7 @@ function renderTripCheck(reservations, savedCategories, keywords) {
   filterEl.onchange = () => {
     tripCheck.filter = filterEl.value;
     tripCheck.shown = TRIP_PAGE_SIZE;
-    renderTripCheck(reservations, saved, keywords);
+    renderTripCheck(reservations, saved, keywords, categories);
   };
 
   const acceptBtn = $("trip-accept-all");
@@ -1247,7 +1284,7 @@ function renderTripCheck(reservations, savedCategories, keywords) {
   const appendRows = (from, to) => {
     let first = null;
     for (const r of rows.slice(from, to)) {
-      const item = tripRow(r, saved[r.id], matches.get(r.id));
+      const item = tripRow(r, saved[r.id], matches.get(r.id), options);
       listEl.appendChild(item);
       first ??= item.querySelector("select");
     }
@@ -1277,53 +1314,17 @@ function renderTripCheck(reservations, savedCategories, keywords) {
     saved[id] = select.value;
     select.closest(".trip-row").querySelector(".trip-row__source").textContent = "Valgt";
     select.querySelector("option[value='']")?.remove();
-    renderCategoryOverview(reservations, saved, keywords);
+    renderCategoryOverview(reservations, saved, keywords, categories);
     const left = pending.filter((r) => !saved[r.id]);
     pending.length = 0;
     pending.push(...left);
     acceptBtn.textContent = `Godta alle forslag (${pending.length})`;
     acceptBtn.disabled = pending.length === 0;
-    setTripStatus(`Lagret: ${DEFAULT_CATEGORIES[select.value].label}`);
-  };
-
-  $("trip-export").onclick = () => {
-    const json = JSON.stringify({ tripCategories: saved }, null, 2);
-    downloadBlob(new Blob([json], { type: "application/json" }), "bildeleringen-turkategorier.json");
-  };
-
-  $("trip-import").onchange = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    let parsed;
-    try {
-      parsed = JSON.parse(await file.text());
-    } catch {
-      setTripStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
-      return;
-    }
-    const { categories, skipped } = normalizeTripCategories(parsed);
-    const ids = Object.keys(categories);
-    if (ids.length === 0) {
-      setTripStatus("Fant ingen kategorier i filen.", { error: true });
-      return;
-    }
-
-    // Som for nøkkelordene legges importen til. Det du alt har valgt, står.
-    const fresh = await loadCategories(storage);
-    const added = Object.fromEntries(ids.filter((id) => !fresh[id]).map((id) => [id, categories[id]]));
-    await saveCategories(storage, added);
-    await renderCategories(reservations);
-    const kept = ids.length - Object.keys(added).length;
-    const parts = [`La inn ${formatCount(Object.keys(added).length, "kategori", "kategorier")}`];
-    if (kept > 0) parts.push(`${kept} hadde alt en`);
-    if (skipped > 0) parts.push(`${formatCount(skipped, "ukjent", "ukjente")} hoppet over`);
-    setTripStatus(`${parts.join(", ")}.`);
+    setTripStatus(`Lagret: ${categories[select.value].label}`);
   };
 }
 
-function tripRow(r, savedKey, match) {
+function tripRow(r, savedKey, match, options) {
   const item = document.createElement("li");
   item.className = "trip-row";
   const notesId = `trip-notes-${r.id}`;
@@ -1332,8 +1333,8 @@ function tripRow(r, savedKey, match) {
   const placeholder = current
     ? ""
     : `<option value="" selected disabled>Velg kategori</option>`;
-  const options = CATEGORY_OPTIONS.map(({ key, label }) =>
-    `<option value="${key}"${key === current ? " selected" : ""}>${escapeHtml(label)}</option>`
+  const optionHtml = options.map(({ key, label }) =>
+    `<option value="${escapeHtml(key)}"${key === current ? " selected" : ""}>${escapeHtml(label)}</option>`
   ).join("");
 
   item.innerHTML = `
@@ -1342,7 +1343,7 @@ function tripRow(r, savedKey, match) {
     <span class="trip-row__source">${escapeHtml(tripSourceText(savedKey, match))}</span>
     <select class="field trip-row__select" data-id="${escapeHtml(String(r.id))}"
       aria-label="Kategori for turen ${escapeHtml(date)}" aria-describedby="${escapeHtml(notesId)}">
-      ${placeholder}${options}
+      ${placeholder}${optionHtml}
     </select>
   `;
   return item;
@@ -1352,15 +1353,73 @@ function formatCount(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-// Rekkefølgen i skjemaet er den samme som suggestCategory() sjekker i, så
-// brukeren ser hvilken kategori som vinner når et notat treffer flere.
-function keywordCategoryOrder() {
-  const order = Object.keys(DEFAULT_KEYWORDS);
-  for (const key of Object.keys(DEFAULT_CATEGORIES)) {
-    if (!order.includes(key)) order.push(key);
-  }
-  return order;
+function formatTrips(n) {
+  return n === 1 ? "1 tur" : `${n} turer`;
 }
+
+// ---------- Eksport og import av kategorier og nøkkelord ----------
+
+function downloadJson(data, filename) {
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), filename);
+}
+
+// Begge importknappene går gjennom sikkerhetskopiens lesing og fletting, så
+// egne kategorier i filen kommer med, og ingenting lagret blir skrevet over.
+// Turer og transporttall i filen hører til «Sikkerhetskopi» og hoppes over her.
+async function importCategoryFile(file, setStatus) {
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    setStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
+    return;
+  }
+  const result = parseBackup(parsed);
+  const backup = result.backup && { ...result.backup, transportData: {}, reservations: null, lastSync: null };
+  const empty = !backup || (
+    Object.keys(backup.tripCategories).length === 0 &&
+    Object.keys(backup.userKeywords).length === 0 &&
+    Object.keys(backup.categorySettings.custom).length === 0 &&
+    Object.keys(backup.categorySettings.removed).length === 0
+  );
+  if (empty) {
+    setStatus("Fant ingenting å importere i filen.", { error: true });
+    return;
+  }
+
+  try {
+    const { counts } = await importBackup({ storage: backupStorage, backup, overwrite: false, owner: syncOwner });
+    await renderCategories(allReservations);
+    setStatus(describeImport(counts));
+  } catch (err) {
+    console.error("Category import failed:", err);
+    setStatus("Importen feilet. Ingenting er endret.", { error: true });
+  }
+}
+
+function initCategoryFiles() {
+  $("trip-export").addEventListener("click", async () => {
+    const { settings, categories, tripCategories } = await loadCategoryState();
+    downloadJson(
+      { tripCategories: knownTripCategories(tripCategories, categories), categorySettings: settings },
+      "bildeleringen-turkategorier.json",
+    );
+  });
+  $("keyword-export").addEventListener("click", async () => {
+    const { settings, userKeywords } = await loadCategoryState();
+    downloadJson({ userKeywords, categorySettings: settings }, "bildeleringen-nokkelord.json");
+  });
+  for (const [id, setStatus] of [["trip-import", setTripStatus], ["keyword-import", setKeywordStatus]]) {
+    $(id).addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      // Tøm, så samme fil kan velges igjen.
+      e.target.value = "";
+      if (file) await importCategoryFile(file, setStatus);
+    });
+  }
+}
+
+// ---------- Nøkkelord og kategorier ----------
 
 // Meldingen blir stående til neste handling, så den rekker å bli lest.
 function setKeywordStatus(message, { error = false } = {}) {
@@ -1369,97 +1428,365 @@ function setKeywordStatus(message, { error = false } = {}) {
   status.classList.toggle("form-status--error", error);
 }
 
-function formatTrips(n) {
-  return n === 1 ? "1 tur" : `${n} turer`;
-}
-
 // Lista står i categories.js og leses derfra, så teksten ikke kan gå ut av takt med den.
 setText(
   "keyword-stop-words",
   `Ord i notatet som begynner med ${new Intl.ListFormat("nb", { type: "disjunction" }).format(STOP_WORDS)}, hoppes over, også for egne nøkkelord.`
 );
 
-function renderKeywordCard(reservations, userKeywords, keywords) {
+// Redigeringen tegnes på nytt bare når innstillingene, ordene eller
+// navneendringen er endret, ikke ved hver opptegning under synk. Ellers ville
+// et halvskrevet ord og fokus forsvunnet hvert andre sekund.
+let keywordEditorSource = null;
+// Nøkkelen til kategorien som har navnefeltet åpent, eller null.
+let keywordRenaming = null;
+// Kategorien som skal stå åpen etter neste ombygging. keywordFocus får fokus
+// uansett, keywordFocusFallback bare når det fokuserte elementet er borte.
+let keywordOpen = null;
+let keywordFocus = null;
+let keywordFocusFallback = null;
+
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [name, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (name === "className") node.className = value;
+    else if (name === "dataset") Object.assign(node.dataset, value);
+    else if (name === "text") node.textContent = value;
+    else node.setAttribute(name, value === true ? "" : value);
+  }
+  node.append(...children.filter((c) => c != null));
+  return node;
+}
+
+// Id-er må være stabile mellom ombygginger, så fokus finner tilbake. Ord kan
+// inneholde hva som helst, så de kodes som tegnkoder.
+function wordId(key, word) {
+  return `kw-${key}-w-${Array.from(word, (c) => c.codePointAt(0).toString(36)).join("-")}`;
+}
+
+// «fly » vises som «fly» med «helt ord», «*besøk» som «besøk» med «også sist i ord».
+function describeWord(word) {
+  const tags = [];
+  let text = word;
+  if (/\s$/.test(text)) tags.push("helt ord");
+  text = text.trim();
+  if (text.startsWith("*")) {
+    tags.push("også sist i ord");
+    text = text.slice(1);
+  }
+  return { text, tags };
+}
+
+function categoryMeta(key, keywords, hits, userKeywords, settings) {
+  const { added, removed } = categoryChanges(key, userKeywords, settings);
+  const parts = [formatTrips(hits.perCategory[key] || 0), `${keywords[key].length} ord`];
+  if (added.length > 0) parts.push(`${added.length} ${added.length === 1 ? "eget" : "egne"}`);
+  if (removed.length > 0) parts.push(`${removed.length} ${removed.length === 1 ? "fjernet" : "fjernede"}`);
+  return parts.join(", ");
+}
+
+function renderKeywordCard(reservations, state, keywords) {
   const hits = keywordHits(reservations, keywords);
   const pct = hits.total > 0 ? Math.round((hits.matched / hits.total) * 100) : 0;
   setText(
     "keyword-total",
     hits.total > 0
       ? `Treffer ${hits.matched} av ${hits.total} turnotater (${pct} %)`
-      : "Ingen turnotater \u00e5 kategorisere"
+      : "Ingen turnotater å kategorisere"
   );
 
-  const fieldsEl = $("keyword-fields");
-  fieldsEl.innerHTML = "";
-  for (const key of keywordCategoryOrder()) {
-    const inputId = `keyword-${key}`;
-    const hintId = `keyword-${key}-hint`;
-    const defaults = DEFAULT_KEYWORDS[key] || [];
-    const row = document.createElement("div");
-    row.className = "keyword-row";
-    row.innerHTML = `
-      <label class="keyword-row__label" for="${inputId}">${escapeHtml(DEFAULT_CATEGORIES[key].label)}</label>
-      <input type="text" class="field" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
-        aria-describedby="${hintId}">
-      <span class="keyword-row__hits" id="${hintId}">
-        ${formatTrips(hits.perCategory[key] || 0)}${defaults.length > 0 ? `, ${defaults.length} standardord` : ""}
-      </span>
-    `;
-    row.querySelector("input").value = (userKeywords[key] || []).join(", ");
-    fieldsEl.appendChild(row);
+  const source = JSON.stringify([state.settings, state.userKeywords, keywordRenaming]);
+  if (source !== keywordEditorSource) {
+    buildKeywordEditor(state, keywords);
+    keywordEditorSource = source;
   }
 
-  $("keyword-form").onsubmit = async (e) => {
+  // Trefftallene endres under synk og settes som tekst, uten å røre skjemaene.
+  const editor = $("keyword-editor");
+  for (const node of editor.querySelectorAll(".keyword-category__meta")) {
+    const key = node.dataset.key;
+    if (keywords[key]) node.textContent = categoryMeta(key, keywords, hits, state.userKeywords, state.settings);
+  }
+  for (const node of editor.querySelectorAll(".keyword-word__hits")) {
+    const n = hits.perKeyword[node.dataset.key]?.[node.dataset.word] || 0;
+    node.textContent = n > 0 ? formatTrips(n) : "";
+  }
+}
+
+function buildKeywordEditor(state, keywords) {
+  const editor = $("keyword-editor");
+  const open = new Set([...editor.querySelectorAll(".keyword-category[open]")].map((d) => d.dataset.key));
+  if (keywordOpen) open.add(keywordOpen);
+  const focusedId = editor.contains(document.activeElement) ? document.activeElement.id : null;
+  // Det som er skrevet i andre kategorier, står etter ombyggingen.
+  const typed = new Map(
+    [...editor.querySelectorAll("input")].map((input) => [input.id, input.type === "checkbox" ? input.checked : input.value]),
+  );
+
+  const keys = Object.keys(state.categories);
+  editor.replaceChildren(...keys.map((key, i) =>
+    keywordCategory(key, i, keys.length, state, keywords, open.has(key))
+  ));
+
+  for (const [id, value] of typed) {
+    const input = document.getElementById(id);
+    if (!input || !editor.contains(input)) continue;
+    if (input.type === "checkbox") input.checked = value;
+    else if (input.name !== "label") input.value = value;
+  }
+
+  const target = [keywordFocus, focusedId, keywordFocusFallback]
+    .map((id) => id && document.getElementById(id))
+    .find((node) => node && !node.disabled);
+  target?.focus();
+  keywordOpen = null;
+  keywordFocus = null;
+  keywordFocusFallback = null;
+}
+
+function keywordCategory(key, index, count, state, keywords, isOpen) {
+  const { label, custom } = state.categories[key];
+  const userWords = state.userKeywords[key] ?? [];
+  const defaults = DEFAULT_KEYWORDS[key] ?? [];
+  const removed = normalizeCategorySettings(state.settings).removed[key] ?? [];
+  const changes = categoryChanges(key, state.userKeywords, state.settings);
+
+  const words = el("ul", { className: "keyword-words", "aria-label": `Ord i ${label}` });
+  for (const word of keywords[key]) {
+    const { text, tags } = describeWord(word);
+    if (userWords.includes(word) && !defaults.includes(word)) tags.push("egen");
+    words.append(el("li", { className: "keyword-word" },
+      el("span", { className: "keyword-word__text", text }),
+      ...tags.map((tag) => el("span", { className: "keyword-word__tag", text: tag })),
+      el("span", { className: "keyword-word__hits", dataset: { key, word } }),
+      el("button", {
+        type: "button",
+        className: "btn btn--quiet",
+        id: wordId(key, word),
+        dataset: { action: "remove-word", key, word },
+        "aria-label": `Fjern ${text} fra ${label}`,
+        text: "Fjern",
+      }),
+    ));
+  }
+  for (const word of removed) {
+    const { text } = describeWord(word);
+    words.append(el("li", { className: "keyword-word keyword-word--removed" },
+      el("span", { className: "keyword-word__text", text }),
+      el("button", {
+        type: "button",
+        className: "btn btn--quiet",
+        id: wordId(key, word),
+        dataset: { action: "restore-word", key, word },
+        "aria-label": `Ta tilbake ${text} i ${label}`,
+        text: "Ta tilbake",
+      }),
+    ));
+  }
+
+  const add = el("form", { className: "keyword-add", dataset: { key } },
+    el("label", { for: `kw-${key}-word`, text: "Nytt ord" }),
+    el("input", { type: "text", className: "field", id: `kw-${key}-word`, name: "word", autocomplete: "off", spellcheck: "false" }),
+    el("label", { className: "keyword-add__whole" },
+      el("input", { type: "checkbox", id: `kw-${key}-whole`, name: "whole" }),
+      "Bare som helt ord",
+    ),
+    el("button", { type: "submit", className: "btn", text: "Legg til" }),
+  );
+
+  const actionButton = (action, text, extra = {}) => el("button", {
+    type: "button",
+    className: extra.danger ? "btn btn--danger" : "btn",
+    id: `kw-${key}-${action}`,
+    dataset: { action, key },
+    disabled: extra.disabled,
+    text,
+  });
+
+  let actions;
+  if (keywordRenaming === key) {
+    actions = el("form", { className: "keyword-category__actions keyword-rename", dataset: { key } },
+      el("label", { for: `kw-${key}-label`, text: "Nytt navn" }),
+      el("input", { type: "text", className: "field", id: `kw-${key}-label`, name: "label", value: label, autocomplete: "off" }),
+      el("button", { type: "submit", className: "btn", text: "Lagre" }),
+      el("button", { type: "button", className: "btn", dataset: { action: "rename-cancel", key }, text: "Avbryt" }),
+    );
+  } else {
+    const changed = changes.added.length > 0 || changes.removed.length > 0;
+    actions = el("div", { className: "keyword-category__actions" },
+      actionButton("up", "Flytt opp", { disabled: index === 0 }),
+      actionButton("down", "Flytt ned", { disabled: index === count - 1 }),
+      !custom && changed ? actionButton("reset", "Tilbakestill") : null,
+      custom ? actionButton("rename", "Endre navn") : null,
+      custom ? actionButton("delete", "Slett", { danger: true }) : null,
+    );
+  }
+
+  return el("details", { className: "keyword-category", dataset: { key }, open: isOpen },
+    el("summary", { className: "keyword-category__summary", id: `kw-${key}-summary` },
+      el("span", { className: "keyword-category__order", text: `${index + 1}.` }),
+      el("span", { className: "keyword-category__label", text: label }),
+      el("span", { className: "keyword-category__meta", dataset: { key } }),
+    ),
+    el("div", { className: "keyword-category__body" }, words, add, actions),
+  );
+}
+
+// Les ferskt, kjør den rene funksjonen, lagre, tegn på nytt og si hva som skjedde.
+// focus er id-en som får fokus når det fokuserte elementet er borte etterpå.
+async function applyKeywordChange(change, message, { focus = null } = {}) {
+  const result = change(await loadCategoryState());
+  if (result.changed !== false) await saveCategoryState(result);
+  keywordFocusFallback = focus;
+  await renderCategories(allReservations);
+  setKeywordStatus(message);
+}
+
+function categoryLabel(key) {
+  return document.querySelector(`.keyword-category[data-key="${CSS.escape(key)}"] .keyword-category__label`)?.textContent ?? key;
+}
+
+async function onKeywordClick(e) {
+  const button = e.target.closest("button[data-action]");
+  if (!button) return;
+  const { action, key, word } = button.dataset;
+  const label = categoryLabel(key);
+  const shown = word == null ? "" : describeWord(word).text;
+
+  if (action === "remove-word") {
+    await applyKeywordChange(
+      (s) => removeKeyword(s, key, word),
+      `Fjernet «${shown}» fra ${label}`,
+      { focus: `kw-${key}-word` },
+    );
+  } else if (action === "restore-word") {
+    await applyKeywordChange(
+      (s) => addKeyword(s, key, word),
+      `Tok tilbake «${shown}»`,
+      { focus: wordId(key, word) },
+    );
+  } else if (action === "up" || action === "down") {
+    await applyKeywordChange(
+      (s) => moveCategory(s.settings, key, action === "up" ? -1 : 1),
+      `Flyttet ${label} ${action === "up" ? "opp" : "ned"}`,
+      { focus: `kw-${key}-${action === "up" ? "down" : "up"}` },
+    );
+  } else if (action === "reset") {
+    const confirmed = await confirmDialog(
+      `Tilbakestille «${label}»? Egne ord fjernes, og fjernede standardord kommer tilbake.`,
+      "Tilbakestill",
+    );
+    if (!confirmed) return;
+    await applyKeywordChange((s) => resetCategory(s, key), `Tilbakestilte ${label}`, { focus: `kw-${key}-summary` });
+  } else if (action === "rename") {
+    keywordRenaming = key;
+    keywordFocus = `kw-${key}-label`;
+    await renderCategories(allReservations);
+    $(`kw-${key}-label`)?.select();
+  } else if (action === "rename-cancel") {
+    await cancelRename(key);
+  } else if (action === "delete") {
+    const { tripCategories } = await loadCategoryState();
+    const trips = Object.values(tripCategories).filter((value) => value === key).length;
+    const message = trips > 0
+      ? `Slette «${label}»? ${formatTrips(trips)} har kategorien valgt og går tilbake til forslag eller ukategorisert. Ordene slettes.`
+      : `Slette «${label}»? Ordene slettes.`;
+    if (!(await confirmDialog(message, "Slett"))) return;
+    await applyKeywordChange((s) => removeCustomCategory(s, key), `Slettet «${label}»`, { focus: "keyword-new-name" });
+  }
+}
+
+async function cancelRename(key) {
+  keywordRenaming = null;
+  keywordFocusFallback = `kw-${key}-rename`;
+  await renderCategories(allReservations);
+}
+
+async function onKeywordSubmit(e) {
+  const form = e.target;
+  e.preventDefault();
+  const key = form.dataset.key;
+  const label = categoryLabel(key);
+
+  if (form.classList.contains("keyword-rename")) {
+    const { settings } = await loadCategoryState();
+    const result = renameCustomCategory(settings, key, form.elements.label.value);
+    if (result.error) {
+      setKeywordStatus(result.error, { error: true });
+      return;
+    }
+    await saveCategoryState(result);
+    keywordRenaming = null;
+    keywordFocusFallback = `kw-${key}-rename`;
+    await renderCategories(allReservations);
+    setKeywordStatus(`Navnet er endret til «${result.settings.custom[key].label}»`);
+    return;
+  }
+
+  // Komma gir flere ord. «Bare som helt ord» legger mellomrom til slutt.
+  const whole = form.elements.whole.checked;
+  const words = parseKeywordInput(form.elements.word.value).map((w) => (whole ? `${w} ` : w));
+  if (words.length === 0) {
+    setKeywordStatus("Skriv et ord.", { error: true });
+    return;
+  }
+  const state = await loadCategoryState();
+  let current = { userKeywords: state.userKeywords, settings: state.settings };
+  const added = [];
+  const existing = [];
+  for (const word of words) {
+    const result = addKeyword(current, key, word);
+    if (result.changed) {
+      current = result;
+      added.push(describeWord(word.toLowerCase()).text);
+    } else if (result.exists) {
+      existing.push(describeWord(word.toLowerCase()).text);
+    }
+  }
+  if (added.length === 0) {
+    setKeywordStatus(existing.length > 0 ? `«${existing[0]}» står alt i ${label}.` : "Skriv et ord.", { error: true });
+    return;
+  }
+  form.elements.word.value = "";
+  form.elements.whole.checked = false;
+  await saveCategoryState(current);
+  keywordFocusFallback = `kw-${key}-word`;
+  await renderCategories(allReservations);
+  setKeywordStatus(`La til ${added.map((w) => `«${w}»`).join(", ")} i ${label}`);
+}
+
+async function onNewCategory(e) {
+  e.preventDefault();
+  const input = $("keyword-new-name");
+  const { settings } = await loadCategoryState();
+  const result = addCustomCategory(settings, input.value);
+  if (result.error) {
+    setKeywordStatus(result.error, { error: true });
+    return;
+  }
+  await saveCategoryState(result);
+  input.value = "";
+  // Den nye kategorien står øverst og åpen, med fokus i feltet for ord.
+  keywordOpen = result.key;
+  keywordFocus = `kw-${result.key}-word`;
+  await renderCategories(allReservations);
+  setKeywordStatus(`Kategorien «${result.settings.custom[result.key].label}» er laget`);
+}
+
+// Lytterne settes én gang. Redigeringen bygges om, men beholder elementet.
+function initKeywordEditor() {
+  const editor = $("keyword-editor");
+  editor.addEventListener("click", onKeywordClick);
+  editor.addEventListener("submit", onKeywordSubmit);
+  editor.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !e.target.closest(".keyword-rename")) return;
+    // Esc avbryter navneendringen uten å lukke noe annet.
     e.preventDefault();
-    const next = {};
-    for (const key of keywordCategoryOrder()) {
-      const words = parseKeywordInput($(`keyword-${key}`).value);
-      // JSON-import kan gi ord med kantmellomrom («tur »), som ville gått
-      // tapt om de ble trimmet her. Behold dem når teksten er uendret.
-      const previous = userKeywords[key] || [];
-      next[key] = words.join(", ") === previous.map((w) => w.trim()).join(", ")
-        ? previous
-        : words;
-    }
-    await saveUserKeywords(storage, next);
-    await renderCategories(reservations);
-    setKeywordStatus("Lagret");
-  };
-
-  $("keyword-export").onclick = () => {
-    const json = JSON.stringify(userKeywords, null, 2);
-    downloadBlob(new Blob([json], { type: "application/json" }), "bildeleringen-nokkelord.json");
-  };
-
-  $("keyword-import").onchange = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    let parsed;
-    try {
-      parsed = JSON.parse(await file.text());
-    } catch {
-      setKeywordStatus("Klarte ikke å lese filen. Velg en JSON-fil.", { error: true });
-      return;
-    }
-    const imported = normalizeUserKeywords(parsed?.userKeywords ?? parsed);
-    const count = Object.values(imported).reduce((sum, list) => sum + list.length, 0);
-    if (count === 0) {
-      setKeywordStatus("Fant ingen n\u00f8kkelord i filen.", { error: true });
-      return;
-    }
-
-    // Importen legges til de eksisterende ordene, den erstatter dem ikke.
-    const fresh = await loadUserKeywords(storage);
-    const combined = {};
-    for (const key of keywordCategoryOrder()) {
-      combined[key] = [...(fresh[key] || []), ...(imported[key] || [])];
-    }
-    await saveUserKeywords(storage, combined);
-    await renderCategories(reservations);
-    setKeywordStatus(`Importerte ${count} n\u00f8kkelord.`);
-  };
+    cancelRename(e.target.closest(".keyword-rename").dataset.key);
+  });
+  $("keyword-new").addEventListener("submit", onNewCategory);
+  initCategoryFiles();
 }
 
 // ---------- Rendering: Section 7 - Klimaregnskap ----------
@@ -2062,6 +2389,9 @@ function initRestoreOffer() {
 // ---------- Init ----------
 
 async function init() {
+  // Før første opptegning, så valg og ord under Flyplass, Skyss og Hyttetur
+  // står i målkategorien. Kjører den ikke, leses de likevel riktig.
+  await migrateLegacyCategories(storage).catch((e) => console.error("[dashboard] Category migration failed", e));
   if (demo) {
     syncBtn.remove();
     // I navigasjonslinjen, som står fast øverst, så merket synes uansett hvor
@@ -2491,6 +2821,8 @@ const formatBackupDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", mont
 function describeBackupContents(backup) {
   const items = [];
   if (backup.reservations) items.push(formatTrips(backup.reservations.length));
+  const custom = Object.keys(backup.categorySettings.custom).length;
+  if (custom > 0) items.push(formatCount(custom, "egen kategori", "egne kategorier"));
   const categories = Object.keys(backup.tripCategories).length;
   if (categories > 0) items.push(formatCount(categories, "kategorivalg", "kategorivalg"));
   const keywordLists = Object.values(backup.userKeywords);
@@ -2601,6 +2933,7 @@ function initBackup() {
 }
 
 initBackup();
+initKeywordEditor();
 initRestoreOffer();
 
 // Start

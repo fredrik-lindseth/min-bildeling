@@ -217,6 +217,8 @@ code {
 a:focus-visible,
 .field:focus-visible,
 .keyword-card__summary:focus-visible,
+.keyword-category__summary:focus-visible,
+.keyword-add__whole input:focus-visible,
 .keyword-import:has(:focus-visible),
 .dev-sample:focus-visible,
 .year-table__sort:focus-visible {
@@ -875,7 +877,7 @@ a:focus-visible,
   text-align: right;
 }
 
-/* ---- Egne nøkkelord ---- */
+/* ---- Nøkkelord og kategorier ---- */
 .keyword-card__summary {
   font-weight: 600;
   cursor: pointer;
@@ -894,23 +896,109 @@ a:focus-visible,
   color: var(--color-text-secondary);
 }
 
-.keyword-form {
-  margin-top: var(--space-3);
+.keyword-editor {
+  margin-top: var(--space-4);
+  border-top: var(--line);
 }
 
-.keyword-row {
-  display: grid;
-  grid-template-columns: 130px 1fr 190px;
-  gap: var(--space-2);
-  align-items: center;
-  padding-block: var(--space-2);
+/* Kategoriene er <details> i treffrekkefølge, med nummeret i tertiary. */
+.keyword-category {
   border-bottom: var(--line);
+}
+
+.keyword-category__summary {
+  padding-block: var(--space-2);
+  cursor: pointer;
+}
+
+.keyword-category__order {
+  margin-right: var(--space-1);
+  color: var(--color-text-tertiary);
+}
+
+.keyword-category__label {
+  font-weight: 600;
+}
+
+.keyword-category__meta {
+  margin-left: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.keyword-category__body {
+  padding-bottom: var(--space-4);
+}
+
+.keyword-words {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.keyword-word {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  min-width: 0;
   font-size: var(--text-sm);
 }
 
-.keyword-row__hits {
-  color: var(--color-text-secondary);
-  text-align: right;
+.keyword-word__text {
+  overflow-wrap: anywhere;
+}
+
+.keyword-word__tag,
+.keyword-word__hits {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* «Fjern» og «Ta tilbake» står ytterst til høyre i ruten, med lavere
+   luft enn andre knapper, så lange ordlister ikke blir høye. */
+.keyword-word .btn {
+  margin-left: auto;
+  padding-block: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.keyword-word--removed .keyword-word__text {
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.keyword-add,
+.keyword-new,
+.keyword-category__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.keyword-new {
+  margin-top: var(--space-4);
+}
+
+.keyword-add .field,
+.keyword-new .field,
+.keyword-rename .field {
+  flex: 1 1 12rem;
+  width: auto;
+  max-width: 20rem;
+}
+
+.keyword-add__whole {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .keyword-import {
@@ -1084,15 +1172,14 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .keyword-row,
   .transport-row,
   .transport-row--narrow {
     grid-template-columns: 1fr;
     gap: var(--space-1);
   }
 
-  .keyword-row__hits {
-    text-align: left;
+  .keyword-words {
+    grid-template-columns: 1fr;
   }
 }
 
