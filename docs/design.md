@@ -164,6 +164,21 @@ brukt på bildeling i 2025, fordelt på 61 turer.
 +--------------------------------+   Per kilometer       4,10 kr
 ```
 
+Med «Alle år» valgt og turer fra minst to år får nøkkeltallene tre linjer om årene øverst, og en lenke til tabellen «Per år» i Trender under listen:
+
+```
+I år hittil                                  25 500 kr
+24 % mindre enn samme tid i fjor
+Snitt per år                                 36 200 kr
+Fra første tur i januar 2024 til i dag.
+Dyreste år, 2025                             39 600 kr
+Snitt per tur                                   579 kr
+...
+Se alle år
+```
+
+«I år hittil» regner fra 1. januar til nå og sammenligner med samme øyeblikk i fjor, så framtidige bookinger ikke teller. «Snitt per år» er summen av turene delt på tiden siden første tur, og vises først etter ett år. Begge står uten «ca.»: det er faktiske beløp over faktisk tid, ikke estimater. Velges ett år, forsvinner linjene og lenken.
+
 ```
 Bilregnestykket                                   Last ned bilde
 ca. 96 000 kr
@@ -216,6 +231,8 @@ Eksportknappen er i dag et ikon med bare `title`. Den får synlig tekst, «Last 
 
 Metodene er rene data ved siden av regnestykket (`CO2_METHOD`, `TRANSPORT_METHOD`, `OWNERSHIP_METHOD`, `BOOKING_METHOD`), og verdiene i tabellen er de samme konstantene som regnestykket bruker. `test/method-panel.test.js` binder dem. Kildekolonnen er bare et tall, og etiketten brytes framfor verdien, så tabellen holder også i smale kolonner. Popupen viser ikke panelet: Firefox gir den høyst 600 px, og tabellen for bilregnestykket er lengre, så «Slik beregnes det» ved «Spart i år» åpner panelet i bilregnestykket i dashboardet (`dashboard.html#ownership-method-detail`).
 
+**Tabeller.** «Per år» i Trender er den ene datatabellen i dashboardet, satt som tabellen i «Slik beregnes det»: 1 px linjer mellom radene, kolonneoverskriftene i 12 px tertiary over en linje i border-strong, året til venstre i tekst-secondary og tallene høyrejustert i 600. Tom celle er «–». Overskriftene er knapper med `aria-sort` på `<th>`, og pilen ↑ eller ↓ står etter kolonnen det sorteres på. Første klikk på en tallkolonne sorterer synkende, på År stigende, og neste klikk snur. Standard er år stigende. Smale skjermer ruller tabellen vannrett i stedet for å bryte tallene.
+
 **Skjemafelt** (Transport, Egne nøkkelord): surface-bakgrunn, 1 px border-strong, 2 px hjørner, tekst høyrejustert i tallfelt. «Lagret» vises som tekst ved siden av knappen i tekst-secondary. Den forsvinner ikke på tid, for en melding med tidsgrense rekker ikke alle å lese, men fjernes så snart et felt i skjemaet endres, siden den da ikke lenger stemmer.
 
 **Egne nøkkelord** (Turkategorier). Et panel bygd på `<details>`/`<summary>`, lukket som standard.
@@ -258,7 +275,7 @@ Så lenge synken har turer igjen i køen (`syncState.pendingIds` er ikke tom), m
 Løsningen er å holde slike tall tilbake med en kort tekst, ikke å vise dem med et merke. Et tall med «foreløpig» ved siden av leses likevel som tallet. Regelen er `historyProgress()` i `lib/sync-messages.js`, og teksten er `describeIncompleteHistory()`: «Spart i år og mest brukte bil vises når alle turene er hentet. Hentet 25 av 662.»
 
 - Popupen: «Mest brukte bil» og «Spart i år» viser «–», med teksten under nøkkeltallene. «Slik beregnes det» skjules.
-- Dashbordet: headeren sier «Hentet 25 av 662 turer» i stedet for antall, år og sum. Totalen og årslinjene i Kostnader, listen over mest brukte biler, «År mot år» i Trender og hele Bilregnestykket holdes tilbake.
+- Dashbordet: headeren sier «Hentet 25 av 662 turer» i stedet for antall, år og sum. Totalen og årslinjene i Kostnader, listen over mest brukte biler, «År mot år» og «Per år» i Trender og hele Bilregnestykket holdes tilbake.
 
 Månedstallene står. Turene hentes nyest først, så siste måned er på plass først, og dashbordet fyller inn resten mens det synker.
 
@@ -272,7 +289,7 @@ Under første synk står en forklaring («Henter turene dine fra Dele. Første g
 
 «Beregnes …» på tall og skjelettstriper i diagrampaneler ble planlagt, men valgt bort. Med nyeste først finnes ikke tilstanden de skulle dekke: et tall eller et diagram uten grunnlag under synken har heller ikke grunnlag etterpå, og da er en strek eller en tom tilstand det riktige svaret. «Beregnes …» ville sagt at noe kommer som ikke kommer. Banneret med fremdriften sier at mer er på vei.
 
-Inline tom tilstand i en seksjon sier hvor mye data som trengs, for eksempel «Trender vises når du har turer fra minst tre måneder.» Et panel som bare gir mening med mer data, skjules i stedet for å stå tomt: «År mot år» og «Sesongsammenligning» vises først med turer fra to år.
+Inline tom tilstand i en seksjon sier hvor mye data som trengs, for eksempel «Trender vises når du har turer fra minst tre måneder.» Et panel som bare gir mening med mer data, skjules i stedet for å stå tomt: «År mot år», «Per år» og «Sesongsammenligning» vises først med turer fra to år.
 
 ## Diagrammer
 
@@ -280,7 +297,7 @@ Chart.js-fargene hentes fra tokenene gjennom måleelementet beskrevet over, og h
 
 - Maks fem farger, `--color-chart-1` til `-5`. Faste roller der det finnes faste kategorier: bildeling er alltid chart-1. Transport: bildeling 1, taxi 2, leiebil 3, buss 4, fly 5.
 - Turkategorier: de fem største kategoriene får chart-1 til chart-5 i synkende rekkefølge etter beløp. Er det flere enn fem, samles resten som «Øvrige» i `--color-border-strong`, en nøytral grå som ikke er en chart-farge. Navnet er ikke «Annet», fordi det alt er en av kategoriene. «Øvrige» ligger alltid sist i diagrammet. Er det fem eller færre kategorier, finnes ikke «Øvrige». Ingen sjette chart-farge. «Øvrige» har omtrent samme lyshet som chart-3 (1,03 lys, 1,10 mørk), men er grå mot blå og står alltid sist med egen etikett. Egen bil i Transport bruker den samme grå.
-- Én serie: chart-1, ingen forklaring. To serier (år mot år): valgt år som fylt søyle i chart-1, sammenligningsåret som hul søyle med 2 px kant i chart-3 (Chart.js: `backgroundColor: "transparent"`, `borderColor` chart-3, `borderWidth: 2`). Forklaringen over diagrammet viser de samme to formene. Fyll mot kant skiller seriene uten farge, og lysheten skiller dem i tillegg. Med flere enn to år er bare siste år fylt, og årene før er hule i chart-3, chart-5, chart-2 og chart-4, nærmeste år først.
+- Én serie: chart-1, ingen forklaring. To serier (år mot år): valgt år som fylt søyle i chart-1, sammenligningsåret som hul søyle med 2 px kant i chart-3 (Chart.js: `backgroundColor: "transparent"`, `borderColor` chart-3, `borderWidth: 2`). Forklaringen over diagrammet viser de samme to formene. Fyll mot kant skiller seriene uten farge, og lysheten skiller dem i tillegg. Med flere enn to år er bare siste år fylt, og årene før er hule i chart-3, chart-5, chart-2 og chart-4, nærmeste år først. «År mot år» viser de tre siste årene. Har brukeren flere, står den stille knappen «Vis alle år» ved tittelen (`aria-pressed`, teksten blir «Vis siste tre år»), og alle årene finnes uansett i tabellen «Per år».
 - Søyler med `borderRadius: 0`, ingen kant, unntatt sammenligningsserien over. Linjer 2 px uten fyll, uten gradient og uten glatting (`tension: 0`), punkter skjult til hover. En glattet kurve finner opp verdier mellom målepunktene.
 - Rutenett i `--color-grid`, bare horisontale linjer. Akselinjen (x) i border-strong. Aksetekst 12 px i tertiary.
 - Kakediagram: kakestykker skilles med 2 px strek i surface. Etikett og beløp står i en liste ved siden av, ikke bare i forklaringen.

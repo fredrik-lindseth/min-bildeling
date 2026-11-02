@@ -9,6 +9,12 @@ import {
   bookingPatterns,
   costYears,
   keepSelectedYear,
+  yearSummaries,
+  yearToDate,
+  describeYearToDate,
+  averagePerYear,
+  mostExpensiveYear,
+  sortYearSummaries,
   BOOKING_METHOD,
 } from "../lib/stats.js";
 
@@ -127,6 +133,13 @@ function doughnutOptions(label) {
 const formatKm = new Intl.NumberFormat("nb-NO", {
   maximumFractionDigits: 0,
 });
+
+const formatFixedDecimal = new Intl.NumberFormat("nb-NO", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+const formatMonthYear = new Intl.DateTimeFormat("nb-NO", { month: "long", year: "numeric" });
 
 const MONTH_NAMES = [
   "jan", "feb", "mar", "apr", "mai", "jun",
@@ -335,9 +348,10 @@ function scrollToHashOnce() {
     if (section) setActiveNav(section.id);
     return;
   }
-  if (!target.classList.contains("section")) return;
+  // Mål inne i en seksjon, som tabellen #per-aar: rull dit og marker
+  // seksjonen det står i.
   target.scrollIntoView({ behavior: "instant", block: "start" });
-  setActiveNav(id);
+  setActiveNav(target.closest(".section")?.id ?? "");
 }
 
 // ---------- Navigation ----------
@@ -456,21 +470,28 @@ function renderCosts(reservations) {
     );
   }
 
-  // Alle år: én linje per år øverst i nøkkeltallene
-  const figures = $("cost-figures");
-  figures.querySelectorAll(".figures__year").forEach((row) => row.remove());
-  if (tripHistory.complete && selectedYear === "all" && yearly.length > 1) {
-    const rows = yearly.map((y) => {
-      const row = document.createElement("div");
-      row.className = "figures__year";
-      const dt = document.createElement("dt");
-      dt.textContent = `Totalt ${y.year}`;
-      const dd = document.createElement("dd");
-      dd.textContent = formatNOK.format(y.total);
-      row.append(dt, dd);
-      return row;
-    });
-    figures.prepend(...rows);
+  // Alle år: tre linjer om årene øverst i nøkkeltallene, og en lenke til
+  // tabellen i Trender. Også dette venter på hele historikken.
+  const showAll = tripHistory.complete && selectedYear === "all" && yearly.length > 1;
+  $("cost-all-years-link").hidden = !showAll;
+  const [ytdRow, avgRow, topRow] = $("cost-figures").querySelectorAll(".figures__all-years");
+  const ytd = showAll ? yearToDate(reservations) : null;
+  const avg = showAll ? averagePerYear(reservations) : null;
+  const top = showAll ? mostExpensiveYear(yearSummaries(reservations)) : null;
+  ytdRow.hidden = !ytd;
+  avgRow.hidden = !avg;
+  topRow.hidden = !top;
+  if (ytd) {
+    setText("cost-ytd", formatNOK.format(ytd.total));
+    setText("cost-ytd-context", describeYearToDate(ytd));
+  }
+  if (avg) {
+    setText("cost-avg-year", formatNOK.format(avg.perYear));
+    setText("cost-avg-year-context", `Fra første tur i ${formatMonthYear.format(new Date(avg.since))} til i dag.`);
+  }
+  if (top) {
+    setText("cost-top-year-label", `Dyreste år, ${top.year}`);
+    setText("cost-top-year", formatNOK.format(top.total));
   }
 
   // Nøkkeltall
@@ -804,12 +825,22 @@ function renderTrends(reservations) {
   // År mot år trenger to år. Med ett år ville panelet stått tomt, så det
   // skjules som sesongsammenligningen under.
   // År mot år sammenligner hele år og venter på hele historikken.
-  $("yoy-container").hidden = yearly.length < 2 || !tripHistory.complete;
-  if (yearly.length >= 2 && tripHistory.complete) {
-    renderYearOverYear(reservations, yearly);
+  const showYears = yearly.length >= 2 && tripHistory.complete;
+  $("yoy-container").hidden = !showYears;
+  $("per-aar").hidden = !showYears;
+  if (showYears) {
+    // Mer enn tre år i samme diagram blir søyleskog. Resten ligger bak knappen
+    // og i tabellen under.
+    const toggle = $("yoy-toggle");
+    toggle.hidden = yearly.length <= 3;
+    toggle.setAttribute("aria-pressed", String(yoyShowAll));
+    toggle.textContent = yoyShowAll ? "Vis siste tre år" : "Vis alle år";
+    renderYearOverYear(reservations, yoyShowAll ? yearly : yearly.slice(-3));
+    renderYearTable(yearSummaries(reservations));
   } else {
     destroyChart("yoy");
     $("yoy-legend").replaceChildren();
+    $("year-table-body").replaceChildren();
   }
 
   // Rolling 3-month average
@@ -823,6 +854,59 @@ function renderTrends(reservations) {
     $("seasonal-container").hidden = true;
     destroyChart("seasonal");
   }
+}
+
+// Tilstand som skal overleve opptegningen hvert par sekunder under synk.
+let yoyShowAll = false;
+let yearTableSort = { key: "year", dir: "asc" };
+
+$("yoy-toggle").addEventListener("click", () => {
+  yoyShowAll = !yoyShowAll;
+  renderTrends(allReservations);
+});
+
+// Første klikk på en tallkolonne viser de største først, som er det man
+// leter etter. År starter med det eldste. Neste klikk snur.
+$("year-table").addEventListener("click", (e) => {
+  const btn = e.target.closest(".year-table__sort");
+  if (!btn) return;
+  const key = btn.dataset.key;
+  if (yearTableSort.key === key) {
+    yearTableSort = { key, dir: yearTableSort.dir === "asc" ? "desc" : "asc" };
+  } else {
+    yearTableSort = { key, dir: key === "year" ? "asc" : "desc" };
+  }
+  renderYearTable(yearSummaries(allReservations));
+});
+
+function renderYearTable(summaries) {
+  const table = $("year-table");
+  for (const btn of table.querySelectorAll(".year-table__sort")) {
+    const sorted = btn.dataset.key === yearTableSort.key;
+    const order = yearTableSort.dir === "asc" ? "ascending" : "descending";
+    btn.closest("th").setAttribute("aria-sort", sorted ? order : "none");
+  }
+
+  const rows = sortYearSummaries(summaries, yearTableSort.key, yearTableSort.dir).map((y) => {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.scope = "row";
+    th.textContent = String(y.year);
+    const cells = [
+      formatKm.format(y.trips),
+      y.km > 0 ? formatKm.format(y.km) : "–",
+      formatNOK.format(y.total),
+      formatNOK.format(y.avgPerTrip),
+      y.perKm == null ? "–" : formatFixedDecimal.format(y.perKm),
+    ].map((text) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      return td;
+    });
+    tr.append(th, ...cells);
+    return tr;
+  });
+  $("year-table-body").replaceChildren(...rows);
 }
 
 function renderYearOverYear(reservations, yearly) {

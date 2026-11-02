@@ -28,7 +28,7 @@ Bildene viser ekte bruk, unntatt Turkategorier og Transport, som viser demodata.
 
 ### Dashboard
 
-![Kostnader per måned og per år](skjermbilder/seksjon-kostnader.png)
+![Kostnader per måned, i år hittil, snitt per år og dyreste år](skjermbilder/seksjon-kostnader.png)
 
 ![Bruksmønster: turer per ukedag og klokkeslett, og mest brukte biler](skjermbilder/seksjon-bruksmonster.png)
 
@@ -36,7 +36,7 @@ Bildene viser ekte bruk, unntatt Turkategorier og Transport, som viser demodata.
 
 ![Kilometer per måned og per bil](skjermbilder/seksjon-kilometer.png)
 
-![Trender: år mot år, glidende snitt og sesong](skjermbilder/seksjon-trender.png)
+![Trender: år mot år, glidende snitt, sesong og tabell per år](skjermbilder/seksjon-trender.png)
 
 ![Bilregnestykket: bildeling mot å eie en Volvo EX40](skjermbilder/seksjon-bilregnestykket.png)
 
