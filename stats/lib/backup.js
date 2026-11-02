@@ -7,7 +7,7 @@
  * denne installasjonen og gir ingen mening i en annen.
  */
 
-import { CATEGORIES, normalizeTripCategories, normalizeUserKeywords } from "./categories.js";
+import { DEFAULT_CATEGORIES, LEGACY_CATEGORIES, normalizeTripCategories, normalizeUserKeywords } from "./categories.js";
 import { TRANSPORT_MODES } from "./transport.js";
 
 export const BACKUP_FORMAT = "bildeleringen-stats-backup";
@@ -115,7 +115,7 @@ export function parseBackup(raw) {
     return parseParts(raw);
   }
   // Nøkkelordeksporten er bare { kategori: [ord] }.
-  if (Object.keys(raw).length > 0 && Object.keys(raw).every((key) => Object.hasOwn(CATEGORIES, key))) {
+  if (Object.keys(raw).length > 0 && Object.keys(raw).every((key) => (Object.hasOwn(DEFAULT_CATEGORIES, key) || Object.hasOwn(LEGACY_CATEGORIES, key)))) {
     return parseParts({ userKeywords: raw });
   }
   return { error: "Filen er ikke en sikkerhetskopi." };

@@ -35,7 +35,7 @@ import { formatNOK, formatSyncPhrase } from "../lib/formatters.js";
 import { estimateOwnershipCost, homeOrganizationId, COMPARISON_CAR, OWNERSHIP_METHOD } from "../lib/ownership-cost.js";
 
 import {
-  CATEGORIES,
+  DEFAULT_CATEGORIES,
   loadCategories,
   saveCategory,
   saveCategories,
@@ -1179,7 +1179,7 @@ const tripCheck = { filter: "check", shown: TRIP_PAGE_SIZE };
 const formatTripDate = new Intl.DateTimeFormat("nb-NO", {
   day: "numeric", month: "short", year: "numeric",
 });
-const CATEGORY_OPTIONS = Object.entries(CATEGORIES)
+const CATEGORY_OPTIONS = Object.entries(DEFAULT_CATEGORIES)
   .map(([key, { label }]) => ({ key, label }))
   .sort((a, b) => a.label.localeCompare(b.label, "nb"));
 
@@ -1283,7 +1283,7 @@ function renderTripCheck(reservations, savedCategories, keywords) {
     pending.push(...left);
     acceptBtn.textContent = `Godta alle forslag (${pending.length})`;
     acceptBtn.disabled = pending.length === 0;
-    setTripStatus(`Lagret: ${CATEGORIES[select.value].label}`);
+    setTripStatus(`Lagret: ${DEFAULT_CATEGORIES[select.value].label}`);
   };
 
   $("trip-export").onclick = () => {
@@ -1356,7 +1356,7 @@ function formatCount(n, one, many) {
 // brukeren ser hvilken kategori som vinner når et notat treffer flere.
 function keywordCategoryOrder() {
   const order = Object.keys(DEFAULT_KEYWORDS);
-  for (const key of Object.keys(CATEGORIES)) {
+  for (const key of Object.keys(DEFAULT_CATEGORIES)) {
     if (!order.includes(key)) order.push(key);
   }
   return order;
@@ -1398,7 +1398,7 @@ function renderKeywordCard(reservations, userKeywords, keywords) {
     const row = document.createElement("div");
     row.className = "keyword-row";
     row.innerHTML = `
-      <label class="keyword-row__label" for="${inputId}">${escapeHtml(CATEGORIES[key].label)}</label>
+      <label class="keyword-row__label" for="${inputId}">${escapeHtml(DEFAULT_CATEGORIES[key].label)}</label>
       <input type="text" class="field" id="${inputId}" name="${key}" autocomplete="off" spellcheck="false"
         aria-describedby="${hintId}">
       <span class="keyword-row__hits" id="${hintId}">

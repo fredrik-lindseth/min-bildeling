@@ -43,7 +43,8 @@ const FUEL_KEYS = { Bensin: "GASOLINE", Diesel: "DIESEL", Elektrisitet: "ELECTRI
 // skal gi notatet (sjekkes i testen). null betyr at notatet med vilje ikke
 // treffer, så forslagslisten og treffprosenten blir realistiske.
 // `noteCategory` overstyrer for enkeltnotater, så turtypene og dermed
-// tilfeldighetene i demodataene kan stå uendret.
+// tilfeldighetene i demodataene kan stå uendret. `tag` skiller turtyper som
+// deler kategori, men velger bil og stasjon på egen måte (hytte, flyplass).
 export const DEMO_TRIP_TYPES = [
   {
     weight: 22, km: [6, 30], hours: [1, 3], category: "handletur",
@@ -54,7 +55,7 @@ export const DEMO_TRIP_TYPES = [
     notes: ["Besøk hos besteforeldre", "Bursdag hos venner", "Familiemiddag"],
   },
   {
-    weight: 7, km: [140, 360], hours: [28, 52], weekend: true, category: "hyttetur",
+    weight: 7, km: [140, 360], hours: [28, 52], weekend: true, category: "aktivitet", tag: "hytte",
     notes: ["Hyttetur", "Opp på hytta", "Fjellhelg"],
   },
   {
@@ -74,7 +75,7 @@ export const DEMO_TRIP_TYPES = [
     notes: ["Kundemøte", "Kurs", "Jobbseminar"],
   },
   {
-    weight: 4, km: [25, 45], hours: [1, 3], category: "flyplass",
+    weight: 4, km: [25, 45], hours: [1, 3], category: "transport", tag: "flyplass",
     notes: ["Kjøre til flyplassen", "Hente på flyplassen"],
   },
   {
@@ -253,10 +254,10 @@ function buildReservation(rnd, spec) {
 }
 
 function pickCarIndex(rnd, type) {
-  if (type.category === "transport" && rnd.next() < 0.6) {
+  if (type.category === "transport" && !type.tag && rnd.next() < 0.6) {
     return CARS.findIndex((c) => c.category === "Varebil");
   }
-  if (type.category === "hyttetur" && rnd.next() < 0.6) {
+  if (type.tag === "hytte" && rnd.next() < 0.6) {
     return rnd.pick([3, 4, 5]);
   }
   return CARS.indexOf(rnd.weighted(CARS));
@@ -345,7 +346,7 @@ export function generateDemoReservations({ seed = DEMO_SEED, now = new Date() } 
 
   const stationFor = (type) => {
     // Hytteturer og flyplassturer starter fra en av de faste stasjonene.
-    if (type.category === "hyttetur" || type.category === "flyplass") return STATIONS[rnd.int(0, 1)];
+    if (type.tag === "hytte" || type.tag === "flyplass") return STATIONS[rnd.int(0, 1)];
     return rnd.weighted(STATIONS);
   };
 
